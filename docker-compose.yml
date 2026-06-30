@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - cartographe_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:////app/data/cartographe.db
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+    restart: unless-stopped
+
+  # Décommenter pour passer à PostgreSQL :
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_DB: cartographe
+  #     POSTGRES_USER: cartographe
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+  #   volumes:
+  #     - pg_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+volumes:
+  cartographe_data:
+  # pg_data:

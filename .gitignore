@@ -1,0 +1,17 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/cartographe.db
+backend/.env
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Divers
+.DS_Store
+*.log
+cartographe_frontend_phase3/
+UIUXpro max.md
