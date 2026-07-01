@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 import enum
@@ -28,6 +28,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     nom = Column(String, nullable=False)
+    prenom = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    avatar = Column(Text, nullable=True)   # base64 data URL
     hashed_password = Column(String, nullable=False)
     role = Column(SAEnum(UserRole), default=UserRole.member, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -45,6 +48,9 @@ class Project(Base):
     description = Column(Text, default="")
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     visibility = Column(SAEnum(ProjectVisibility), default=ProjectVisibility.private)
+    color = Column(String, default="#6366F1", nullable=True)
+    icon  = Column(String, default="Network", nullable=True)
+    logo  = Column(Text, nullable=True)   # base64 data URL
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
@@ -64,6 +70,19 @@ class ProjectMember(Base):
 
     project = relationship("Project", back_populates="members")
     user = relationship("User", back_populates="memberships")
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token = Column(String, unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", backref="reset_tokens")
 
 
 class Snapshot(Base):

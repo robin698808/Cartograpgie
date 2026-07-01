@@ -18,13 +18,23 @@ def get_project_or_404(project_id: int, db: Session) -> models.Project:
     return project
 
 
-def check_project_access(project: models.Project, user: models.User, need_editor: bool = False):
-    """Vérifie que l'utilisateur a accès au projet."""
+def check_project_access(
+    project: models.Project,
+    user: models.User,
+    need_editor: bool = False,
+    need_owner: bool = False,
+):
+    """Vérifie que l'utilisateur a accès au projet.
+    - need_owner  : réservé au owner du projet (ou admin global)
+    - need_editor : interdit aux viewers projet (ou admin global)
+    """
     if user.role == models.UserRole.admin:
-        return  # admin voit tout
+        return  # admin global : accès total
     member = next((m for m in project.members if m.user_id == user.id), None)
     if not member:
         raise HTTPException(status_code=403, detail="Accès refusé à ce projet")
+    if need_owner and member.role != models.MemberRole.owner:
+        raise HTTPException(status_code=403, detail="Action réservée au propriétaire du projet")
     if need_editor and member.role == models.MemberRole.viewer:
         raise HTTPException(status_code=403, detail="Droits insuffisants (lecture seule)")
 
@@ -69,10 +79,16 @@ def create_project(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
+    # Rôle viewer global : lecture seule, ne peut pas créer de projet
+    if current_user.role == models.UserRole.viewer:
+        raise HTTPException(status_code=403, detail="Les lecteurs ne peuvent pas créer de projet")
     project = models.Project(
         nom=project_in.nom,
         description=project_in.description or "",
         visibility=project_in.visibility,
+        color=project_in.color or "#6366F1",
+        icon=project_in.icon or "Network",
+        logo=project_in.logo,
         owner_id=current_user.id,
     )
     db.add(project)
@@ -123,7 +139,8 @@ def update_project(
     current_user: models.User = Depends(auth.get_current_user),
 ):
     project = get_project_or_404(project_id, db)
-    check_project_access(project, current_user, need_editor=True)
+    # Modifier les métadonnées du projet : owner uniquement
+    check_project_access(project, current_user, need_owner=True)
     for field, value in project_in.model_dump(exclude_none=True).items():
         setattr(project, field, value)
     db.commit()
@@ -167,7 +184,7 @@ def invite_member(
     current_user: models.User = Depends(auth.get_current_user),
 ):
     project = get_project_or_404(project_id, db)
-    check_project_access(project, current_user, need_editor=True)
+    check_project_access(project, current_user, need_owner=True)
 
     target = db.query(models.User).filter(models.User.email == invite.email).first()
     if not target:
@@ -188,6 +205,27 @@ def invite_member(
     return member
 
 
+@router.patch("/{project_id}/members/{user_id}", response_model=schemas.MemberOut)
+def update_member_role(
+    project_id: int,
+    user_id: int,
+    payload: schemas.MemberRoleUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    project = get_project_or_404(project_id, db)
+    check_project_access(project, current_user, need_owner=True)
+    member = next((m for m in project.members if m.user_id == user_id), None)
+    if not member:
+        raise HTTPException(status_code=404, detail="Membre introuvable")
+    if member.role == models.MemberRole.owner:
+        raise HTTPException(status_code=400, detail="Impossible de modifier le rôle du propriétaire")
+    member.role = payload.role
+    db.commit()
+    db.refresh(member)
+    return member
+
+
 @router.delete("/{project_id}/members/{user_id}", status_code=204)
 def remove_member(
     project_id: int,
@@ -196,7 +234,7 @@ def remove_member(
     current_user: models.User = Depends(auth.get_current_user),
 ):
     project = get_project_or_404(project_id, db)
-    check_project_access(project, current_user, need_editor=True)
+    check_project_access(project, current_user, need_owner=True)
     member = next((m for m in project.members if m.user_id == user_id), None)
     if not member:
         raise HTTPException(status_code=404, detail="Membre introuvable")

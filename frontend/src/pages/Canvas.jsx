@@ -1,173 +1,177 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getLatestSnapshot, saveSnapshot, getProjects } from '../api/client';
 import { useAuth } from '../api/AuthContext';
+import { LogoMark } from '../components/Logo';
+
+const CanvasApp = lazy(() => import('../canvas/CanvasApp'));
+
+function initials(nom) {
+  if (!nom) return '?';
+  return nom.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
 
 export default function Canvas() {
   const { projectId } = useParams();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const iframeRef = useRef(null);
-  const [project, setProject] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState(null);
-  const [presence, setPresence] = useState([]);
-  const wsRef = useRef(null);
-  const autoSaveRef = useRef(null);
+  const { user }      = useAuth();
+  const navigate      = useNavigate();
+  const wsRef         = useRef(null);
+  const canvasStateRef = useRef(null);
 
-  const snapshotRef = useRef(null);
+  const [project,         setProject]         = useState(null);
+  const [saving,          setSaving]          = useState(false);
+  const [lastSaved,       setLastSaved]       = useState(null);
+  const [presence,        setPresence]        = useState([]);
+  const [initialSnapshot, setInitialSnapshot] = useState(null);
+  const [wsMessage,       setWsMessage]       = useState(null);
+  // Suit le thème du canvas pour adapter la barre de contexte
+  const [canvasDark,      setCanvasDark]      = useState(true);
 
-  // Charger le projet + snapshot initial
+  /* Charger projet + snapshot */
   useEffect(() => {
     const load = async () => {
-      const projects = await getProjects();
-      const proj = projects.data.find((p) => p.id === parseInt(projectId));
+      const res  = await getProjects();
+      const proj = res.data.find((p) => p.id === parseInt(projectId));
       setProject(proj);
-
       try {
         const snap = await getLatestSnapshot(projectId);
-        snapshotRef.current = snap.data;
-      } catch {
-        // Pas de snapshot = canvas vierge, OK
-      }
+        setInitialSnapshot(snap.data);
+      } catch { /* canvas vierge */ }
     };
     load();
   }, [projectId]);
 
-  // WebSocket collaboration
+  /* WebSocket */
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const ws = new WebSocket(`ws://localhost:8000/ws/${projectId}?token=${token}`);
+    const ws    = new WebSocket(`ws://localhost:8001/ws/${projectId}?token=${token}`);
     wsRef.current = ws;
-
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
-      if (msg.type === 'presence_init' || msg.type === 'user_joined' || msg.type === 'user_left') {
-        setPresence(msg.presence || []);
-      }
-      // Relayer les mises à jour canvas à l'iframe
-      if (['apps_update', 'flows_update', 'dom_colors_update'].includes(msg.type)) {
-        iframeRef.current?.contentWindow.postMessage(msg, '*');
-      }
+      if (['presence_init','user_joined','user_left'].includes(msg.type)) setPresence(msg.presence || []);
+      if (['apps_update','flows_update','dom_colors_update'].includes(msg.type)) setWsMessage(msg);
     };
-
-    ws.onerror = () => console.log('WS non disponible (normal en dev sans HTTPS)');
-
+    ws.onerror = () => {};
     return () => ws.close();
   }, [projectId]);
 
-  // Écouter les messages de l'iframe (modifications canvas + CANVAS_READY)
-  useEffect(() => {
-    const handler = (e) => {
-      if (!e.data?.type) return;
-      const { type, payload } = e.data;
+  const handleCanvasSave = useCallback((state) => { canvasStateRef.current = state; }, []);
 
-      // Canvas signale qu'il est prêt → on envoie le snapshot
-      if (type === 'CANVAS_READY') {
-        if (snapshotRef.current) {
-          iframeRef.current?.contentWindow.postMessage({
-            type: 'LOAD_SNAPSHOT',
-            payload: snapshotRef.current,
-          }, '*');
-        }
-        return;
-      }
-
-      // Canvas nous envoie son état → on le relaie via WS
-      if (type === 'CANVAS_UPDATE' && wsRef.current?.readyState === 1) {
-        wsRef.current.send(JSON.stringify({ type: payload.updateType, payload }));
-      }
-      // Canvas demande une sauvegarde manuelle
-      if (type === 'SAVE_REQUEST') {
-        handleSave(payload);
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
-
-  // Auto-save toutes les 30 secondes
-  useEffect(() => {
-    autoSaveRef.current = setInterval(() => {
-      iframeRef.current?.contentWindow.postMessage({ type: 'REQUEST_STATE' }, '*');
-    }, 30000);
-    return () => clearInterval(autoSaveRef.current);
-  }, []);
-
-  const handleSave = async (state) => {
+  const handleSave = useCallback(async () => {
+    const state = canvasStateRef.current;
     if (!state) return;
     setSaving(true);
     try {
       await saveSnapshot(projectId, {
-        apps: state.apps || [],
-        flows: state.flows || [],
+        apps:       state.apps      || [],
+        flows:      state.flows     || [],
         dom_colors: state.domColors || {},
-        label: 'Auto-save',
+        label:      'Auto-save',
       });
       setLastSaved(new Date());
     } finally {
       setSaving(false);
     }
-  };
+  }, [projectId]);
 
-  const manualSave = () => {
-    iframeRef.current?.contentWindow.postMessage({ type: 'REQUEST_STATE' }, '*');
-  };
+  useEffect(() => {
+    const timer = setInterval(handleSave, 30000);
+    return () => clearInterval(timer);
+  }, [handleSave]);
+
+  const others = presence.filter((p) => p.user_id !== user?.id);
+
+  // Styles adaptatifs selon le thème du canvas
+  const ctxBg    = canvasDark ? 'rgba(13,13,26,0.92)'   : 'rgba(255,255,255,0.92)';
+  const ctxBd    = canvasDark ? '#22224A'                : '#E0E7FF';
+  const ctxText  = canvasDark ? '#C8C8F0'                : '#1E1B4B';
+  const ctxMuted = canvasDark ? '#6060A0'                : '#64748B';
+  const btnStyle = canvasDark
+    ? { background:'#1A1A35', color:'#C8C8F0', border:'1px solid #2A2A50' }
+    : { background:'#fff',    color:'#3D3A6E', border:'1px solid #E0E7FF' };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#08080F' }}>
-      {/* Barre de contexte projet */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px',
-        borderBottom: '1px solid #1A1A30', background: '#0A0A18', flexShrink: 0,
-        zIndex: 10,
-      }}>
-        <button onClick={() => navigate('/')} style={{
-          background: 'transparent', border: '1px solid #2A2A44', borderRadius: 8,
-          color: '#9090B8', padding: '5px 12px', fontSize: 12, cursor: 'pointer',
-        }}>← Projets</button>
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh' }}>
 
-        <span style={{ color: '#6B6B9A', fontSize: 13 }}>|</span>
-        <span style={{ color: '#EEEEF8', fontSize: 14, fontWeight: 600 }}>
-          {project?.nom || 'Chargement...'}
+      {/* ── Context bar — s'adapte au thème sombre/clair du canvas ── */}
+      <div style={{
+        display:'flex', alignItems:'center', gap:10, padding:'7px 14px', flexShrink:0,
+        background: ctxBg,
+        backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)',
+        borderBottom:`1px solid ${ctxBd}`,
+        zIndex:10,
+      }}>
+        <button onClick={() => navigate('/')} style={{ ...btnStyle, display:'flex', alignItems:'center', gap:6, padding:'4px 10px', borderRadius:6, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
+          <LogoMark size={16} />
+          <span>Projets</span>
+        </button>
+
+        <span style={{ color: ctxMuted, fontSize:16, fontWeight:300 }}>/</span>
+
+        <span style={{ fontSize:13, fontWeight:600, color: ctxText, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:200 }} title={project?.nom}>
+          {project?.nom || '—'}
         </span>
 
-        {/* Présence */}
-        {presence.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8 }}>
-            {presence.filter((p) => p.user_id !== user?.id).map((p) => (
-              <div key={p.user_id} style={{
-                background: '#6366F1', borderRadius: 20, padding: '3px 10px',
-                fontSize: 11, color: '#fff', fontWeight: 600,
-              }}>👤 {p.nom}</div>
+        {project?.visibility === 'team' && (
+          <span style={{ background:'rgba(99,102,241,0.15)', color:'#818CF8', border:'1px solid rgba(99,102,241,0.2)', borderRadius:999, padding:'2px 8px', fontSize:9, fontWeight:700, letterSpacing:'0.06em' }}>Équipe</span>
+        )}
+
+        <button onClick={() => navigate(`/projects/${projectId}/admin`)} style={{ ...btnStyle, padding:'4px 10px', borderRadius:6, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }} title="Gérer les membres">
+          ⚙️ Membres
+        </button>
+
+        {others.length > 0 && (
+          <div style={{ display:'flex', alignItems:'center', marginLeft:4 }}>
+            {others.slice(0, 5).map((p) => (
+              <div key={p.user_id} title={p.nom} style={{ width:22, height:22, borderRadius:'50%', background:'linear-gradient(135deg,#6366F1,#8B5CF6)', color:'#fff', fontSize:9, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', border:`2px solid ${ctxBg}`, marginLeft:-6 }}>
+                {initials(p.nom)}
+              </div>
             ))}
+            {others.length > 5 && <span style={{ fontSize:11, color:ctxMuted, marginLeft:8 }}>+{others.length - 5}</span>}
           </div>
         )}
 
-        {/* Sauvegarde */}
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-          {lastSaved && (
-            <span style={{ color: '#4A4A6A', fontSize: 11 }}>
-              ✓ Sauvegardé à {lastSaved.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginLeft:'auto' }}>
+          {saving ? (
+            <span style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:ctxMuted }}>
+              <span style={{ width:6, height:6, borderRadius:'50%', background:'currentColor', display:'inline-block' }} /> Sauvegarde…
+            </span>
+          ) : lastSaved ? (
+            <span style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color: canvasDark ? '#4CAF50' : '#059669' }}>
+              <span style={{ width:6, height:6, borderRadius:'50%', background:'currentColor', display:'inline-block' }} />
+              Sauvegardé {lastSaved.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' })}
+            </span>
+          ) : (
+            <span style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:ctxMuted }}>
+              <span style={{ width:6, height:6, borderRadius:'50%', background:'currentColor', display:'inline-block' }} /> Non sauvegardé
             </span>
           )}
-          <button onClick={manualSave} disabled={saving} style={{
-            background: saving ? '#2A2A44' : 'linear-gradient(135deg, #6366F1, #8B5CF6)',
-            border: 'none', borderRadius: 8, color: '#fff',
-            padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-          }}>
-            {saving ? '💾 Sauvegarde...' : '💾 Sauvegarder'}
+          <button onClick={handleSave} disabled={saving} style={{ background:'linear-gradient(135deg,#6366F1,#8B5CF6)', color:'#fff', border:'none', padding:'6px 14px', borderRadius:6, fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontFamily:'inherit', opacity: saving ? 0.5 : 1 }}>
+            {saving ? <span style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#fff', borderRadius:'50%', display:'inline-block', animation:'_spin 0.6s linear infinite' }} /> : '💾'} Sauvegarder
           </button>
         </div>
       </div>
 
-      {/* Canvas iframe — charge ton HTML standalone existant */}
-      <iframe
-        ref={iframeRef}
-        src="/canvas/cartographe.html"
-        style={{ flex: 1, border: 'none', width: '100%' }}
-        title="Canvas cartographique"
-      />
+      {/* ── Canvas ── */}
+      <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        <Suspense fallback={
+          <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#08080F', gap:16 }}>
+            <div style={{ width:40, height:40, borderRadius:10, background:'linear-gradient(135deg,#6366F1,#8B5CF6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>🗺️</div>
+            <div style={{ color:'#9090B8', fontSize:13 }}>Chargement de la cartographie…</div>
+            <div style={{ width:160, height:3, background:'#1A1A30', borderRadius:4, overflow:'hidden' }}>
+              <div style={{ height:'100%', background:'linear-gradient(90deg,#6366F1,#8B5CF6)', borderRadius:4 }} />
+            </div>
+          </div>
+        }>
+          <CanvasApp
+            initialSnapshot={initialSnapshot}
+            onSave={handleCanvasSave}
+            wsMessage={wsMessage}
+            projectId={projectId}
+            onThemeChange={setCanvasDark}
+          />
+        </Suspense>
+      </div>
     </div>
   );
 }

@@ -25,15 +25,37 @@ class UserUpdate(BaseModel):
     nom: Optional[str] = None
     email: Optional[EmailStr] = None
 
+class UserProfileUpdate(BaseModel):
+    nom: Optional[str] = None
+    prenom: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    avatar: Optional[str] = None        # base64 data URL
+    current_password: Optional[str] = None
+    new_password: Optional[str] = None
+
+class UserRoleUpdate(BaseModel):
+    role: UserRole
+
 class UserOut(BaseModel):
     id: int
     email: str
     nom: str
+    prenom: Optional[str] = None
+    phone: Optional[str] = None
+    avatar: Optional[str] = None
     role: UserRole
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
 
 
 # ─── Project ─────────────────────────────────────────────────────────────────
@@ -42,17 +64,26 @@ class ProjectCreate(BaseModel):
     nom: str
     description: Optional[str] = ""
     visibility: Optional[ProjectVisibility] = ProjectVisibility.private
+    color: Optional[str] = "#6366F1"
+    icon: Optional[str] = "Network"
+    logo: Optional[str] = None
 
 class ProjectUpdate(BaseModel):
     nom: Optional[str] = None
     description: Optional[str] = None
     visibility: Optional[ProjectVisibility] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
+    logo: Optional[str] = None
 
 class ProjectOut(BaseModel):
     id: int
     nom: str
     description: str
     visibility: ProjectVisibility
+    color: Optional[str] = "#6366F1"
+    icon: Optional[str] = "Network"
+    logo: Optional[str] = None
     owner_id: int
     owner: UserOut
     created_at: datetime
@@ -69,6 +100,9 @@ class ProjectOut(BaseModel):
 class MemberInvite(BaseModel):
     email: EmailStr
     role: MemberRole = MemberRole.editor
+
+class MemberRoleUpdate(BaseModel):
+    role: MemberRole
 
 class MemberOut(BaseModel):
     id: int
