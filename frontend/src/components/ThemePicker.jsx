@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Palette } from 'lucide-react';
 import { THEMES, applyTheme, buildThemeFromAccent } from '../utils/themes';
 
 export default function ThemePicker() {
@@ -43,9 +44,9 @@ export default function ThemePicker() {
         onClick={() => setOpen(o => !o)}
         className="btn btn-s btn-sm"
         title="Personnaliser les couleurs"
-        style={{ fontSize: 16, padding: '4px 8px', lineHeight: 1 }}
       >
-        🎨
+        <Palette size={13} strokeWidth={1.8} />
+        Custom
       </button>
 
       {/* Panel */}

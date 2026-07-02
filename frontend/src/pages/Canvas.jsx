@@ -1,8 +1,9 @@
-import { useEffect, useState, useRef, useCallback, lazy, Suspense } from 'react';
+import { useEffect, useState, useRef, useLayoutEffect, useCallback, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getLatestSnapshot, saveSnapshot, getProjects } from '../api/client';
 import { useAuth } from '../api/AuthContext';
 import { LogoMark } from '../components/Logo';
+import ProfileModal from '../components/ProfileModal';
 
 const CanvasApp = lazy(() => import('../canvas/CanvasApp'));
 
@@ -26,6 +27,15 @@ export default function Canvas() {
   const [wsMessage,       setWsMessage]       = useState(null);
   // Suit le thème du canvas pour adapter la barre de contexte
   const [canvasDark,      setCanvasDark]      = useState(true);
+  const [showProfile,     setShowProfile]     = useState(false);
+  const [topOffset,       setTopOffset]       = useState(0);
+  const ctxBarRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (ctxBarRef.current) {
+      setTopOffset(ctxBarRef.current.getBoundingClientRect().height);
+    }
+  }, []);
 
   /* Charger projet + snapshot */
   useEffect(() => {
@@ -94,7 +104,7 @@ export default function Canvas() {
     <div style={{ display:'flex', flexDirection:'column', height:'100vh' }}>
 
       {/* ── Context bar — s'adapte au thème sombre/clair du canvas ── */}
-      <div style={{
+      <div ref={ctxBarRef} style={{
         display:'flex', alignItems:'center', gap:10, padding:'7px 14px', flexShrink:0,
         background: ctxBg,
         backdropFilter:'blur(10px)', WebkitBackdropFilter:'blur(10px)',
@@ -102,7 +112,6 @@ export default function Canvas() {
         zIndex:10,
       }}>
         <button onClick={() => navigate('/')} style={{ ...btnStyle, display:'flex', alignItems:'center', gap:6, padding:'4px 10px', borderRadius:6, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
-          <LogoMark size={16} />
           <span>Projets</span>
         </button>
 
@@ -149,8 +158,22 @@ export default function Canvas() {
           <button onClick={handleSave} disabled={saving} style={{ background:'linear-gradient(135deg,#6366F1,#8B5CF6)', color:'#fff', border:'none', padding:'6px 14px', borderRadius:6, fontSize:12, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:6, fontFamily:'inherit', opacity: saving ? 0.5 : 1 }}>
             {saving ? <span style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#fff', borderRadius:'50%', display:'inline-block', animation:'_spin 0.6s linear infinite' }} /> : '💾'} Sauvegarder
           </button>
+          <div onClick={() => setShowProfile(true)} title="Modifier mon profil"
+            style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:6, padding:'2px 6px', borderRadius:6, border:`1px solid ${ctxBd}`, transition:'background 0.12s' }}
+            onMouseEnter={e => e.currentTarget.style.background = canvasDark ? '#1A1A35' : '#F1F5F9'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            {user?.avatar
+              ? <img src={user.avatar} alt="avatar" style={{ width:24, height:24, borderRadius:'50%', objectFit:'cover', border:`1.5px solid ${ctxBd}` }} />
+              : <div style={{ width:24, height:24, borderRadius:'50%', background:'linear-gradient(135deg,#6366F1,#8B5CF6)', color:'#fff', fontSize:9, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>{initials(user?.nom)}</div>
+            }
+            <span style={{ fontSize:12, fontWeight:500, color:ctxText, maxWidth:100, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {user?.prenom ? `${user.prenom} ${user.nom}` : user?.nom}
+            </span>
+          </div>
         </div>
       </div>
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
       {/* ── Canvas ── */}
       <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
@@ -169,6 +192,7 @@ export default function Canvas() {
             wsMessage={wsMessage}
             projectId={projectId}
             onThemeChange={setCanvasDark}
+            topOffset={topOffset}
           />
         </Suspense>
       </div>

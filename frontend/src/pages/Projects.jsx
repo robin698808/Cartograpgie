@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProjects, createProject, deleteProject, updateProject } from '../api/client';
 import { useAuth } from '../api/AuthContext';
@@ -6,7 +6,7 @@ import { LogoMark } from '../components/Logo';
 import ProfileModal from '../components/ProfileModal';
 import ThemePicker from '../components/ThemePicker';
 import ProjectAppearancePicker, { getIconComponent } from '../components/ProjectAppearancePicker';
-import { Settings2, Users, Trash2, FolderOpen, Share2, Save, UserCheck } from 'lucide-react';
+import { Settings2, Users, Trash2, FolderOpen, Share2, Save, UserCheck, Search, X, ArrowUpDown } from 'lucide-react';
 
 function initials(nom) {
   if (!nom) return '?';
@@ -28,10 +28,25 @@ export default function Projects() {
   const [form, setForm]               = useState(DEFAULT_FORM);
   const [creating, setCreating]       = useState(false);
   const [createError, setCreateError] = useState('');
-  const [editProject, setEditProject] = useState(null); // project being colour/icon edited
+  const [editProject, setEditProject] = useState(null);
+  const [search,      setSearch]      = useState('');
+  const [filterVis,   setFilterVis]   = useState('');   // '' | 'private' | 'team'
+  const [sortBy,      setSortBy]      = useState('updated_desc');
   const { user, logout }              = useAuth();
   const navigate                      = useNavigate();
   const [showProfile, setShowProfile] = useState(false);
+  const STAT_DEFAULTS = [
+    { gradient: 'linear-gradient(135deg,#6366F1,#818CF8)', glow: 'rgba(99,102,241,0.18)'   },
+    { gradient: 'linear-gradient(135deg,#0891B2,#22D3EE)', glow: 'rgba(8,145,178,0.18)'    },
+    { gradient: 'linear-gradient(135deg,#059669,#34D399)', glow: 'rgba(5,150,105,0.18)'    },
+    { gradient: 'linear-gradient(135deg,#D97706,#FCD34D)', glow: 'rgba(217,119,6,0.18)'    },
+  ];
+  const [statColors,  setStatColors]  = useState(() => {
+    try { return JSON.parse(localStorage.getItem('carto_statbar_colors')) || STAT_DEFAULTS; }
+    catch { return STAT_DEFAULTS; }
+  });
+  const [statBarMenu, setStatBarMenu] = useState(null); // { x, y }
+  const statBarMenuRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,10 +57,33 @@ export default function Projects() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') { setShowCreate(false); setEditProject(null); } };
+    const onKey = (e) => { if (e.key === 'Escape') { setShowCreate(false); setEditProject(null); setStatBarMenu(null); } };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  useEffect(() => {
+    if (!statBarMenu) return;
+    const handler = (e) => {
+      if (statBarMenuRef.current && !statBarMenuRef.current.contains(e.target)) setStatBarMenu(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [statBarMenu]);
+
+  const applyStatColor = (idx, hex) => {
+    const next = statColors.map((c, i) => i === idx
+      ? { gradient: `linear-gradient(135deg,${hex},${hex}CC)`, glow: `${hex}30` }
+      : c
+    );
+    setStatColors(next);
+    localStorage.setItem('carto_statbar_colors', JSON.stringify(next));
+  };
+
+  const resetStatColors = () => {
+    setStatColors(STAT_DEFAULTS);
+    localStorage.removeItem('carto_statbar_colors');
+  };
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -78,25 +116,45 @@ export default function Projects() {
   const totalMembers  = projects.reduce((s, p) => s + (p.member_count  || 0), 0);
   const teamProjects  = projects.filter(p => p.visibility === 'team').length;
 
+  const SORT_OPTIONS = [
+    { id: 'updated_desc', label: 'Modifié récemment' },
+    { id: 'updated_asc',  label: 'Modifié ancien'    },
+    { id: 'created_desc', label: 'Créé récemment'    },
+    { id: 'created_asc',  label: 'Créé ancien'       },
+    { id: 'name_asc',     label: 'Nom A → Z'         },
+    { id: 'name_desc',    label: 'Nom Z → A'         },
+  ];
+
+  const filtered = projects
+    .filter(p => !search    || p.nom.toLowerCase().includes(search.toLowerCase()))
+    .filter(p => !filterVis || p.visibility === filterVis)
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name_asc':     return a.nom.localeCompare(b.nom);
+        case 'name_desc':    return b.nom.localeCompare(a.nom);
+        case 'created_asc':  return new Date(a.created_at) - new Date(b.created_at);
+        case 'created_desc': return new Date(b.created_at) - new Date(a.created_at);
+        case 'updated_asc':  return new Date(a.updated_at) - new Date(b.updated_at);
+        default:             return new Date(b.updated_at) - new Date(a.updated_at);
+      }
+    });
+
+  const hasFilters = search || filterVis || sortBy !== 'updated_desc';
+  const resetFilters = () => { setSearch(''); setFilterVis(''); setSortBy('updated_desc'); };
+
   return (
     <div className="page va">
 
       {/* ── Header ── */}
       <header className="header">
-        <div className="brand">
-          <LogoMark size={34} />
-          <span className="brand-name">Cartographe</span>
-        </div>
+        <div />
 
         <div className="row g3">
           <ThemePicker />
           {user?.role === 'admin' && (
-            <>
-              <span className="badge badge-ad caps">Admin</span>
-              <button onClick={() => navigate('/admin/users')} className="btn btn-s btn-sm">
-                🛡️ Utilisateurs
-              </button>
-            </>
+            <button onClick={() => navigate('/admin/users')} className="btn btn-s btn-sm">
+              🛡️ Utilisateurs
+            </button>
           )}
           <div className="row g2" onClick={() => setShowProfile(true)}
             style={{ cursor: 'pointer' }} title="Modifier mon profil">
@@ -104,7 +162,16 @@ export default function Projects() {
               ? <img src={user.avatar} alt="avatar" style={{ width:28, height:28, borderRadius:'50%', objectFit:'cover', border:'2px solid var(--border)' }} />
               : <div className="av av-sm">{initials(user?.nom)}</div>
             }
-            <span className="f13 t2 w5">{user?.prenom ? `${user.prenom} ${user.nom}` : user?.nom}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span className="f13 t2 w5">{user?.prenom ? `${user.prenom} ${user.nom}` : user?.nom}</span>
+              <span style={{
+                fontSize: 10, fontWeight: 600, lineHeight: 1,
+                color: user?.role === 'admin' ? 'var(--accent)' : user?.role === 'member' ? '#0891B2' : '#64748B',
+                textTransform: 'capitalize',
+              }}>
+                {user?.role === 'admin' ? 'Admin' : user?.role === 'member' ? 'Membre' : 'Lecteur'}
+              </span>
+            </div>
           </div>
           <button onClick={logout} className="btn btn-s btn-sm">Déconnexion</button>
         </div>
@@ -117,7 +184,9 @@ export default function Projects() {
           <div>
             <h1 className="f28 w8 t1 ls-tight" style={{ marginBottom: 4 }}>Mes projets</h1>
             <p className="f13 t3">
-              {loading ? 'Chargement…' : `${projects.length} projet${projects.length !== 1 ? 's' : ''} de cartographie`}
+              {loading ? 'Chargement…' : hasFilters
+                ? `${filtered.length} / ${projects.length} projet${projects.length !== 1 ? 's' : ''}`
+                : `${projects.length} projet${projects.length !== 1 ? 's' : ''} de cartographie`}
             </p>
           </div>
           <button onClick={() => setShowCreate(true)} className="btn btn-p">
@@ -127,56 +196,151 @@ export default function Projects() {
 
         {/* Stats bar */}
         {!loading && projects.length > 0 && (
-          <div className="stat-bar">
-            <StatItem
-              icon={<FolderOpen size={18} strokeWidth={1.7} />}
-              gradient="linear-gradient(135deg,#6366F1,#818CF8)"
-              glow="rgba(99,102,241,0.18)"
-              value={projects.length}
-              label="Projets actifs"
-            />
+          <div
+            className="stat-bar"
+            onContextMenu={e => { e.preventDefault(); setStatBarMenu({ x: e.clientX, y: e.clientY }); }}
+            title="Clic droit pour personnaliser les couleurs"
+          >
+            <StatItem icon={<FolderOpen size={18} strokeWidth={1.7} />} gradient={statColors[0].gradient} glow={statColors[0].glow} value={projects.length}  label="Projets actifs"        />
             <div className="stat-sep" />
-            <StatItem
-              icon={<Share2 size={18} strokeWidth={1.7} />}
-              gradient="linear-gradient(135deg,#0891B2,#22D3EE)"
-              glow="rgba(8,145,178,0.18)"
-              value={teamProjects}
-              label="Projets partagés"
-            />
+            <StatItem icon={<Share2 size={18} strokeWidth={1.7} />}     gradient={statColors[1].gradient} glow={statColors[1].glow} value={teamProjects}       label="Projets partagés"      />
             <div className="stat-sep" />
-            <StatItem
-              icon={<Save size={18} strokeWidth={1.7} />}
-              gradient="linear-gradient(135deg,#059669,#34D399)"
-              glow="rgba(5,150,105,0.18)"
-              value={totalVersions}
-              label="Versions sauvegardées"
-            />
+            <StatItem icon={<Save size={18} strokeWidth={1.7} />}       gradient={statColors[2].gradient} glow={statColors[2].glow} value={totalVersions}      label="Versions sauvegardées" />
             <div className="stat-sep" />
-            <StatItem
-              icon={<UserCheck size={18} strokeWidth={1.7} />}
-              gradient="linear-gradient(135deg,#D97706,#FCD34D)"
-              glow="rgba(217,119,6,0.18)"
-              value={totalMembers}
-              label="Membres au total"
-            />
+            <StatItem icon={<UserCheck size={18} strokeWidth={1.7} />}  gradient={statColors[3].gradient} glow={statColors[3].glow} value={totalMembers}       label="Membres au total"      />
+          </div>
+        )}
+
+        {/* Stat bar context menu */}
+        {statBarMenu && (
+          <div ref={statBarMenuRef} style={{
+            position: 'fixed', left: statBarMenu.x, top: statBarMenu.y,
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 'var(--r4)', boxShadow: 'var(--s4)',
+            padding: '14px 16px', zIndex: 500, minWidth: 240,
+          }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+              Couleur des icônes
+            </p>
+            {[
+              { idx: 0, label: 'Projets actifs'        },
+              { idx: 1, label: 'Projets partagés'      },
+              { idx: 2, label: 'Versions sauvegardées' },
+              { idx: 3, label: 'Membres au total'      },
+            ].map(({ idx, label }) => {
+              // extract first colour from current gradient as hex for the picker
+              const match = statColors[idx].gradient.match(/#[0-9a-fA-F]{6}/);
+              const hex   = match ? match[0] : '#6366F1';
+              return (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 6, background: statColors[idx].gradient, flexShrink: 0 }} />
+                  <span style={{ flex: 1, fontSize: 12, color: 'var(--t2)' }}>{label}</span>
+                  <input
+                    type="color"
+                    value={hex}
+                    onChange={e => applyStatColor(idx, e.target.value)}
+                    style={{ width: 28, height: 28, border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', padding: 2, background: 'none' }}
+                  />
+                </div>
+              );
+            })}
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 8 }}>
+              <button onClick={() => { resetStatColors(); setStatBarMenu(null); }} className="btn btn-s btn-sm" style={{ width: '100%', justifyContent: 'center' }}>
+                Réinitialiser
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Toolbar recherche & filtres ── */}
+        {!loading && projects.length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+            marginBottom: 20,
+          }}>
+            {/* Search */}
+            <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 180, maxWidth: 320 }}>
+              <Search size={14} color="var(--t4)" strokeWidth={1.8} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <input
+                className="inp"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Rechercher un projet…"
+                style={{ paddingLeft: 32, fontSize: 13, height: 36 }}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t4)', padding: 2, display: 'flex' }}>
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
+            {/* Visibility filter */}
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[
+                { id: '',        label: 'Tous'    },
+                { id: 'private', label: '🔒 Privé'  },
+                { id: 'team',    label: '👥 Équipe'  },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  onClick={() => setFilterVis(id)}
+                  className={filterVis === id ? 'btn btn-p btn-sm' : 'btn btn-s btn-sm'}
+                  style={{ fontSize: 12 }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Sort */}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <ArrowUpDown size={13} color="var(--t3)" strokeWidth={1.8} style={{ position: 'absolute', left: 10, pointerEvents: 'none' }} />
+              <select
+                className="inp"
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                style={{ paddingLeft: 28, fontSize: 12, height: 36, paddingRight: 28, cursor: 'pointer' }}
+              >
+                {SORT_OPTIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </select>
+            </div>
+
+            {/* Reset */}
+            {hasFilters && (
+              <button onClick={resetFilters} className="btn btn-s btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--error)' }}>
+                <X size={12} /> Réinitialiser
+              </button>
+            )}
           </div>
         )}
 
         {/* Grid */}
         {loading ? <SkeletonGrid /> : projects.length === 0 ? (
           <EmptyState onCreate={() => setShowCreate(true)} />
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--t4)' }}>
+            <Search size={32} strokeWidth={1.2} style={{ marginBottom: 12, opacity: 0.4 }} />
+            <p className="f14 w6 t3" style={{ marginBottom: 6 }}>Aucun projet ne correspond</p>
+            <p className="f12 t4">Modifiez vos filtres ou <button onClick={resetFilters} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 'inherit', padding: 0 }}>réinitialisez la recherche</button></p>
+          </div>
         ) : (
           <div className="pg">
-            {projects.map((p) => (
-              <ProjectCard
-                key={p.id}
-                project={p}
-                onOpen={() => navigate(`/canvas/${p.id}`)}
-                onAdmin={() => navigate(`/projects/${p.id}/admin`)}
-                onDelete={() => handleDelete(p.id, p.nom)}
-                onEditAppearance={() => setEditProject({ ...p })}
-              />
-            ))}
+            {filtered.map((p) => {
+              const canDelete = user?.role === 'admin' || p.owner_id === user?.id;
+              return (
+                <ProjectCard
+                  key={p.id}
+                  project={p}
+                  onOpen={() => navigate(`/canvas/${p.id}`)}
+                  onAdmin={() => navigate(`/projects/${p.id}/admin`)}
+                  onDelete={() => handleDelete(p.id, p.nom)}
+                  onEditAppearance={() => setEditProject({ ...p })}
+                  canDelete={canDelete}
+                  canEditAppearance={canDelete}
+                />
+              );
+            })}
           </div>
         )}
       </div>
@@ -298,7 +462,7 @@ export default function Projects() {
 }
 
 /* ── Project Card ─────────────────────────────────────────────────── */
-function ProjectCard({ project, onOpen, onDelete, onAdmin, onEditAppearance }) {
+function ProjectCard({ project, onOpen, onDelete, onAdmin, onEditAppearance, canDelete, canEditAppearance }) {
   const color   = project.color  || '#6366F1';
   const Icon    = getIconComponent(project.icon);
   const isTeam  = project.visibility === 'team';
@@ -346,36 +510,40 @@ function ProjectCard({ project, onOpen, onDelete, onAdmin, onEditAppearance }) {
 
         {/* Actions */}
         <div className="row g1" onClick={e => e.stopPropagation()} style={{ flexShrink: 0, marginTop: 2 }}>
-          <button
-            onClick={onEditAppearance}
-            title="Couleur & icône"
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: 4, borderRadius: 'var(--r2)', color: 'var(--t4)',
-              display: 'flex', alignItems: 'center',
-              transition: 'color 0.12s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = color}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--t4)'}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
-              <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
-              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
-            </svg>
-          </button>
+          {canEditAppearance && (
+            <button
+              onClick={onEditAppearance}
+              title="Couleur & icône"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: 4, borderRadius: 'var(--r2)', color: 'var(--t4)',
+                display: 'flex', alignItems: 'center',
+                transition: 'color 0.12s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = color}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--t4)'}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+                <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+              </svg>
+            </button>
+          )}
           <button onClick={onAdmin} title="Membres"
             style={{ background:'none', border:'none', cursor:'pointer', padding:4, borderRadius:'var(--r2)', color:'var(--t4)', display:'flex', alignItems:'center', transition:'color 0.12s' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
             onMouseLeave={e => e.currentTarget.style.color = 'var(--t4)'}>
             <Users size={14} />
           </button>
-          <button onClick={onDelete} title="Supprimer"
-            style={{ background:'none', border:'none', cursor:'pointer', padding:4, borderRadius:'var(--r2)', color:'var(--t4)', display:'flex', alignItems:'center', transition:'color 0.12s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--error)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--t4)'}>
-            <Trash2 size={14} />
-          </button>
+          {canDelete && (
+            <button onClick={onDelete} title="Supprimer"
+              style={{ background:'none', border:'none', cursor:'pointer', padding:4, borderRadius:'var(--r2)', color:'var(--t4)', display:'flex', alignItems:'center', transition:'color 0.12s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--error)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--t4)'}>
+              <Trash2 size={14} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -396,7 +564,9 @@ function ProjectCard({ project, onOpen, onDelete, onAdmin, onEditAppearance }) {
         <span className="mla row g2">
           <span className="f11 t4">Modifié {timeAgo(project.updated_at)}</span>
           {project.owner?.nom && (
-            <div className="av av-xs" title={project.owner.nom}>{initials(project.owner.nom)}</div>
+            project.owner.avatar
+              ? <img src={project.owner.avatar} alt={project.owner.nom} title={project.owner.nom} style={{ width:20, height:20, borderRadius:'50%', objectFit:'cover', border:'1.5px solid var(--border)', flexShrink:0 }} />
+              : <div className="av av-xs" title={project.owner.nom}>{initials(project.owner.nom)}</div>
           )}
         </span>
       </div>

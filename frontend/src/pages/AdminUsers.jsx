@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getUsers, updateUserRole, deleteUser } from '../api/client';
 import { useAuth } from '../api/AuthContext';
 import { LogoMark } from '../components/Logo';
+import ProfileModal from '../components/ProfileModal';
 import {
   Users, ShieldCheck, UserCheck, Search, ChevronLeft,
   Crown, UserCog, Trash2, Calendar, Mail, ArrowUpDown,
@@ -26,11 +27,12 @@ const ROLE_CONFIG = {
 export default function AdminUsers() {
   const [users,   setUsers]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState('');
-  const [toast,   setToast]   = useState(null);
-  const [sortAsc, setSortAsc] = useState(true);
-  const { user: me, logout }  = useAuth();
-  const navigate              = useNavigate();
+  const [search,      setSearch]      = useState('');
+  const [toast,       setToast]       = useState(null);
+  const [sortAsc,     setSortAsc]     = useState(true);
+  const [showProfile, setShowProfile] = useState(false);
+  const { user: me, logout }          = useAuth();
+  const navigate                      = useNavigate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,7 +93,6 @@ export default function AdminUsers() {
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
             <ChevronLeft size={14} strokeWidth={2} />
-            <LogoMark size={18} />
             <span>Projets</span>
           </button>
           <span className="ctx-sep">/</span>
@@ -104,10 +105,18 @@ export default function AdminUsers() {
           </span>
         </div>
         <div className="row g3">
-          <span className="f13 t3 w5">{me?.nom}</span>
+          <div className="row g2" onClick={() => setShowProfile(true)}
+            style={{ cursor: 'pointer' }} title="Modifier mon profil">
+            {me?.avatar
+              ? <img src={me.avatar} alt="avatar" style={{ width:28, height:28, borderRadius:'50%', objectFit:'cover', border:'2px solid var(--border)' }} />
+              : <div className="av av-sm">{initials(me?.nom)}</div>
+            }
+            <span className="f13 t2 w5">{me?.prenom ? `${me.prenom} ${me.nom}` : me?.nom}</span>
+          </div>
           <button onClick={logout} className="btn btn-s btn-sm">Déconnexion</button>
         </div>
       </header>
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
       <div className="container">
 
@@ -250,7 +259,7 @@ function UserCard({ user, isMe, onRoleChange, onDelete }) {
       {/* Main row */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr auto auto auto',
+        gridTemplateColumns: '1fr 130px 150px 100px',
         alignItems: 'center',
         gap: 16, padding: '14px 18px',
       }}>
@@ -334,7 +343,7 @@ function UserCard({ user, isMe, onRoleChange, onDelete }) {
             </button>
           </div>
         ) : (
-          <div style={{ width: 80 }} />
+          <div />
         )}
       </div>
 

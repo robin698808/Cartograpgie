@@ -103,13 +103,34 @@ function Sidebar(){
   ];
   return <div className="sidebar" style={{width:W,height:"100vh",background:T.bgAlt,borderRight:"1px solid "+T.border,display:"flex",flexDirection:"column",flexShrink:0,overflow:"hidden",zIndex:200}}>
     <div style={{padding:"14px 10px",display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid "+T.border,flexShrink:0}}>
-      <div style={{width:32,height:32,background:"linear-gradient(135deg,#6366F1,#8B5CF6)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 0 12px #6366F140"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg></div>
-      {sidebarOpen&&<div>
-        <div style={{fontSize:12,fontWeight:800,color:T.fg,letterSpacing:"-0.02em",lineHeight:1}}>Cartographe</div>
-        <div style={{fontSize:11,color:T.fgMuted,letterSpacing:"0.04em"}}>V11</div>
-      </div>}
-      <div style={{flex:1}}/>
-      <button onClick={function(){setSidebarOpen(function(p){return !p;});}} style={{background:"none",border:"none",color:T.fgMuted,cursor:"pointer",padding:4,fontSize:13,lineHeight:1,flexShrink:0}}>{sidebarOpen?"←":"→"}</button>
+      <div onClick={function(){setSidebarOpen(function(p){return !p;});}} title={sidebarOpen?"Réduire":"Agrandir"} style={{width:32,height:32,background:"linear-gradient(135deg,#6366F1,#8B5CF6)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,boxShadow:"0 0 12px #6366F140",cursor:"pointer",transition:"opacity 0.15s"}} onMouseEnter={function(e){e.currentTarget.style.opacity="0.8";}} onMouseLeave={function(e){e.currentTarget.style.opacity="1";}}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Central hub */}
+          <circle cx="12" cy="12" r="2.8" fill="white"/>
+          {/* Outer nodes */}
+          <circle cx="12"  cy="4.5" r="1.6" fill="white" opacity="0.9"/>
+          <circle cx="18.7" cy="8.2" r="1.6" fill="white" opacity="0.9"/>
+          <circle cx="18.7" cy="15.8" r="1.6" fill="white" opacity="0.9"/>
+          <circle cx="12"  cy="19.5" r="1.6" fill="white" opacity="0.9"/>
+          <circle cx="5.3" cy="15.8" r="1.6" fill="white" opacity="0.9"/>
+          <circle cx="5.3" cy="8.2" r="1.6" fill="white" opacity="0.9"/>
+          {/* Spokes */}
+          <line x1="12" y1="9.2"  x2="12"   y2="6.1"  stroke="white" strokeWidth="1.3" opacity="0.55"/>
+          <line x1="14.4" y1="10.6" x2="17.3" y2="9"  stroke="white" strokeWidth="1.3" opacity="0.55"/>
+          <line x1="14.4" y1="13.4" x2="17.3" y2="15" stroke="white" strokeWidth="1.3" opacity="0.55"/>
+          <line x1="12" y1="14.8" x2="12"   y2="17.9" stroke="white" strokeWidth="1.3" opacity="0.55"/>
+          <line x1="9.6" y1="13.4" x2="6.7"  y2="15" stroke="white" strokeWidth="1.3" opacity="0.55"/>
+          <line x1="9.6" y1="10.6" x2="6.7"  y2="9"  stroke="white" strokeWidth="1.3" opacity="0.55"/>
+          {/* Cross-links (ring) */}
+          <line x1="12" y1="4.5" x2="18.7" y2="8.2"  stroke="white" strokeWidth="0.8" opacity="0.3"/>
+          <line x1="18.7" y1="8.2" x2="18.7" y2="15.8" stroke="white" strokeWidth="0.8" opacity="0.3"/>
+          <line x1="18.7" y1="15.8" x2="12"  y2="19.5" stroke="white" strokeWidth="0.8" opacity="0.3"/>
+          <line x1="12"  y1="19.5" x2="5.3"  y2="15.8" stroke="white" strokeWidth="0.8" opacity="0.3"/>
+          <line x1="5.3" y1="15.8" x2="5.3"  y2="8.2"  stroke="white" strokeWidth="0.8" opacity="0.3"/>
+          <line x1="5.3" y1="8.2"  x2="12"   y2="4.5"  stroke="white" strokeWidth="0.8" opacity="0.3"/>
+        </svg>
+      </div>
+      {sidebarOpen&&<div style={{fontSize:12,fontWeight:800,color:T.fg,letterSpacing:"-0.02em",lineHeight:1}}>Cartographe</div>}
     </div>
     <div style={{flex:1,overflowY:"auto",padding:"8px 6px"}}>
       {NAV.map(function(n){
@@ -136,7 +157,7 @@ function Sidebar(){
 // ═══ APP CONTEXT ═══
 var AppCtx=React.createContext(null);
 
-function App({ initialSnapshot, onSave, wsMessage, projectId, onThemeChange }) {
+function App({ initialSnapshot, onSave, wsMessage, projectId, onThemeChange, topOffset = 0 }) {
   var _stateKey = projectId ? "carto_state_" + projectId : "carto_state";
   var snapshotApplied = useRef(false);
   var _tk=useState(function(){try{return localStorage.getItem("carto_theme")||"dark";}catch(e){return "dark";}});
@@ -184,6 +205,8 @@ function App({ initialSnapshot, onSave, wsMessage, projectId, onThemeChange }) {
   const [eFlow,setEFlow]=useState(null);
   const [showFM,setShowFM]=useState(false);
   const cvRef=useRef(null);
+  const toolbarRef=useRef(null);
+  const [toolbarH,setToolbarH]=useState(48);
   const [off,setOff]=useState(function(){
     try{var s=localStorage.getItem(_stateKey);if(s){var d=JSON.parse(s);if(d.off)return d.off;}}catch(e){}return{x:0,y:0};
   });
@@ -263,6 +286,16 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       }));
     }catch(e){}
   },[apps,flows,off,zm,domColors,domPads,view]);
+
+  useEffect(()=>{
+    if(!toolbarRef.current)return;
+    const obs=new ResizeObserver(entries=>{
+      for(const e of entries)setToolbarH(Math.ceil(e.contentRect.height)+16);
+    });
+    obs.observe(toolbarRef.current);
+    setToolbarH(Math.ceil(toolbarRef.current.getBoundingClientRect().height));
+    return()=>obs.disconnect();
+  },[]);
 
   const [ctxMenu,setCtxMenu]=useState(null); // {x,y,type,target} for right-click menus
   const [presMode,setPresMode]=useState(false);
@@ -2571,19 +2604,106 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     const [fProto,setFProto]=useState("");
     const [fFreq,setFFreq]=useState("");
     const [fDesc,setFDesc]=useState("");
+    const [showFlxFilter,setShowFlxFilter]=useState(false);
+    const [activeDomain,setActiveDomain]=useState(null);
+    const [chartTip,setChartTip]=useState(null); // {x,y,label,val,pct}
+    const [quickFilter,setQuickFilter]=useState(""); // "" | "critiques"
+    const [hovSlice,setHovSlice]=useState(null); // {id,idx}
+    const [statusFilter,setStatusFilter]=useState(""); // filter domain table by app status
+    const clearTip=function(){setChartTip(null);};
+    const hexToRgbCo=function(hex){var r=parseInt(hex.slice(1,3),16)||102,g=parseInt(hex.slice(3,5),16)||102,b=parseInt(hex.slice(5,7),16)||102;return r+","+g+","+b;};
     const toggleSection=(id)=>setHiddenSections(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
-    const SECTION_LABELS={"charts":"Graphiques","carveout":"Trajectoires D1/D2","flowreg":"Registre des flux"};
-    const ALL_SECTIONS=["charts","carveout","flowreg"];
-    const [dashOrder,setDashOrder]=useState(function(){try{var s=localStorage.getItem("dash_order");if(s)return JSON.parse(s);}catch(e){}return ALL_SECTIONS;});
-    const saveDashOrder=(o)=>{setDashOrder(o);try{localStorage.setItem("dash_order",JSON.stringify(o));}catch(e){}};
-    const moveSection=(id,dir)=>{
-      const o=[...dashOrder];
-      const i=o.indexOf(id);if(i<0)return;
-      const ni=i+dir;if(ni<0||ni>=o.length)return;
-      [o[i],o[ni]]=[o[ni],o[i]];
-      saveDashOrder(o);
-    };
-    const [editMode,setEditMode]=useState(false);
+    const ALL_WIDGETS=["chart_status","chart_apps","chart_flux","chart_owner","carveout","flowreg"];
+    const DEFAULT_SIZES={chart_status:"m",chart_apps:"m",chart_flux:"m",chart_owner:"m",carveout:"l",flowreg:"l"};
+    const [widgetSizes,setWidgetSizes]=useState(function(){try{var s=localStorage.getItem("dash_sizes");if(s)return Object.assign({},DEFAULT_SIZES,JSON.parse(s));}catch(e){}return Object.assign({},DEFAULT_SIZES);});
+    const saveWidgetSizes=(sz)=>{setWidgetSizes(sz);try{localStorage.setItem("dash_sizes",JSON.stringify(sz));}catch(e){}};
+    const [hovWid,setHovWid]=useState(null);
+    const [hiddenWidgets,setHiddenWidgets]=useState([]);
+    const [widgetPos,setWidgetPos]=useState(function(){try{var s=localStorage.getItem("dash_pos");if(s)return JSON.parse(s);}catch(e){}return{};});
+    const saveWidgetPos=function(p){setWidgetPos(p);try{localStorage.setItem("dash_pos",JSON.stringify(p));}catch(e){}};
+    const [dragInfo,setDragInfo]=useState(null);
+    const [wZIndex,setWZIndex]=useState({});
+    const [zCounter,setZCounter]=useState(100);
+    // Refs pour éviter les stale closures dans les listeners document
+    const dragInfoRef=useRef(null);
+    const widgetPosRef=useRef(widgetPos);
+    useEffect(function(){widgetPosRef.current=widgetPos;},[widgetPos]);
+    useEffect(function(){
+      if(!dragInfo){document.body.style.cursor="";document.body.style.userSelect="";return;}
+      dragInfoRef.current=dragInfo;
+      var onMove=function(e){
+        var info=dragInfoRef.current;if(!info)return;
+        var np=Object.assign({},widgetPosRef.current);
+        np[info.id]={x:Math.max(0,e.clientX-info.ox),y:Math.max(0,e.clientY-info.oy)};
+        widgetPosRef.current=np;
+        setWidgetPos(function(){return np;});
+      };
+      var onUp=function(){
+        saveWidgetPos(widgetPosRef.current);
+        setDragInfo(null);dragInfoRef.current=null;
+        document.body.style.cursor="";document.body.style.userSelect="";
+        document.removeEventListener("mousemove",onMove,true);
+        document.removeEventListener("mouseup",onUp,true);
+      };
+      document.body.style.cursor="grabbing";
+      document.body.style.userSelect="none";
+      document.addEventListener("mousemove",onMove,true);
+      document.addEventListener("mouseup",onUp,true);
+      return function(){
+        document.removeEventListener("mousemove",onMove,true);
+        document.removeEventListener("mouseup",onUp,true);
+        document.body.style.cursor="";document.body.style.userSelect="";
+      };
+    },[dragInfo]);
+    // Resize gauche & droite — même pattern que dragInfo
+    const [resizeInfo,setResizeInfo]=useState(null);
+    const resizeInfoRef=useRef(null);
+    useEffect(function(){
+      if(!resizeInfo){document.body.style.cursor="";return;}
+      resizeInfoRef.current=resizeInfo;
+      var isHoriz=resizeInfo.side==="left"||resizeInfo.side==="right";
+      var onMove=function(e){
+        var info=resizeInfoRef.current;if(!info)return;
+        var np=Object.assign({},widgetPosRef.current);
+        var cur=np[info.id]||getDefaultPos(info.id);
+        if(info.side==="right"){
+          var dx=e.clientX-info.startX;
+          np[info.id]=Object.assign({},cur,{w:Math.max(240,info.startW+dx)});
+        } else if(info.side==="left"){
+          var dx2=e.clientX-info.startX;
+          var newW=Math.max(240,info.startW-dx2);
+          np[info.id]=Object.assign({},cur,{w:newW,x:Math.max(0,info.startPosX+(info.startW-newW))});
+        } else if(info.side==="bottom"){
+          var dy=e.clientY-info.startY;
+          np[info.id]=Object.assign({},cur,{h:Math.max(120,info.startH+dy)});
+        } else if(info.side==="top"){
+          var dy2=e.clientY-info.startY;
+          var newH=Math.max(120,info.startH-dy2);
+          np[info.id]=Object.assign({},cur,{h:newH,y:Math.max(0,info.startPosY+(info.startH-newH))});
+        }
+        widgetPosRef.current=np;
+        setWidgetPos(function(){return np;});
+      };
+      var onUp=function(){
+        saveWidgetPos(widgetPosRef.current);
+        setResizeInfo(null);resizeInfoRef.current=null;
+        document.body.style.cursor="";
+        document.removeEventListener("mousemove",onMove,true);
+        document.removeEventListener("mouseup",onUp,true);
+      };
+      document.body.style.cursor=isHoriz?"ew-resize":"ns-resize";
+      document.addEventListener("mousemove",onMove,true);
+      document.addEventListener("mouseup",onUp,true);
+      return function(){
+        document.removeEventListener("mousemove",onMove,true);
+        document.removeEventListener("mouseup",onUp,true);
+        document.body.style.cursor="";
+      };
+    },[resizeInfo]);
+    const [expandedWidget,setExpandedWidget]=useState(null);
+    const CHART_TYPES_DEF={chart_status:"donut",chart_apps:"bar",chart_flux:"bar",chart_owner:"donut"};
+    const [chartTypes,setChartTypes]=useState(Object.assign({},CHART_TYPES_DEF));
+    const setChartType=function(id,t){setChartTypes(function(p){return Object.assign({},p,{[id]:t});});};
     const dm=[...new Set(apps.map(a=>a.domain))];
     const st=dm.map(d=>{const da=apps.filter(a=>a.domain===d);const df=flows.filter(f=>{const fa=apps.find(a=>a.id===f.from);const ta=apps.find(a=>a.id===f.to);return fa?.domain===d||ta?.domain===d;});return{domain:d,count:da.length,flows:df.length,critical:da.filter(a=>a.criticality==="Haute").length,apps:da};});
     const tot=apps.length,totF=flows.length,totC=apps.filter(a=>a.criticality==="Haute").length;
@@ -2591,248 +2711,766 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     const mtx={};flows.forEach(f=>{const fd=apps.find(a=>a.id===f.from)?.domain,td=apps.find(a=>a.id===f.to)?.domain;if(fd&&td)mtx[fd+"→"+td]=(mtx[fd+"→"+td]||0)+1;});
     const SectionHdr=({id,title,extra})=>{
       const hidden=hiddenSections.includes(id);
-      const idx=dashOrder.indexOf(id);
       return <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:hidden?0:16}}>
         <h3 style={{fontSize:14,fontWeight:700,margin:0,cursor:"pointer",display:"flex",alignItems:"center",gap:6}} onClick={()=>toggleSection(id)}>
           <span style={{fontSize:10,color:T.fgDim}}>{hidden?"▶":"▼"}</span>{title}
         </h3>
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-          {extra}
-          {editMode&&<div style={{display:"flex",gap:3,alignItems:"center",marginLeft:8}}>
-            {dashOrder.includes(id)&&<><button onMouseDown={e=>{e.stopPropagation();moveSection(id,-1);}} disabled={idx===0} style={{background:"transparent",border:"1px solid "+T.border,color:idx===0?T.fgFaint:T.fg,borderRadius:3,padding:"1px 5px",fontSize:11,cursor:idx===0?"default":"pointer",lineHeight:1.4}}>▲</button>
-            <button onMouseDown={e=>{e.stopPropagation();moveSection(id,1);}} disabled={idx===dashOrder.length-1} style={{background:"transparent",border:"1px solid "+T.border,color:idx===dashOrder.length-1?T.fgFaint:T.fg,borderRadius:3,padding:"1px 5px",fontSize:11,cursor:idx===dashOrder.length-1?"default":"pointer",lineHeight:1.4}}>▼</button></>}
-            <button onMouseDown={e=>{e.stopPropagation();toggleSection(id);}} style={{background:hidden?"#F59E0B22":"transparent",border:"1px solid "+(hidden?"#F59E0B":T.border),color:hidden?"#F59E0B":T.fg,borderRadius:3,padding:"1px 6px",fontSize:10,cursor:"pointer",lineHeight:1.4}}>{hidden?"Show":"Hide"}</button>
-          </div>}
-        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>{extra}</div>
       </div>;
     };
-    return <div style={{padding:32,maxWidth:1200,margin:"0 auto"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:32}}><div><h2 style={{fontSize:24,fontWeight:700,margin:0}}>Dashboard Interfaces</h2><p style={{color:T.fgMuted,fontSize:13,marginTop:4}}>Vue d'ensemble des domaines et flux applicatifs</p></div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setEditMode(e=>!e)} style={{background:editMode?"#F59E0B22":T.bgAlt,border:"1px solid "+(editMode?"#F59E0B":T.border),color:editMode?"#F59E0B":T.fg,borderRadius:5,padding:"6px 14px",fontSize:11,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
-            <span>{editMode?"✓":"⊞"}</span>{editMode?"Terminer":"Réorganiser"}
+    var buildArcs=function(slices,total,cx,cy,r,ir){
+      var cum=0;
+      return slices.map(function(sl,i){
+        var sa=cum/total*Math.PI*2-Math.PI/2;cum+=sl.value;var ea=cum/total*Math.PI*2-Math.PI/2;
+        var mid=(sa+ea)/2;
+        var x1=cx+r*Math.cos(sa),y1=cy+r*Math.sin(sa),x2=cx+r*Math.cos(ea),y2=cy+r*Math.sin(ea);
+        var ix1=cx+ir*Math.cos(sa),iy1=cy+ir*Math.sin(sa),ix2=cx+ir*Math.cos(ea),iy2=cy+ir*Math.sin(ea);
+        var lg=sl.value/total>0.5?1:0;
+        var d=ir===0
+          ?("M "+cx+" "+cy+" L "+x1+" "+y1+" A "+r+" "+r+" 0 "+lg+" 1 "+x2+" "+y2+" Z")
+          :("M"+ix1+" "+iy1+" L"+x1+" "+y1+" A"+r+" "+r+" 0 "+lg+" 1 "+x2+" "+y2+" L"+ix2+" "+iy2+" A"+ir+" "+ir+" 0 "+lg+" 0 "+ix1+" "+iy1);
+        return{d:d,color:sl.color,name:sl.name,pct:Math.round(sl.value/total*100),value:sl.value,mid:mid,idx:i};
+      });
+    };
+    var mkChartSwitch=function(id,extraOpts){
+      var cur=chartTypes[id]||"donut";
+      var opts=[{k:"donut",label:"Donut"},{k:"pie",label:"Camembert"},{k:"bar",label:"Histogramme"},{k:"area",label:"Aires"}].concat(extraOpts||[]);
+      return <select
+        value={cur}
+        onClick={function(e){e.stopPropagation();}}
+        onChange={function(e){e.stopPropagation();setChartType(id,e.target.value);}}
+        style={{
+          background:"rgba(0,0,0,0.55)",
+          color:"#fff",
+          border:"1px solid rgba(255,255,255,0.25)",
+          borderRadius:5,
+          padding:"3px 6px",
+          fontSize:10,
+          cursor:"pointer",
+          backdropFilter:"blur(4px)",
+          outline:"none",
+          marginRight:4,
+          appearance:"auto",
+        }}
+      >
+        {opts.map(function(o){return <option key={o.k} value={o.k} style={{background:"#1A1A35",color:"#fff"}}>{o.label}</option>;})}
+      </select>;
+    };
+    var ALL_WIDGETS_LIST=["chart_status","chart_apps","chart_flux","chart_owner","carveout","flowreg"];
+    var getDefaultPos=function(id){
+      var idx=ALL_WIDGETS_LIST.indexOf(id);
+      var col=idx%2; var row=Math.floor(idx/2);
+      return{x:col*520+16, y:row*400+16};
+    };
+    var getWidgetW=function(id){var size=widgetSizes[id]||DEFAULT_SIZES[id]||"m";return{s:340,m:500,l:1020}[size]||500;};
+    const wrapWidget=function(id,accentColor,title,extraHeader,content,chartSwitcher){
+      if(hiddenWidgets.includes(id))return null;
+      var isExpanded=expandedWidget===id;
+      var size=widgetSizes[id]||DEFAULT_SIZES[id]||"m";
+      var isHov=hovWid===id||isExpanded;
+      var pos=widgetPos[id]||getDefaultPos(id);
+      var ww=(pos&&pos.w)||getWidgetW(id);
+      var wh=(pos&&pos.h)||undefined;
+      var resolvedContent=typeof content==="function"?content(isExpanded,ww,wh):content;
+      if(isExpanded){
+        return <div key={id} style={{position:"fixed",inset:0,zIndex:9900,background:T.bg,overflow:"auto",display:"flex",flexDirection:"column"}}
+          onMouseEnter={function(){setHovWid(id);}}
+          onMouseLeave={function(){setHovWid(null);}}>
+          {/* Controls overlay */}
+          <div style={{position:"fixed",top:16,right:16,zIndex:9910,display:"flex",gap:3,alignItems:"center"}}>
+            {chartSwitcher}
+            <button onClick={function(e){e.stopPropagation();setExpandedWidget(null);}}
+              style={{background:"rgba(0,0,0,0.6)",border:"1px solid rgba(255,255,255,0.25)",borderRadius:4,padding:"4px 10px",fontSize:14,cursor:"pointer",color:"#fff",backdropFilter:"blur(4px)"}}
+              title="Réduire">⊡</button>
+          </div>
+          <div style={{padding:32,flex:1,display:"flex",flexDirection:"column"}}>
+            {resolvedContent}
+          </div>
+        </div>;
+      }
+      var isResizing=resizeInfo&&resizeInfo.id===id;
+      var rSide=isResizing?resizeInfo.side:"";
+      var hlColor=function(side){return rSide===side?"#6366F1":(accentColor||"rgba(255,255,255,0.32)");};
+      var hlGlow=function(side){return rSide===side?"0 0 8px #6366F1":"none";};
+      var hlOp=function(side){return(isHov||rSide===side)?1:0;};
+      return <div key={id} data-wid={id} style={{
+        position:"absolute",
+        left:pos.x, top:pos.y,
+        width:ww,
+        height:wh,
+        zIndex:wZIndex[id]||10,
+        borderRadius:14,
+        outline:dragInfo&&dragInfo.id===id?"2px solid #6366F1":"2px solid transparent",
+        outlineOffset:3,
+        opacity:dragInfo&&dragInfo.id===id?0.85:1,
+        cursor:dragInfo&&dragInfo.id===id?"grabbing":"default",
+        userSelect:"none",
+      }}
+        onMouseDown={function(){
+          var nz=zCounter+1; setZCounter(nz); setWZIndex(function(p){return Object.assign({},p,{[id]:nz});});
+        }}
+        onMouseEnter={function(){setHovWid(id);}}
+        onMouseLeave={function(){setHovWid(null);}}
+      >
+        {/* Drag handle */}
+        <div onMouseDown={function(e){
+          e.preventDefault(); e.stopPropagation();
+          var rect=e.currentTarget.closest('[data-wid]').getBoundingClientRect();
+          setDragInfo({id:id,ox:e.clientX-rect.left,oy:e.clientY-rect.top});
+          var nz=zCounter+1; setZCounter(nz); setWZIndex(function(p){return Object.assign({},p,{[id]:nz});});
+        }} style={{position:"absolute",top:12,left:12,zIndex:20,opacity:isHov?0.75:0,transition:"opacity 0.12s",pointerEvents:isHov?"all":"none",cursor:"grab",background:"rgba(0,0,0,0.45)",borderRadius:4,padding:"3px 5px",fontSize:13,color:"#fff",userSelect:"none",lineHeight:1,backdropFilter:"blur(4px)"}}
+          title="Déplacer">⣿</div>
+        {/* Controls */}
+        <div style={{position:"absolute",top:12,right:12,zIndex:20,display:"flex",gap:3,alignItems:"center",opacity:isHov?1:0,transition:"opacity 0.12s",pointerEvents:isHov?"all":"none"}}>
+          {chartSwitcher}
+          {[{k:"s",t:"Compact"},{k:"m",t:"Moyen"},{k:"l",t:"Large"}].map(function(sz){
+            var isAct=size===sz.k;
+            return <button key={sz.k} onClick={function(e){e.stopPropagation();var ns=Object.assign({},widgetSizes);ns[id]=sz.k;saveWidgetSizes(ns);}}
+              style={{background:isAct?"rgba(255,255,255,0.25)":"rgba(0,0,0,0.4)",border:"1px solid "+(isAct?"rgba(255,255,255,0.5)":"transparent"),borderRadius:4,padding:"2px 7px",fontSize:9,cursor:"pointer",color:"#fff",fontWeight:isAct?700:400,backdropFilter:"blur(4px)"}}
+              title={sz.t}>{sz.k.toUpperCase()}</button>;
+          })}
+          <button onClick={function(e){e.stopPropagation();setExpandedWidget(id);}}
+            style={{background:"rgba(0,0,0,0.4)",border:"1px solid transparent",borderRadius:4,padding:"2px 8px",fontSize:13,cursor:"pointer",color:"rgba(255,255,255,0.8)",backdropFilter:"blur(4px)"}}
+            title="Agrandir">⛶</button>
+          <button onClick={function(e){e.stopPropagation();setHiddenWidgets(function(p){return[...p,id];});}}
+            style={{background:"rgba(0,0,0,0.4)",border:"1px solid transparent",borderRadius:4,padding:"3px 7px",cursor:"pointer",color:"rgba(255,255,255,0.8)",backdropFilter:"blur(4px)",marginLeft:2,display:"flex",alignItems:"center",justifyContent:"center"}}
+            title="Masquer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <ellipse cx="12" cy="12" rx="10" ry="6.5"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
           </button>
-          {editMode&&<button onClick={()=>{saveDashOrder(ALL_SECTIONS);setHiddenSections([]);}} style={{background:"transparent",border:"1px solid "+T.border,color:T.fgMuted,borderRadius:5,padding:"6px 12px",fontSize:11,cursor:"pointer"}}>Réinitialiser</button>}
         </div>
-        <button onClick={()=>setView("mapping")} style={{...B,background:T.border}}>← Cartographie</button></div>
-      {/* KPIs */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:24}}>
-        {[{l:"Applications",v:tot,c:"#2979FF"},{l:"Interfaces",v:totF,c:"#00C853"},{l:"Domaines",v:dm.length,c:"#7C4DFF"},{l:"Critiques",v:totC,c:"#FF5252"}].map(function(k){return <div key={k.l} style={{background:T.bgCard,borderRadius:8,padding:16,borderLeft:"3px solid "+k.c}}><div style={{fontSize:26,fontWeight:700,color:k.c}}>{k.v}</div><div style={{fontSize:11,color:T.fgMuted,marginTop:4}}>{k.l}</div></div>;})}
+        {/* ── Poignée gauche ── */}
+        <div onMouseDown={function(e){e.preventDefault();e.stopPropagation();setResizeInfo({id:id,side:"left",startX:e.clientX,startW:ww,startPosX:pos.x});var nz=zCounter+1;setZCounter(nz);setWZIndex(function(p){return Object.assign({},p,{[id]:nz});});}}
+          style={{position:"absolute",top:0,left:-5,width:10,height:"100%",cursor:"ew-resize",zIndex:25,display:"flex",alignItems:"center",justifyContent:"center",opacity:hlOp("left"),transition:"opacity 0.15s"}}>
+          <div style={{width:3,height:40,borderRadius:3,background:hlColor("left"),boxShadow:hlGlow("left"),transition:"background 0.12s, box-shadow 0.12s"}}/>
+        </div>
+        {/* ── Poignée droite ── */}
+        <div onMouseDown={function(e){e.preventDefault();e.stopPropagation();setResizeInfo({id:id,side:"right",startX:e.clientX,startW:ww});var nz=zCounter+1;setZCounter(nz);setWZIndex(function(p){return Object.assign({},p,{[id]:nz});});}}
+          style={{position:"absolute",top:0,right:-5,width:10,height:"100%",cursor:"ew-resize",zIndex:25,display:"flex",alignItems:"center",justifyContent:"center",opacity:hlOp("right"),transition:"opacity 0.15s"}}>
+          <div style={{width:3,height:40,borderRadius:3,background:hlColor("right"),boxShadow:hlGlow("right"),transition:"background 0.12s, box-shadow 0.12s"}}/>
+        </div>
+        {/* ── Poignée haut ── */}
+        <div onMouseDown={function(e){e.preventDefault();e.stopPropagation();var rect=e.currentTarget.closest('[data-wid]').getBoundingClientRect();setResizeInfo({id:id,side:"top",startY:e.clientY,startH:rect.height,startPosY:pos.y});var nz=zCounter+1;setZCounter(nz);setWZIndex(function(p){return Object.assign({},p,{[id]:nz});});}}
+          style={{position:"absolute",top:-5,left:0,width:"100%",height:10,cursor:"ns-resize",zIndex:25,display:"flex",alignItems:"center",justifyContent:"center",opacity:hlOp("top"),transition:"opacity 0.15s"}}>
+          <div style={{height:3,width:40,borderRadius:3,background:hlColor("top"),boxShadow:hlGlow("top"),transition:"background 0.12s, box-shadow 0.12s"}}/>
+        </div>
+        {/* ── Poignée bas ── */}
+        <div onMouseDown={function(e){e.preventDefault();e.stopPropagation();var rect=e.currentTarget.closest('[data-wid]').getBoundingClientRect();setResizeInfo({id:id,side:"bottom",startY:e.clientY,startH:rect.height});var nz=zCounter+1;setZCounter(nz);setWZIndex(function(p){return Object.assign({},p,{[id]:nz});});}}
+          style={{position:"absolute",bottom:-5,left:0,width:"100%",height:10,cursor:"ns-resize",zIndex:25,display:"flex",alignItems:"center",justifyContent:"center",opacity:hlOp("bottom"),transition:"opacity 0.15s"}}>
+          <div style={{height:3,width:40,borderRadius:3,background:hlColor("bottom"),boxShadow:hlGlow("bottom"),transition:"background 0.12s, box-shadow 0.12s"}}/>
+        </div>
+        {/* ── Contenu (scroll si hauteur fixée) ── */}
+        {wh
+          ?<div style={{height:"100%",overflowY:"auto",overflowX:"hidden",borderRadius:12,background:T.bgCard,boxSizing:"border-box"}}>{resolvedContent}</div>
+          :resolvedContent
+        }
+      </div>;
+    };
+    return <div style={{width:"100%",padding:"24px 32px",boxSizing:"border-box"}} onMouseLeave={clearTip}>
+      {/* Tooltip flottant pour les graphiques */}
+      {chartTip&&<div style={{position:"fixed",left:chartTip.x+14,top:chartTip.y-36,background:T.bgCard,border:"1px solid "+T.border,borderRadius:6,padding:"5px 10px",fontSize:11,color:T.fg,pointerEvents:"none",zIndex:9999,boxShadow:T.shadow,whiteSpace:"nowrap"}}>
+        <span style={{fontWeight:700}}>{chartTip.label}</span>
+        {" · "}<span style={{color:T.fgMuted}}>{chartTip.val}{chartTip.pct!=null?" ("+chartTip.pct+"%)" :""}</span>
+      </div>}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+        <div><h2 style={{fontSize:24,fontWeight:700,margin:0}}>Dashboard Interfaces</h2><p style={{color:T.fgMuted,fontSize:13,marginTop:4}}>Vue d'ensemble des domaines et flux applicatifs</p></div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {hiddenWidgets.length>0&&<button onClick={function(){setHiddenWidgets([]);}} style={{background:T.bgAlt,border:"1px solid "+T.border,color:T.fg,borderRadius:5,padding:"6px 12px",fontSize:11,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            👁 Afficher ({hiddenWidgets.length})
+          </button>}
+          <button onClick={function(){saveWidgetPos({});saveWidgetSizes(Object.assign({},DEFAULT_SIZES));setHiddenWidgets([]);setWZIndex({});}} style={{background:"transparent",border:"1px solid "+T.border,color:T.fgMuted,borderRadius:5,padding:"6px 12px",fontSize:11,cursor:"pointer"}} title="Réinitialiser la disposition">↺ Reset</button>
+        </div>
       </div>
-      {/* KPIs secondaires */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(1,1fr)",gap:12,marginBottom:24}}>
-        {function(){
-          var ratio=tot>0?(totF/tot).toFixed(1):"0";
-          return [<div key="ratio" style={{background:T.bgCard,borderRadius:8,padding:16,borderLeft:"3px solid #EF6C00"}}><div style={{fontSize:22,fontWeight:700,color:"#EF6C00"}}>{ratio}</div><div style={{fontSize:11,color:T.fgMuted,marginTop:4}}>Ratio flux / app</div></div>];
-        }()}
-      </div>
+      {/* KPIs — barre horizontale unifiée */}
+      {function(){
+        var ratio=tot>0?(totF/tot).toFixed(1):"0";
+        var kpis=[
+          {l:"Applications",v:tot,c:"#2979FF",glow:"rgba(41,121,255,0.18)",icon:"▣",key:""},
+          {l:"Interfaces",v:totF,c:"#00C853",glow:"rgba(0,200,83,0.18)",icon:"⇄",key:""},
+          {l:"Domaines",v:dm.length,c:"#7C4DFF",glow:"rgba(124,77,255,0.18)",icon:"◉",key:""},
+          {l:"Critiques",v:totC,c:"#FF5252",glow:"rgba(255,82,82,0.18)",icon:"⚠",key:"critiques"},
+          {l:"Ratio flux/app",v:ratio,c:"#EF6C00",glow:"rgba(239,108,0,0.18)",icon:"∿",key:""},
+        ];
+        return <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:24}}>
+          {kpis.map(function(k){
+            var isActive=k.key&&quickFilter===k.key;
+            var clickable=!!k.key;
+            return <div key={k.l}
+              onClick={clickable?function(){setQuickFilter(function(p){return p===k.key?"":k.key;});}:undefined}
+              style={{background:T.bgCard,borderRadius:10,padding:"14px 16px",boxShadow:isActive?"0 0 0 2px "+k.c+", 0 4px 20px "+k.glow:"0 0 0 1px "+T.border+", 0 4px 16px "+k.glow,display:"flex",alignItems:"center",gap:12,transition:"box-shadow 0.15s, transform 0.1s",cursor:clickable?"pointer":"default",transform:isActive?"scale(1.02)":"scale(1)"}}>
+              <div style={{width:36,height:36,borderRadius:8,background:k.glow,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:k.c,flexShrink:0}}>{k.icon}</div>
+              <div>
+                <div style={{fontSize:22,fontWeight:700,color:k.c,lineHeight:1}}>{k.v}</div>
+                <div style={{fontSize:10,color:T.fgMuted,marginTop:3,lineHeight:1.2}}>{k.l}</div>
+              </div>
+              {isActive&&<div style={{marginLeft:"auto",fontSize:8,color:k.c,border:"1px solid "+k.c,borderRadius:4,padding:"1px 4px",fontWeight:700}}>✕</div>}
+            </div>;
+          })}
+        </div>;
+      }()}
       
-      {dashOrder.filter(sid=>!hiddenSections.includes(sid+'_hidden')).map(function(sid){
-        if(sid==="charts")return(<div key="charts">
-          {editMode&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,paddingBottom:8,borderBottom:"1px solid "+T.border}}>
-            <span style={{fontSize:12,fontWeight:700,color:T.fg}}>Graphiques</span>
-            <div style={{display:"flex",gap:4}}>
-              <button onMouseDown={e=>{e.stopPropagation();moveSection("charts",-1);}} disabled={dashOrder.indexOf("charts")===0} style={{background:"transparent",border:"1px solid "+T.border,color:dashOrder.indexOf("charts")===0?T.fgFaint:T.fg,borderRadius:3,padding:"2px 7px",fontSize:12,cursor:dashOrder.indexOf("charts")===0?"default":"pointer"}}>▲</button>
-              <button onMouseDown={e=>{e.stopPropagation();moveSection("charts",1);}} disabled={dashOrder.indexOf("charts")===dashOrder.length-1} style={{background:"transparent",border:"1px solid "+T.border,color:dashOrder.indexOf("charts")===dashOrder.length-1?T.fgFaint:T.fg,borderRadius:3,padding:"2px 7px",fontSize:12,cursor:dashOrder.indexOf("charts")===dashOrder.length-1?"default":"pointer"}}>▼</button>
-            </div>
-          </div>}
-          {/* Charts row - Pure SVG */}
-      {!hiddenSections.includes("charts")&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}>
-        {/* Donut - Statut */}
-        <div style={{background:T.bgCard,borderRadius:8,padding:16}}>
-          <SectionHdr id="chart_status" title="Répartition par statut"/>
-          {!hiddenSections.includes("chart_status")&&function(){
-            var statColors={"Maintien":"#00C853","Arrêt":"#FF5252","Standalone temporaire":"#EF6C00","Migrée":"#2979FF","Remplacée":"#7C4DFF"};
-            var slices=[];var total2=apps.length||1;
-            ["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"].forEach(function(s){
-              var n=apps.filter(function(a){return a.status===s;}).length;
-              if(n>0)slices.push({name:s,value:n,pct:Math.round(n/total2*100),color:statColors[s]||"#888"});
-            });
-            var cumul=0;
-            var paths=slices.map(function(sl){
-              var startAngle=cumul/total2*Math.PI*2-Math.PI/2;
-              cumul+=sl.value;
-              var endAngle=cumul/total2*Math.PI*2-Math.PI/2;
-              var r=60,ir=38,cx2=80,cy2=80;
-              var x1=cx2+r*Math.cos(startAngle),y1=cy2+r*Math.sin(startAngle);
-              var x2=cx2+r*Math.cos(endAngle),y2=cy2+r*Math.sin(endAngle);
-              var ix1=cx2+ir*Math.cos(startAngle),iy1=cy2+ir*Math.sin(startAngle);
-              var ix2=cx2+ir*Math.cos(endAngle),iy2=cy2+ir*Math.sin(endAngle);
-              var large=sl.value/total2>0.5?1:0;
-              var d2="M"+ix1+" "+iy1+" L"+x1+" "+y1+" A"+r+" "+r+" 0 "+large+" 1 "+x2+" "+y2+" L"+ix2+" "+iy2+" A"+ir+" "+ir+" 0 "+large+" 0 "+ix1+" "+iy1;
-              return{d:d2,color:sl.color,name:sl.name,pct:sl.pct};
-            });
-            return <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <svg width="160" height="160" viewBox="0 0 160 160">
-                {paths.map(function(p,i){return <path key={i} d={p.d} fill={p.color} opacity="0.85"/>;})}
-                <text x="80" y="78" textAnchor="middle" fill={T.fg} fontSize="20" fontWeight="700">{apps.length}</text>
-                <text x="80" y="94" textAnchor="middle" fill={T.fgMuted} fontSize="9">apps</text>
+      <div style={{position:"relative",width:"100%",minHeight:1800}}>
+      {ALL_WIDGETS_LIST.filter(function(id){return!hiddenWidgets.includes(id);}).map(function(sid){
+        if(sid==="chart_status")return wrapWidget(sid,"#00C853","Répartition par statut",null,function(isExpanded,ww,wh){
+          var SC2={"Maintien":"#00C853","Arrêt":"#FF5252","Standalone temporaire":"#EF6C00","Migrée":"#2979FF","Remplacée":"#7C4DFF"};
+          var total2=apps.length||1;var slices=[];
+          ["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"].forEach(function(s){var n=apps.filter(function(a){return a.status===s;}).length;if(n>0)slices.push({name:s,value:n,pct:Math.round(n/total2*100),color:SC2[s]||"#888"});});
+          var ctype=chartTypes[sid]||"donut";
+          var isHovSt=hovSlice&&hovSlice.id==="status";
+          var cw=ww||500;var isNarrow=!isExpanded&&cw<420;
+          var donutSz=isExpanded?320:Math.min(140,Math.max(96,cw/2.6));
+          var donutR=Math.round(donutSz*0.434);var donutIr=Math.round(donutSz*0.276);
+          var donutCx=Math.round(donutSz/2);var donutCy=Math.round(donutSz/2);
+          var svgW=isExpanded?560:Math.max(160,cw-56);var svgH=isExpanded?320:150;
+          var renderCircle=function(useHole){
+            var arcs=buildArcs(slices,total2,donutCx,donutCy,donutR,useHole?donutIr:0);
+            return <div style={{display:"flex",flexDirection:isNarrow?"column":"row",gap:isExpanded?28:(isNarrow?6:12),alignItems:isNarrow?"flex-start":"center",flex:isExpanded?1:undefined,minHeight:0}}>
+              <svg width={donutSz} height={donutSz} viewBox={"0 0 "+(donutCx*2)+" "+(donutCy*2)} style={{flexShrink:0}} onMouseLeave={function(){setHovSlice(null);clearTip();}}>
+                {arcs.map(function(p){
+                  var h=isHovSt&&hovSlice.idx===p.idx;
+                  var tx=h?Math.cos(p.mid)*6:0;var ty=h?Math.sin(p.mid)*6:0;
+                  var op=isHovSt?(h?1:0.22):0.88;
+                  return <path key={p.idx} d={p.d} fill={p.color} opacity={op} stroke={T.bg} strokeWidth="2.5"
+                    transform={"translate("+tx.toFixed(1)+","+ty.toFixed(1)+")"}
+                    style={{cursor:"pointer",transition:"opacity 0.12s"}}
+                    onMouseMove={function(e){setHovSlice({id:"status",idx:p.idx});setChartTip({x:e.clientX,y:e.clientY,label:p.name,val:p.value+" apps",pct:p.pct});}}
+                    onMouseLeave={function(){setHovSlice(null);clearTip();}}
+                    onClick={function(){setStatusFilter(function(f){return f===p.name?"":p.name;})}}/>;
+                })}
+                {useHole&&<text x={donutCx} y={donutCy-3} textAnchor="middle" fill={T.fg} fontSize={isExpanded?34:Math.round(donutSz*0.17)} fontWeight="800">{apps.length}</text>}
+                {useHole&&<text x={donutCx} y={donutCy+Math.round(donutSz*0.1)} textAnchor="middle" fill={T.fgMuted} fontSize={isExpanded?11:Math.max(6,Math.round(donutSz*0.055))} letterSpacing="0.08em">APPS</text>}
               </svg>
-              <div style={{fontSize:10}}>
-                {slices.map(function(sl){return <div key={sl.name} style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
-                  <div style={{width:8,height:8,borderRadius:2,background:sl.color,flexShrink:0}}/>
-                  <span style={{color:T.fg}}>{sl.name}</span>
-                  <span style={{color:T.fgMuted,marginLeft:"auto"}}>{sl.pct}%</span>
+              <div style={{flex:1,minWidth:0,overflowY:"auto",maxHeight:isExpanded?360:(isNarrow?110:undefined)}}>
+                {slices.map(function(sl){
+                  var act=statusFilter===sl.name;
+                  return <div key={sl.name} onClick={function(){setStatusFilter(function(f){return f===sl.name?"":sl.name;});}}
+                    style={{display:"flex",alignItems:"center",gap:5,marginBottom:isNarrow?3:6,padding:isNarrow?"3px 5px":"4px 7px",borderRadius:5,cursor:"pointer",background:act?sl.color+"18":"transparent",border:"1px solid "+(act?sl.color+"55":"transparent"),transition:"all 0.12s"}}>
+                    <div style={{width:7,height:7,borderRadius:"50%",background:sl.color,flexShrink:0}}/>
+                    <span style={{fontSize:isExpanded?13:(isNarrow?9:10),color:act?sl.color:T.fg,flex:1,fontWeight:act?700:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sl.name}</span>
+                    <span style={{fontSize:isExpanded?13:(isNarrow?10:11),fontWeight:700,color:sl.color,minWidth:16,textAlign:"right"}}>{sl.value}</span>
+                    <span style={{fontSize:isExpanded?10:(isNarrow?8:9),color:T.fgMuted,minWidth:24,textAlign:"right"}}>{sl.pct}%</span>
+                  </div>;
+                })}
+              </div>
+            </div>;
+          };
+          var renderBar=function(){
+            var sorted=[...slices].sort(function(a,b){return b.value-a.value;});
+            var W=svgW;var H=svgH;var pad=32;var maxV=Math.max.apply(null,sorted.map(function(s){return s.value;}))||1;
+            var barW=Math.floor((W-pad*2)/sorted.length*0.6);var gap=Math.floor((W-pad*2)/sorted.length);
+            return <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
+              <svg width={W} height={H} style={{overflow:"visible"}}>
+                {sorted.map(function(sl,i){
+                  var bh=Math.max(4,(sl.value/maxV)*(H-60));
+                  var x=pad+i*gap+gap/2-barW/2;var y=H-30-bh;
+                  var h=isHovSt&&hovSlice&&hovSlice.idx===i;
+                  return <g key={sl.name} style={{cursor:"pointer"}}
+                    onMouseMove={function(e){setHovSlice({id:"status",idx:i});setChartTip({x:e.clientX,y:e.clientY,label:sl.name,val:sl.value+" apps",pct:sl.pct});}}
+                    onMouseLeave={function(){setHovSlice(null);clearTip();}}
+                    onClick={function(){setStatusFilter(function(f){return f===sl.name?"":sl.name;});}}>
+                    <rect x={x} y={y} width={barW} height={bh} fill={sl.color} opacity={h?1:0.8} rx="3"/>
+                    <text x={x+barW/2} y={y-5} textAnchor="middle" fill={sl.color} fontSize="11" fontWeight="700">{sl.value}</text>
+                    <text x={x+barW/2} y={H-14} textAnchor="middle" fill={T.fgMuted} fontSize="9">{sl.name.length>8?sl.name.slice(0,7)+"…":sl.name}</text>
+                  </g>;
+                })}
+              </svg>
+            </div>;
+          };
+          var renderArea=function(){
+            var sorted=[...slices].sort(function(a,b){return b.value-a.value;});
+            var W=svgW;var H=svgH;var n=sorted.length;var maxV=Math.max.apply(null,sorted.map(function(s){return s.value;}))||1;
+            if(n<2)return renderBar();
+            var pts=sorted.map(function(sl,i){return{x:40+i*(W-80)/(n-1),y:(1-sl.value/maxV)*(H-60)+20,sl:sl};});
+            var areaD="M"+pts[0].x+" "+(H-30)+" L"+pts.map(function(p){return p.x+" "+p.y;}).join(" L ")+" L"+pts[pts.length-1].x+" "+(H-30)+" Z";
+            var lineD="M"+pts.map(function(p){return p.x+" "+p.y;}).join(" L ");
+            var gradId="stg_"+sid;
+            return <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
+              <svg width={W} height={H} style={{overflow:"visible"}}>
+                <defs><linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={slices[0]?slices[0].color:"#00C853"} stopOpacity="0.5"/><stop offset="100%" stopColor={slices[0]?slices[0].color:"#00C853"} stopOpacity="0.04"/></linearGradient></defs>
+                <path d={areaD} fill={"url(#"+gradId+")"} />
+                <path d={lineD} fill="none" stroke={slices[0]?slices[0].color:"#00C853"} strokeWidth="2"/>
+                {pts.map(function(p,i){return <g key={i}>
+                  <circle cx={p.x} cy={p.y} r="4" fill={p.sl.color} stroke={T.bg} strokeWidth="2"
+                    onMouseMove={function(e){setChartTip({x:e.clientX,y:e.clientY,label:p.sl.name,val:p.sl.value+" apps",pct:p.sl.pct});}}
+                    onMouseLeave={clearTip}/>
+                  <text x={p.x} y={p.y-10} textAnchor="middle" fill={p.sl.color} fontSize="10" fontWeight="700">{p.sl.value}</text>
+                  <text x={p.x} y={H-14} textAnchor="middle" fill={T.fgMuted} fontSize="9">{p.sl.name.length>7?p.sl.name.slice(0,6)+"…":p.sl.name}</text>
+                </g>;})}
+              </svg>
+            </div>;
+          };
+          return <div style={{background:T.bgCard,borderRadius:12,padding:18,boxShadow:"0 1px 4px rgba(0,0,0,0.14), 0 0 0 1px "+T.border,height:(isExpanded||wh)?"100%":undefined,display:(isExpanded||wh)?"flex":undefined,flexDirection:(isExpanded||wh)?"column":undefined}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+              <div style={{width:3,height:15,borderRadius:2,background:"#00C853",flexShrink:0}}/>
+              <span style={{fontSize:12,fontWeight:700,color:T.fg}}>Répartition par statut</span>
+              {statusFilter&&<button onClick={function(e){e.stopPropagation();setStatusFilter("");}} style={{background:"#FF525218",color:"#FF5252",border:"1px solid #FF525440",borderRadius:4,padding:"1px 7px",fontSize:9,cursor:"pointer",fontWeight:700}}>✕ {statusFilter}</button>}
+            </div>
+            <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
+              {ctype==="donut"?renderCircle(true):ctype==="pie"?renderCircle(false):ctype==="area"?renderArea():renderBar()}
+            </div>
+          </div>;
+        },mkChartSwitch(sid));
+        if(sid==="chart_apps")return wrapWidget(sid,"#7C4DFF","Apps par domaine",null,function(isExpanded,ww,wh){
+          var barData=[...st].sort(function(a,b){return b.count-a.count;});
+          var mx2=Math.max.apply(null,barData.map(function(d){return d.count;}))||1;
+          var ctype=chartTypes[sid]||"bar";
+          var appSlices=barData.map(function(d){return{name:d.domain,value:d.count,color:(DC[d.domain]||DC.Autre).ac};});
+          var totalApps=apps.length||1;
+          var cw=ww||500;var svgW=isExpanded?560:Math.max(160,cw-56);var svgH=isExpanded?300:160;
+          var renderBarV=function(){
+            var W=svgW;var H=svgH;
+            var pad={l:40,r:10,t:30,b:50};var n=barData.length;
+            var bW=Math.max(8,Math.floor((W-pad.l-pad.r)/n*0.55));
+            var gap=(W-pad.l-pad.r)/n;
+            return <div style={{overflowX:"auto"}}>
+              <svg width={W} height={H} style={{overflow:"visible"}}>
+                <line x1={pad.l} y1={pad.t} x2={pad.l} y2={H-pad.b} stroke={T.border} strokeWidth="1"/>
+                <line x1={pad.l} y1={H-pad.b} x2={W-pad.r} y2={H-pad.b} stroke={T.border} strokeWidth="1"/>
+                {barData.map(function(d,i){
+                  var ac2=(DC[d.domain]||DC.Autre).ac;
+                  var bh=Math.max(2,(d.count/mx2)*(H-pad.t-pad.b));
+                  var x=pad.l+i*gap+gap/2-bW/2;var y=H-pad.b-bh;
+                  var label=d.domain;
+                  return <g key={d.domain} style={{cursor:"pointer"}}
+                    onMouseMove={function(e){setChartTip({x:e.clientX,y:e.clientY,label:d.domain,val:d.count+" apps",pct:Math.round(d.count/totalApps*100)});}}
+                    onMouseLeave={clearTip}
+                    onClick={function(){setActiveDomain(d.domain);}}>
+                    <rect x={x} y={y} width={bW} height={bh} fill={ac2} rx="3" opacity="0.85"/>
+                    <text x={x+bW/2} y={y-5} textAnchor="middle" fill={ac2} fontSize="10" fontWeight="700">{d.count}</text>
+                    <text x={x+bW/2} y={H-pad.b+14} textAnchor="middle" fill={T.fgMuted} fontSize="8" transform={"rotate(-30,"+(x+bW/2)+","+(H-pad.b+14)+")"}>{label.length>9?label.slice(0,8)+"\u2026":label}</text>
+                  </g>;
+                })}
+              </svg>
+            </div>;
+          };
+          var renderCircle=function(useHole){
+            var isNarrow=!isExpanded&&cw<420;
+            var donutSz=isExpanded?320:Math.min(140,Math.max(96,cw/2.6));
+            var donutR=Math.round(donutSz*0.434);var donutIr=Math.round(donutSz*0.276);
+            var donutCx=Math.round(donutSz/2);var donutCy=Math.round(donutSz/2);
+            var arcs=buildArcs(appSlices,totalApps,donutCx,donutCy,donutR,useHole?donutIr:0);
+            var isHovA=hovSlice&&hovSlice.id==="apps";
+            return <div style={{display:"flex",flexDirection:isNarrow?"column":"row",gap:isExpanded?28:(isNarrow?6:12),alignItems:isNarrow?"flex-start":"center",flex:isExpanded?1:undefined,minHeight:0}}>
+              <svg width={donutSz} height={donutSz} viewBox={"0 0 "+(donutCx*2)+" "+(donutCy*2)} style={{flexShrink:0}} onMouseLeave={function(){setHovSlice(null);clearTip();}}>
+                {arcs.map(function(p){
+                  var h=isHovA&&hovSlice.idx===p.idx;
+                  var tx=h?Math.cos(p.mid)*6:0;var ty=h?Math.sin(p.mid)*6:0;
+                  var op=isHovA?(h?1:0.22):0.88;
+                  return <path key={p.idx} d={p.d} fill={p.color} opacity={op} stroke={T.bg} strokeWidth="2.5"
+                    transform={"translate("+tx.toFixed(1)+","+ty.toFixed(1)+")"}
+                    style={{cursor:"pointer",transition:"opacity 0.12s"}}
+                    onMouseMove={function(e){setHovSlice({id:"apps",idx:p.idx});setChartTip({x:e.clientX,y:e.clientY,label:p.name,val:p.value+" apps",pct:p.pct});}}
+                    onMouseLeave={function(){setHovSlice(null);clearTip();}}
+                    onClick={function(){setActiveDomain(p.name);}}/>;
+                })}
+                {useHole&&<text x={donutCx} y={donutCy-3} textAnchor="middle" fill={T.fg} fontSize={isExpanded?34:Math.round(donutSz*0.17)} fontWeight="800">{totalApps}</text>}
+                {useHole&&<text x={donutCx} y={donutCy+Math.round(donutSz*0.1)} textAnchor="middle" fill={T.fgMuted} fontSize={Math.max(6,Math.round(donutSz*0.055))} letterSpacing="0.08em">APPS</text>}
+              </svg>
+              <div style={{flex:1,minWidth:0,overflowY:"auto",maxHeight:isExpanded?360:(isNarrow?110:160)}}>
+                {arcs.map(function(p){return <div key={p.name} style={{display:"flex",alignItems:"center",gap:5,marginBottom:isNarrow?3:5}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:p.color,flexShrink:0}}/>
+                  <span style={{fontSize:isNarrow?9:10,color:T.fg,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+                  <span style={{fontSize:isNarrow?9:10,fontWeight:700,color:p.color}}>{p.value}</span>
                 </div>;})}
               </div>
             </div>;
-          }()}
-        </div>
-        {/* Bars - Apps par domaine */}
-        <div style={{background:T.bgCard,borderRadius:8,padding:16}}>
-          <SectionHdr id="chart_apps" title="Apps par domaine"/>
-          {!hiddenSections.includes("chart_apps")&&function(){
-            var barData=[...st].sort(function(a,b){return b.count-a.count;});
-            var mx2=Math.max.apply(null,barData.map(function(d){return d.count;}))||1;
-            return <div>{barData.map(function(d){
-              var ac2=(DC[d.domain]||DC.Autre).ac;
-              return <div key={d.domain} style={{marginBottom:8}}>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:3}}>
-                  <span style={{color:ac2,fontWeight:600}}>{d.domain}</span>
-                  <span style={{color:T.fgMuted}}>{d.count}</span>
-                </div>
-                <div style={{height:8,background:T.border,borderRadius:4,overflow:"hidden"}}>
-                  <div style={{height:"100%",borderRadius:4,width:(d.count/mx2*100)+"%",background:ac2,transition:"width 0.5s"}}/>
-                </div>
-              </div>;
-            })}</div>;
-          }()}
-        </div>
-        {/* Bars empilées - Flux par domaine */}
-        <div style={{background:T.bgCard,borderRadius:8,padding:16}}>
-          <SectionHdr id="chart_flux" title="Flux par domaine"/>
-          {!hiddenSections.includes("chart_flux")&&function(){
-            var fluxData=dm.map(function(d){
-              var outF2=flows.filter(function(f){var fa=apps.find(function(a){return a.id===f.from;});return fa&&fa.domain===d;}).length;
-              var inF2=flows.filter(function(f){var ta=apps.find(function(a){return a.id===f.to;});return ta&&ta.domain===d;}).length;
-              return{domain:d,out:outF2,inn:inF2,total:outF2+inF2};
-            }).sort(function(a,b){return b.total-a.total;});
-            var mx3=Math.max.apply(null,fluxData.map(function(d){return d.total;}))||1;
-            return <div>
+          };
+          var renderArea=function(){
+            var W=svgW;var H=svgH;var n=appSlices.length;var maxV=mx2;
+            if(n<2)return renderBarV();
+            var pts=appSlices.map(function(sl,i){return{x:40+i*(W-80)/(n-1),y:(1-sl.value/maxV)*(H-60)+20,sl:sl};});
+            var areaD="M"+pts[0].x+" "+(H-30)+" L"+pts.map(function(p){return p.x+" "+p.y;}).join(" L ")+" L"+pts[pts.length-1].x+" "+(H-30)+" Z";
+            var lineD="M"+pts.map(function(p){return p.x+" "+p.y;}).join(" L ");
+            var gradId="apg_"+sid;
+            return <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
+              <svg width={W} height={H} style={{overflow:"visible"}}>
+                <defs><linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7C4DFF" stopOpacity="0.5"/><stop offset="100%" stopColor="#7C4DFF" stopOpacity="0.04"/></linearGradient></defs>
+                <path d={areaD} fill={"url(#"+gradId+")"} />
+                <path d={lineD} fill="none" stroke="#7C4DFF" strokeWidth="2"/>
+                {pts.map(function(p,i){return <g key={i}>
+                  <circle cx={p.x} cy={p.y} r="4" fill={p.sl.color} stroke={T.bg} strokeWidth="2"
+                    onMouseMove={function(e){setChartTip({x:e.clientX,y:e.clientY,label:p.sl.name,val:p.sl.value+" apps",pct:Math.round(p.sl.value/totalApps*100)});}}
+                    onMouseLeave={clearTip}/>
+                  <text x={p.x} y={p.y-10} textAnchor="middle" fill={p.sl.color} fontSize="10" fontWeight="700">{p.sl.value}</text>
+                  <text x={p.x} y={H-14} textAnchor="middle" fill={T.fgMuted} fontSize="9">{p.sl.name.length>7?p.sl.name.slice(0,6)+"…":p.sl.name}</text>
+                </g>;})}
+              </svg>
+            </div>;
+          };
+          return <div style={{background:T.bgCard,borderRadius:12,padding:18,boxShadow:"0 1px 4px rgba(0,0,0,0.14), 0 0 0 1px "+T.border,height:(isExpanded||wh)?"100%":undefined,display:(isExpanded||wh)?"flex":undefined,flexDirection:(isExpanded||wh)?"column":undefined}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+              <div style={{width:3,height:15,borderRadius:2,background:"#7C4DFF",flexShrink:0}}/>
+              <span style={{fontSize:12,fontWeight:700,color:T.fg}}>Apps par domaine</span>
+            </div>
+            <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
+              {ctype==="bar"?renderBarV():ctype==="donut"?renderCircle(true):ctype==="pie"?renderCircle(false):renderArea()}
+            </div>
+          </div>;
+        },mkChartSwitch(sid));
+        if(sid==="chart_flux")return wrapWidget(sid,"#2979FF","Flux par domaine",null,function(isExpanded,ww,wh){
+          var fluxData=dm.map(function(d){
+            var out=flows.filter(function(f){var fa=apps.find(function(a){return a.id===f.from;});return fa&&fa.domain===d;}).length;
+            var inn=flows.filter(function(f){var ta=apps.find(function(a){return a.id===f.to;});return ta&&ta.domain===d;}).length;
+            return{domain:d,out:out,inn:inn,total:out+inn,net:out-inn};
+          }).sort(function(a,b){return b.total-a.total;});
+          var mx3=Math.max.apply(null,fluxData.map(function(d){return d.total;}))||1;
+          var ctype=chartTypes[sid]||"bar";
+          var totalFlux=flows.length||1;
+          var cw=ww||500;var svgW=isExpanded?560:Math.max(160,cw-56);var svgH=isExpanded?300:160;
+          var renderBarH=function(){
+            var mx=Math.max.apply(null,fluxData.map(function(d){return d.out+d.inn;}))||1;
+            return <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
               <div style={{display:"flex",gap:12,marginBottom:8,fontSize:9}}>
-                <span style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:2,background:"#00C853"}}/>Sortants</span>
-                <span style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:2,background:"#2979FF"}}/>Entrants</span>
+                <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:"#00C853"}}/>Sortants</span>
+                <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:"#2979FF"}}/>Entrants</span>
               </div>
+              <div style={{overflowY:"auto",maxHeight:isExpanded?480:undefined}}>
               {fluxData.map(function(d){
-                var pOut=d.total>0?(d.out/mx3*100):0;
-                var pIn=d.total>0?(d.inn/mx3*100):0;
-                return <div key={d.domain} style={{marginBottom:8}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:10,marginBottom:3}}>
-                    <span style={{color:T.fg,fontWeight:500}}>{d.domain}</span>
-                    <span style={{color:T.fgMuted}}>{d.out}↑ {d.inn}↓</span>
+                var pOut=d.out/mx*100;var pIn=d.inn/mx*100;
+                var net=d.net;var nLbl=net>1?"↑":net<-1?"↓":"≈";var nCol=net>1?"#00C853":net<-1?"#2979FF":"#78909C";
+                var isAct=activeDomain===d.domain;
+                return <div key={d.domain} style={{marginBottom:10,cursor:"pointer"}}
+                  onMouseEnter={function(e){setChartTip({x:e.clientX,y:e.clientY,label:d.domain,val:d.out+"↑ · "+d.inn+"↓",pct:null});}}
+                  onMouseMove={function(e){setChartTip(function(t){return t?Object.assign({},t,{x:e.clientX,y:e.clientY}):t;});}}
+                  onMouseLeave={clearTip}
+                  onClick={function(){setActiveDomain(d.domain);}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                    <span style={{fontSize:10,color:isAct?"#2979FF":T.fg,fontWeight:isAct?700:400}}>{d.domain}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:5}}>
+                      <span style={{fontSize:9,color:T.fgDim}}>{d.total} flux</span>
+                      <span style={{fontSize:9,color:nCol,background:nCol+"18",borderRadius:3,padding:"1px 5px",fontWeight:700}}>{nLbl}{Math.abs(net)>1?" "+Math.abs(net):""}</span>
+                    </div>
                   </div>
                   <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",background:T.border}}>
-                    <div style={{width:pOut+"%",background:"#00C853",transition:"width 0.5s"}}/>
-                    <div style={{width:pIn+"%",background:"#2979FF",transition:"width 0.5s"}}/>
+                    <div style={{width:pOut+"%",background:"linear-gradient(90deg,#00C85366,#00C853)",transition:"width 0.5s ease"}}/>
+                    <div style={{width:pIn+"%",background:"linear-gradient(90deg,#2979FF66,#2979FF)",transition:"width 0.5s ease"}}/>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginTop:2,fontSize:8,color:T.fgMuted}}>
+                    <span style={{color:"#00C853",fontWeight:600}}>{d.out}↑</span>
+                    <span style={{color:"#2979FF",fontWeight:600}}>{d.inn}↓</span>
                   </div>
                 </div>;
               })}
+              </div>
             </div>;
-          }()}
-        </div>
-        {/* Donut - Apps par responsable */}
-        <div style={{background:T.bgCard,borderRadius:8,padding:16}}>
-          <SectionHdr id="chart_owner" title="Apps par responsable"/>
-          {!hiddenSections.includes("chart_owner")&&function(){
-            var ownerMap={};
-            apps.forEach(function(a){
-              var o=a.owner&&a.owner.trim()?a.owner.trim():"Non renseigné";
-              ownerMap[o]=(ownerMap[o]||0)+1;
-            });
-            var ownerData=Object.entries(ownerMap).map(function(e){return{owner:e[0],count:e[1]};}).sort(function(a,b){return b.count-a.count;});
-            var total4=apps.length||1;
-            var colors=["#2979FF","#00C853","#7C4DFF","#EF6C00","#FF5252","#00BFA5","#FF4081","#26C6DA","#536DFE","#F57C00","#78909C","#8D6E63"];
-            var cumul2=0;
-            var paths2=ownerData.map(function(d,i){
-              var startAngle=cumul2/total4*Math.PI*2-Math.PI/2;
-              cumul2+=d.count;
-              var endAngle=cumul2/total4*Math.PI*2-Math.PI/2;
-              var r=60,ir=38,cx3=80,cy3=80;
-              var x1=cx3+r*Math.cos(startAngle),y1=cy3+r*Math.sin(startAngle);
-              var x2=cx3+r*Math.cos(endAngle),y2=cy3+r*Math.sin(endAngle);
-              var ix1=cx3+ir*Math.cos(startAngle),iy1=cy3+ir*Math.sin(startAngle);
-              var ix2=cx3+ir*Math.cos(endAngle),iy2=cy3+ir*Math.sin(endAngle);
-              var large=d.count/total4>0.5?1:0;
-              var col=d.owner==="Non renseigné"?"#78909C":colors[i%colors.length];
-              var dp="M"+ix1+" "+iy1+" L"+x1+" "+y1+" A"+r+" "+r+" 0 "+large+" 1 "+x2+" "+y2+" L"+ix2+" "+iy2+" A"+ir+" "+ir+" 0 "+large+" 0 "+ix1+" "+iy1;
-              return{dp:dp,color:col,owner:d.owner,count:d.count,pct:Math.round(d.count/total4*100)};
-            });
-            return <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <svg width="160" height="160" viewBox="0 0 160 160" style={{flexShrink:0}}>
-                {paths2.map(function(p,i){return <path key={i} d={p.dp} fill={p.color} opacity={p.owner==="Non renseigné"?0.45:0.88}/> ;})}
-                <text x="80" y="78" textAnchor="middle" fill={T.fg} fontSize="20" fontWeight="700">{apps.length}</text>
-                <text x="80" y="94" textAnchor="middle" fill={T.fgMuted} fontSize="9">apps</text>
+          };
+          var renderBarV=function(){
+            var W=svgW;var H=svgH;
+            var pad={l:40,r:10,t:30,b:50};var n=fluxData.length;
+            var bW=Math.max(6,Math.floor((W-pad.l-pad.r)/n*0.45));
+            var gap=(W-pad.l-pad.r)/n;
+            return <div style={{overflowX:"auto"}}>
+              <div style={{display:"flex",gap:12,marginBottom:6,fontSize:9}}>
+                <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:7,height:7,borderRadius:2,background:"#00C853"}}/>Sortants</span>
+                <span style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:7,height:7,borderRadius:2,background:"#2979FF"}}/>Entrants</span>
+              </div>
+              <svg width={W} height={H} style={{overflow:"visible"}}>
+                <line x1={pad.l} y1={pad.t} x2={pad.l} y2={H-pad.b} stroke={T.border} strokeWidth="1"/>
+                <line x1={pad.l} y1={H-pad.b} x2={W-pad.r} y2={H-pad.b} stroke={T.border} strokeWidth="1"/>
+                {fluxData.map(function(d,i){
+                  var bhOut=Math.max(0,(d.out/mx3)*(H-pad.t-pad.b));
+                  var bhIn=Math.max(0,(d.inn/mx3)*(H-pad.t-pad.b));
+                  var cx=pad.l+i*gap+gap/2;
+                  var xOut=cx-bW-2;var xIn=cx+2;
+                  var yOut=H-pad.b-bhOut;var yIn=H-pad.b-bhIn;
+                  var label=d.domain;
+                  return <g key={d.domain} style={{cursor:"pointer"}}
+                    onMouseMove={function(e){setChartTip({x:e.clientX,y:e.clientY,label:d.domain,val:d.out+"\u2191 sortants \xB7 "+d.inn+"\u2193 entrants",pct:null});}}
+                    onMouseLeave={clearTip}
+                    onClick={function(){setActiveDomain(d.domain);}}>
+                    {bhOut>0&&<rect x={xOut} y={yOut} width={bW} height={bhOut} fill="#00C853" rx="2" opacity="0.85"/>}
+                    {bhIn>0&&<rect x={xIn} y={yIn} width={bW} height={bhIn} fill="#2979FF" rx="2" opacity="0.85"/>}
+                    {bhOut>0&&<text x={xOut+bW/2} y={yOut-4} textAnchor="middle" fill="#00C853" fontSize="9" fontWeight="700">{d.out}</text>}
+                    {bhIn>0&&<text x={xIn+bW/2} y={yIn-4} textAnchor="middle" fill="#2979FF" fontSize="9" fontWeight="700">{d.inn}</text>}
+                    <text x={cx} y={H-pad.b+14} textAnchor="middle" fill={T.fgMuted} fontSize="8" transform={"rotate(-30,"+cx+","+(H-pad.b+14)+")"}>{label.length>9?label.slice(0,8)+"\u2026":label}</text>
+                  </g>;
+                })}
               </svg>
-              <div style={{fontSize:10,flex:1,maxHeight:140,overflowY:"auto"}}>
-                {paths2.map(function(p){return <div key={p.owner} style={{display:"flex",alignItems:"center",gap:5,marginBottom:5}}>
-                  <div style={{width:8,height:8,borderRadius:2,background:p.color,flexShrink:0,opacity:p.owner==="Non renseigné"?0.5:1}}/>
-                  <span style={{color:p.owner==="Non renseigné"?T.fgMuted:T.fg,fontStyle:p.owner==="Non renseigné"?"italic":"normal",flex:1}}>{p.owner}</span>
-                  <span style={{color:T.fgMuted,marginLeft:4}}>{p.pct}%</span>
-                  <span style={{color:T.fgDim,marginLeft:2}}>({p.count})</span>
+            </div>;
+          };
+          var fluxSlices=fluxData.map(function(d){return{name:d.domain,value:d.total,color:(DC[d.domain]||DC.Autre).ac};});
+          var renderCircle=function(useHole){
+            var isNarrow=!isExpanded&&cw<420;
+            var donutSz=isExpanded?320:Math.min(140,Math.max(96,cw/2.6));
+            var donutR=Math.round(donutSz*0.434);var donutIr=Math.round(donutSz*0.276);
+            var donutCx=Math.round(donutSz/2);var donutCy=Math.round(donutSz/2);
+            var arcs=buildArcs(fluxSlices,totalFlux,donutCx,donutCy,donutR,useHole?donutIr:0);
+            var isHovFl=hovSlice&&hovSlice.id==="flux";
+            return <div style={{display:"flex",flexDirection:isNarrow?"column":"row",gap:isExpanded?28:(isNarrow?6:12),alignItems:isNarrow?"flex-start":"center",flex:isExpanded?1:undefined,minHeight:0}}>
+              <svg width={donutSz} height={donutSz} viewBox={"0 0 "+(donutCx*2)+" "+(donutCy*2)} style={{flexShrink:0}} onMouseLeave={function(){setHovSlice(null);clearTip();}}>
+                {arcs.map(function(p){
+                  var h=isHovFl&&hovSlice.idx===p.idx;
+                  var tx=h?Math.cos(p.mid)*6:0;var ty=h?Math.sin(p.mid)*6:0;
+                  var op=isHovFl?(h?1:0.22):0.88;
+                  return <path key={p.idx} d={p.d} fill={p.color} opacity={op} stroke={T.bg} strokeWidth="2.5"
+                    transform={"translate("+tx.toFixed(1)+","+ty.toFixed(1)+")"}
+                    style={{cursor:"pointer",transition:"opacity 0.12s"}}
+                    onMouseMove={function(e){setHovSlice({id:"flux",idx:p.idx});setChartTip({x:e.clientX,y:e.clientY,label:p.name,val:p.value+" flux",pct:p.pct});}}
+                    onMouseLeave={function(){setHovSlice(null);clearTip();}}
+                    onClick={function(){setActiveDomain(p.name);}}/>;
+                })}
+                {useHole&&<text x={donutCx} y={donutCy-3} textAnchor="middle" fill={T.fg} fontSize={isExpanded?34:Math.round(donutSz*0.17)} fontWeight="800">{totalFlux}</text>}
+                {useHole&&<text x={donutCx} y={donutCy+Math.round(donutSz*0.1)} textAnchor="middle" fill={T.fgMuted} fontSize={Math.max(6,Math.round(donutSz*0.055))} letterSpacing="0.08em">FLUX</text>}
+              </svg>
+              <div style={{flex:1,minWidth:0,overflowY:"auto",maxHeight:isExpanded?360:(isNarrow?110:160)}}>
+                {arcs.map(function(p){return <div key={p.name} style={{display:"flex",alignItems:"center",gap:5,marginBottom:isNarrow?3:5}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:p.color,flexShrink:0}}/>
+                  <span style={{fontSize:isNarrow?9:10,color:T.fg,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+                  <span style={{fontSize:isNarrow?9:10,fontWeight:700,color:p.color}}>{p.value}</span>
                 </div>;})}
               </div>
             </div>;
-          }()}
-        </div>
-      </div>}
-        </div>);
-        if(sid==="carveout")return(<div key="carveout">{/* Trajectoires Carve-Out */}
-      <div style={{background:T.bgCard,borderRadius:8,padding:20,marginBottom:32,border:"1px solid #F59E0B44"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <SectionHdr id="carveout" title="Trajectoires Carve-Out — Suivi Day 1 / Day 2"/>
-              {editMode&&<div style={{display:"flex",gap:4}}>
-                <button onMouseDown={e=>{e.stopPropagation();moveSection("carveout",-1);}} style={{background:"transparent",border:"1px solid "+T.border,color:T.fg,borderRadius:3,padding:"2px 7px",fontSize:12,cursor:"pointer"}}>▲</button>
-                <button onMouseDown={e=>{e.stopPropagation();moveSection("carveout",1);}} style={{background:"transparent",border:"1px solid "+T.border,color:T.fg,borderRadius:3,padding:"2px 7px",fontSize:12,cursor:"pointer"}}>▼</button>
-              </div>}
+          };
+          var renderArea=function(){
+            var W=svgW;var H=svgH;var n=fluxData.length;if(n<2)return renderBarV();
+            var maxOut=Math.max.apply(null,fluxData.map(function(d){return d.out;}))||1;
+            var maxIn=Math.max.apply(null,fluxData.map(function(d){return d.inn;}))||1;
+            var ptsOut=fluxData.map(function(d,i){return{x:40+i*(W-80)/(n-1),y:(1-d.out/maxOut)*(H/2-30)+10,v:d.out,domain:d.domain};});
+            var ptsIn=fluxData.map(function(d,i){return{x:40+i*(W-80)/(n-1),y:H/2+10+(1-d.inn/maxIn)*(H/2-40),v:d.inn,domain:d.domain};});
+            var aOut="M"+ptsOut[0].x+" "+(H/2-10)+" L"+ptsOut.map(function(p){return p.x+" "+p.y;}).join(" L ")+" L"+ptsOut[n-1].x+" "+(H/2-10)+" Z";
+            var aIn="M"+ptsIn[0].x+" "+H+" L"+ptsIn.map(function(p){return p.x+" "+p.y;}).join(" L ")+" L"+ptsIn[n-1].x+" "+H+" Z";
+            return <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
+              <svg width={W} height={H} style={{overflow:"visible"}}>
+                <defs>
+                  <linearGradient id="flgOut" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#00C853" stopOpacity="0.5"/><stop offset="100%" stopColor="#00C853" stopOpacity="0.04"/></linearGradient>
+                  <linearGradient id="flgIn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2979FF" stopOpacity="0.5"/><stop offset="100%" stopColor="#2979FF" stopOpacity="0.04"/></linearGradient>
+                </defs>
+                <text x="8" y="18" fill="#00C853" fontSize="9" fontWeight="700">Sortants</text>
+                <path d={aOut} fill="url(#flgOut)"/>
+                <path d={"M"+ptsOut.map(function(p){return p.x+" "+p.y;}).join(" L ")} fill="none" stroke="#00C853" strokeWidth="2"/>
+                <text x="8" y={H/2+22} fill="#2979FF" fontSize="9" fontWeight="700">Entrants</text>
+                <path d={aIn} fill="url(#flgIn)"/>
+                <path d={"M"+ptsIn.map(function(p){return p.x+" "+p.y;}).join(" L ")} fill="none" stroke="#2979FF" strokeWidth="2"/>
+                {ptsOut.map(function(p,i){return <text key={"l"+i} x={p.x} y={H-4} textAnchor="middle" fill={T.fgMuted} fontSize="8">{p.domain.length>6?p.domain.slice(0,5)+"…":p.domain}</text>;})}
+              </svg>
+            </div>;
+          };
+          return <div style={{background:T.bgCard,borderRadius:12,padding:18,boxShadow:"0 1px 4px rgba(0,0,0,0.14), 0 0 0 1px "+T.border,height:(isExpanded||wh)?"100%":undefined,display:(isExpanded||wh)?"flex":undefined,flexDirection:(isExpanded||wh)?"column":undefined}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <div style={{width:3,height:15,borderRadius:2,background:"#2979FF",flexShrink:0}}/>
+              <span style={{fontSize:12,fontWeight:700,color:T.fg}}>Flux par domaine</span>
             </div>
+            <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
+              {ctype==="hbar"?renderBarH():ctype==="bar"?renderBarV():ctype==="donut"?renderCircle(true):ctype==="pie"?renderCircle(false):renderArea()}
+            </div>
+          </div>;
+        },mkChartSwitch(sid,[{k:"hbar",label:"Barres In/Out"}]));
+        if(sid==="chart_owner")return wrapWidget(sid,"#6366F1","Apps par responsable",null,function(isExpanded,ww,wh){
+          var ownerMap={};
+          apps.forEach(function(a){var o=a.owner&&a.owner.trim()?a.owner.trim():"Non renseigné";ownerMap[o]=(ownerMap[o]||0)+1;});
+          var allOwners=Object.entries(ownerMap).map(function(e){return{owner:e[0],count:e[1]};}).sort(function(a,b){return b.count-a.count;});
+          var assigned=allOwners.filter(function(d){return d.owner!=="Non renseigné";});
+          var unassigned=ownerMap["Non renseigné"]||0;
+          var displaySlices=assigned.concat(unassigned>0?[{owner:"Non renseigné",count:unassigned,isNA:true}]:[]);
+          var total4=apps.length||1;
+          var assignedN=total4-unassigned;var assignedPct=Math.round(assignedN/total4*100);
+          var ownerCount=assigned.length;
+          var oc=["#6366F1","#00C853","#EF6C00","#FF5252","#00BFA5","#F59E0B"];
+          var ctype=chartTypes[sid]||"donut";
+          var owSlices=displaySlices.map(function(d,i){
+            var col=d.isNA?"#455A64":(d.isOther?"#546E7A":oc[i%oc.length]);
+            return{name:d.owner,value:d.count,color:col,isNA:d.isNA||false,isOther:d.isOther||false};
+          });
+          var cw=ww||500;var isNarrow=!isExpanded&&cw<420;
+          var donutSz=isExpanded?320:Math.min(140,Math.max(96,cw/2.6));
+          var donutR=Math.round(donutSz*0.434);var donutIr=Math.round(donutSz*0.276);
+          var donutCx=Math.round(donutSz/2);var donutCy=Math.round(donutSz/2);
+          var renderCircle=function(useHole){
+            var arcs=buildArcs(owSlices,total4,donutCx,donutCy,donutR,useHole?donutIr:0);
+            var isHovOwn=hovSlice&&hovSlice.id==="owner";
+            return <div style={{display:"flex",flexDirection:isNarrow?"column":"row",gap:isExpanded?28:(isNarrow?6:12),alignItems:isNarrow?"flex-start":"flex-start",flex:isExpanded?1:undefined,minHeight:0}}>
+              <svg width={donutSz} height={donutSz} viewBox={"0 0 "+(donutCx*2)+" "+(donutCy*2)} style={{flexShrink:0}} onMouseLeave={function(){setHovSlice(null);clearTip();}}>
+                {arcs.map(function(p,i){
+                  var sl=owSlices[i]||{};
+                  var h=isHovOwn&&hovSlice.idx===p.idx;
+                  var tx=h?Math.cos(p.mid)*6:0;var ty=h?Math.sin(p.mid)*6:0;
+                  var op=isHovOwn?(h?1:0.2):(sl.isNA||sl.isOther?0.38:0.88);
+                  return <path key={p.idx} d={p.d} fill={p.color} opacity={op} stroke={T.bg} strokeWidth="2.5"
+                    transform={"translate("+tx.toFixed(1)+","+ty.toFixed(1)+")"}
+                    style={{cursor:"pointer",transition:"opacity 0.12s"}}
+                    onMouseMove={function(e){setHovSlice({id:"owner",idx:p.idx});setChartTip({x:e.clientX,y:e.clientY,label:p.name,val:p.value+" apps",pct:sl.isNA||sl.isOther?null:p.pct});}}
+                    onMouseLeave={function(){setHovSlice(null);clearTip();}}/>;
+                })}
+                {useHole&&<text x={donutCx} y={donutCy-3} textAnchor="middle" fill={T.fg} fontSize={isExpanded?34:Math.round(donutSz*0.17)} fontWeight="800">{ownerCount}</text>}
+                {useHole&&<text x={donutCx} y={donutCy+Math.round(donutSz*0.1)} textAnchor="middle" fill={T.fgMuted} fontSize={Math.max(5,Math.round(donutSz*0.048))} letterSpacing="0.06em">RESPONSABLES</text>}
+              </svg>
+              <div style={{flex:1,minWidth:0,maxHeight:isExpanded?360:(isNarrow?110:150),overflowY:"auto",paddingRight:2}}>
+                {owSlices.map(function(p,i){return <div key={p.name} style={{display:"flex",alignItems:"center",gap:5,marginBottom:isNarrow?3:5}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:p.color,flexShrink:0,opacity:p.isNA?0.5:1}}/>
+                  <span style={{fontSize:10,color:p.isNA?T.fgMuted:T.fg,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontStyle:p.isNA?"italic":"normal"}}>{p.name}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:p.color,opacity:p.isNA?0.7:1}}>{p.value}</span>
+                </div>;})}
+              </div>
+            </div>;
+          };
+          var renderBarV=function(){
+            var sorted=[...owSlices].sort(function(a,b){return b.value-a.value;}).slice(0,15);
+            var mx4=Math.max.apply(null,sorted.map(function(s){return s.value;}))||1;
+            var W=isExpanded?560:Math.max(160,cw-56);var H=isExpanded?300:180;
+            var pad={l:40,r:10,t:30,b:50};var n=sorted.length;
+            var bW=Math.max(8,Math.floor((W-pad.l-pad.r)/n*0.55));
+            var gap=(W-pad.l-pad.r)/n;
+            return <div style={{overflowX:"auto"}}>
+              <svg width={W} height={H} style={{overflow:"visible"}}>
+                <line x1={pad.l} y1={pad.t} x2={pad.l} y2={H-pad.b} stroke={T.border} strokeWidth="1"/>
+                <line x1={pad.l} y1={H-pad.b} x2={W-pad.r} y2={H-pad.b} stroke={T.border} strokeWidth="1"/>
+                {sorted.map(function(sl,i){
+                  var bh=Math.max(2,(sl.value/mx4)*(H-pad.t-pad.b));
+                  var x=pad.l+i*gap+gap/2-bW/2;var y=H-pad.b-bh;
+                  var label=sl.name;
+                  return <g key={sl.name} style={{cursor:"pointer"}}
+                    onMouseMove={function(e){setChartTip({x:e.clientX,y:e.clientY,label:sl.name,val:sl.value+" apps",pct:Math.round(sl.value/total4*100)});}}
+                    onMouseLeave={clearTip}>
+                    <rect x={x} y={y} width={bW} height={bh} fill={sl.color} rx="3" opacity={sl.isNA?0.38:0.85}/>
+                    <text x={x+bW/2} y={y-5} textAnchor="middle" fill={sl.color} fontSize="10" fontWeight="700">{sl.value}</text>
+                    <text x={x+bW/2} y={H-pad.b+14} textAnchor="middle" fill={T.fgMuted} fontSize="8" transform={"rotate(-30,"+(x+bW/2)+","+(H-pad.b+14)+")"}>{label.length>9?label.slice(0,8)+"\u2026":label}</text>
+                  </g>;
+                })}
+              </svg>
+            </div>;
+          };
+          var renderArea=function(){
+            var sorted=[...owSlices].sort(function(a,b){return b.value-a.value;});
+            var W=isExpanded?560:280;var H=isExpanded?280:150;var n=sorted.length;var maxV=Math.max.apply(null,sorted.map(function(s){return s.value;}))||1;
+            if(n<2)return renderBarV();
+            var pts=sorted.map(function(sl,i){return{x:40+i*(W-80)/(n-1),y:(1-sl.value/maxV)*(H-60)+20,sl:sl};});
+            var areaD="M"+pts[0].x+" "+(H-30)+" L"+pts.map(function(p){return p.x+" "+p.y;}).join(" L ")+" L"+pts[pts.length-1].x+" "+(H-30)+" Z";
+            var lineD="M"+pts.map(function(p){return p.x+" "+p.y;}).join(" L ");
+            var gradId="owg_"+sid;
+            return <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
+              <svg width={W} height={H} style={{overflow:"visible"}}>
+                <defs><linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#6366F1" stopOpacity="0.5"/><stop offset="100%" stopColor="#6366F1" stopOpacity="0.04"/></linearGradient></defs>
+                <path d={areaD} fill={"url(#"+gradId+")"} />
+                <path d={lineD} fill="none" stroke="#6366F1" strokeWidth="2"/>
+                {pts.map(function(p,i){return <g key={i}>
+                  <circle cx={p.x} cy={p.y} r="4" fill={p.sl.color} stroke={T.bg} strokeWidth="2"
+                    onMouseMove={function(e){setChartTip({x:e.clientX,y:e.clientY,label:p.sl.name,val:p.sl.value+" apps",pct:Math.round(p.sl.value/total4*100)});}}
+                    onMouseLeave={clearTip}/>
+                  <text x={p.x} y={p.y-10} textAnchor="middle" fill={p.sl.color} fontSize="10" fontWeight="700">{p.sl.value}</text>
+                  <text x={p.x} y={H-14} textAnchor="middle" fill={T.fgMuted} fontSize="8">{p.sl.name.length>6?p.sl.name.slice(0,5)+"…":p.sl.name}</text>
+                </g>;})}
+              </svg>
+            </div>;
+          };
+          return <div style={{background:T.bgCard,borderRadius:12,padding:18,boxShadow:"0 1px 4px rgba(0,0,0,0.14), 0 0 0 1px "+T.border,height:(isExpanded||wh)?"100%":undefined,display:(isExpanded||wh)?"flex":undefined,flexDirection:(isExpanded||wh)?"column":undefined}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+              <div style={{width:3,height:15,borderRadius:2,background:"#6366F1",flexShrink:0}}/>
+              <span style={{fontSize:12,fontWeight:700,color:T.fg}}>Apps par responsable</span>
+            </div>
+            <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
+              {ctype==="donut"?renderCircle(true):ctype==="pie"?renderCircle(false):ctype==="bar"?renderBarV():renderArea()}
+            </div>
+          </div>;
+        },mkChartSwitch(sid));
+        if(sid==="carveout")return wrapWidget(sid,"#F59E0B","Trajectoires D1/D2",null,<div style={{background:T.bgCard,borderRadius:8,padding:20,border:"1px solid #F59E0B44"}}>
+        <SectionHdr id="carveout" title="Trajectoires Carve-Out — Suivi Day 1 / Day 2"/>
         {!hiddenSections.includes("carveout")&&function(){
           var d1Def=apps.filter(function(a){return a.statusD1;});
           var d2Def=apps.filter(function(a){return a.statusD2;});
           var riskApps=apps.filter(function(a){return a.statusD1==="Abandon"&&flows.some(function(f){return f.from===a.id||f.to===a.id;});});
           var tot3=apps.length||1;
+          var coKpis=[
+            {v:d1Def.length,l:"Apps avec D1",c:"#F59E0B",glow:"rgba(245,158,11,0.18)",icon:"①"},
+            {v:d2Def.length,l:"Apps avec D2",c:"#8B5CF6",glow:"rgba(139,92,246,0.18)",icon:"②"},
+            {v:apps.filter(function(a){return!a.statusD1&&!a.statusD2;}).length,l:"Sans trajectoire",c:"#78909C",glow:"rgba(120,144,156,0.12)",icon:"○"},
+            {v:riskApps.length,l:"Abandon D1 + flux",c:"#EF4444",glow:"rgba(239,68,68,0.18)",icon:"⚠"},
+          ];
+          var d2Cols=["Clone & Clean","Transfert","Abandon","Rebuild"];
+          var d1Rows=["Transfert TSA","Abandon"];
+          var allMatrixN=d1Rows.map(function(d1){return d2Cols.map(function(d2){return apps.filter(function(a){return a.statusD1===d1&&a.statusD2===d2;}).length;});}).flat();
+          var mxMat=Math.max.apply(null,allMatrixN)||1;
           return <div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
-              {[{v:d1Def.length,l:"Apps avec D1",c:"#F59E0B"},{v:d2Def.length,l:"Apps avec D2",c:"#8B5CF6"},{v:apps.filter(function(a){return!a.statusD1&&!a.statusD2;}).length,l:"Sans trajectoire",c:"#78909C"},{v:riskApps.length,l:"Abandon D1 + flux actifs",c:"#EF4444"}].map(function(k){return <div key={k.l} style={{background:T.bgAlt,borderRadius:6,padding:12,borderLeft:"3px solid "+k.c}}><div style={{fontSize:22,fontWeight:700,color:k.c}}>{k.v}</div><div style={{fontSize:10,color:T.fgMuted,marginTop:2}}>{k.l}</div></div>;})}
+            {/* KPI cards avec glow */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:20}}>
+              {coKpis.map(function(k){return <div key={k.l} style={{background:T.bgCard,borderRadius:10,padding:"12px 14px",boxShadow:"0 0 0 1px "+T.border+", 0 4px 14px "+k.glow,display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:32,height:32,borderRadius:7,background:k.glow,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:k.c,flexShrink:0}}>{k.icon}</div>
+                <div><div style={{fontSize:20,fontWeight:800,color:k.c,lineHeight:1}}>{k.v}</div><div style={{fontSize:9,color:T.fgMuted,marginTop:3,lineHeight:1.3}}>{k.l}</div></div>
+              </div>;})}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-              {[{title:"Day 1 — Closing",opts:["Transfert TSA","Abandon"],colors:SD1,field:"statusD1"},{title:"Day 2 — Cible",opts:["Clone & Clean","Transfert","Abandon","Rebuild"],colors:SD2,field:"statusD2"}].map(function(cfg){
+            {/* Donuts D1/D2 avec jauges */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:16,marginBottom:16}}>
+              {[{title:"Day 1 — Closing",opts:["Transfert TSA","Abandon"],colors:SD1,field:"statusD1",defN:d1Def.length,ac:"#F59E0B"},{title:"Day 2 — Cible",opts:["Clone & Clean","Transfert","Abandon","Rebuild"],colors:SD2,field:"statusD2",defN:d2Def.length,ac:"#8B5CF6"}].map(function(cfg){
                 var data3=cfg.opts.map(function(s){return{s:s,n:apps.filter(function(a){return a[cfg.field]===s;}).length};}).concat([{s:"Non défini",n:apps.filter(function(a){return!a[cfg.field];}).length}]).filter(function(d){return d.n>0;});
-                var cum=0;
-                var arcs=data3.map(function(d){
-                  var sa=cum/tot3*Math.PI*2-Math.PI/2;cum+=d.n;var ea=cum/tot3*Math.PI*2-Math.PI/2;
-                  var r=55,ir=35,cx=70,cy=70;
+                var cumA=0;var hovId="co_"+cfg.field;
+                var arcs=data3.map(function(d,i){
+                  var sa=cumA/tot3*Math.PI*2-Math.PI/2;cumA+=d.n;var ea=cumA/tot3*Math.PI*2-Math.PI/2;
+                  var mid=(sa+ea)/2;var r=60,ir=38,cx=70,cy=70;
                   var x1=cx+r*Math.cos(sa),y1=cy+r*Math.sin(sa),x2=cx+r*Math.cos(ea),y2=cy+r*Math.sin(ea);
                   var ix1=cx+ir*Math.cos(sa),iy1=cy+ir*Math.sin(sa),ix2=cx+ir*Math.cos(ea),iy2=cy+ir*Math.sin(ea);
                   var lg=d.n/tot3>0.5?1:0;var col=cfg.colors[d.s]||"#78909C";
-                  return{dp:"M"+ix1+" "+iy1+" L"+x1+" "+y1+" A"+r+" "+r+" 0 "+lg+" 1 "+x2+" "+y2+" L"+ix2+" "+iy2+" A"+ir+" "+ir+" 0 "+lg+" 0 "+ix1+" "+iy1,col:col,label:d.s,n:d.n,pct:Math.round(d.n/tot3*100),isNA:d.s==="Non défini"};
+                  var dp="M"+ix1+" "+iy1+" L"+x1+" "+y1+" A"+r+" "+r+" 0 "+lg+" 1 "+x2+" "+y2+" L"+ix2+" "+iy2+" A"+ir+" "+ir+" 0 "+lg+" 0 "+ix1+" "+iy1;
+                  return{dp:dp,col:col,label:d.s,n:d.n,pct:Math.round(d.n/tot3*100),isNA:d.s==="Non défini",mid:mid,idx:i};
                 });
-                return <div key={cfg.field} style={{background:T.bgAlt,borderRadius:8,padding:16}}>
-                  <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>{cfg.title}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <svg width="140" height="140" viewBox="0 0 140 140" style={{flexShrink:0}}>
-                      {arcs.map(function(p,i){return <path key={i} d={p.dp} fill={p.col} opacity={p.isNA?0.2:0.9}/> ;})}
-                      <text x="70" y="66" textAnchor="middle" fill={T.fg} fontSize="18" fontWeight="700">{data3.filter(function(d){return d.s!=="Non défini";}).reduce(function(s,d){return s+d.n;},0)}</text>
-                      <text x="70" y="82" textAnchor="middle" fill={T.fgMuted} fontSize="9">définis</text>
+                var isHovCo=hovSlice&&hovSlice.id===hovId;
+                var defPct=Math.round(cfg.defN/tot3*100);
+                return <div key={cfg.field} style={{background:T.bgAlt,borderRadius:10,padding:16,border:"1px solid "+T.border}}>
+                  <div style={{fontSize:12,fontWeight:700,color:T.fg,marginBottom:12}}>{cfg.title}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+                    <svg width="140" height="140" viewBox="0 0 140 140" style={{flexShrink:0}} onMouseLeave={function(){setHovSlice(null);clearTip();}}>
+                      {arcs.map(function(p){
+                        var h=isHovCo&&hovSlice.idx===p.idx;
+                        var tx=h?Math.cos(p.mid)*6:0;var ty=h?Math.sin(p.mid)*6:0;
+                        var op=isHovCo?(h?1:0.2):(p.isNA?0.18:0.88);
+                        return <path key={p.idx} d={p.dp} fill={p.col} opacity={op} stroke={T.bgAlt} strokeWidth="2"
+                          transform={"translate("+tx.toFixed(1)+","+ty.toFixed(1)+")"}
+                          style={{cursor:"pointer",transition:"opacity 0.12s"}}
+                          onMouseMove={function(e){setHovSlice({id:hovId,idx:p.idx});setChartTip({x:e.clientX,y:e.clientY,label:p.label,val:p.n+" apps",pct:p.isNA?null:p.pct});}}
+                          onMouseLeave={function(){setHovSlice(null);clearTip();}}/>;
+                      })}
+                      <text x="70" y="65" textAnchor="middle" fill={T.fg} fontSize="20" fontWeight="800">{cfg.defN}</text>
+                      <text x="70" y="80" textAnchor="middle" fill={cfg.ac} fontSize="9" fontWeight="700">{defPct}% définis</text>
                     </svg>
-                    <div style={{fontSize:10,flex:1}}>{arcs.map(function(p){return <div key={p.label} style={{display:"flex",alignItems:"center",gap:5,marginBottom:5}}><div style={{width:9,height:9,borderRadius:2,background:p.col,flexShrink:0,opacity:p.isNA?0.3:1}}/><span style={{flex:1,color:p.isNA?T.fgMuted:T.fg,fontStyle:p.isNA?"italic":"normal"}}>{p.label}</span><span style={{color:T.fgMuted}}>{p.pct}%</span><span style={{color:T.fgDim,marginLeft:2}}>({p.n})</span></div>;})}
+                    <div style={{fontSize:10,flex:1}}>{arcs.map(function(p){return <div key={p.label} style={{display:"flex",alignItems:"center",gap:5,marginBottom:6}}>
+                      <div style={{width:8,height:8,borderRadius:2,background:p.col,flexShrink:0,opacity:p.isNA?0.25:1}}/>
+                      <span style={{flex:1,color:p.isNA?T.fgMuted:T.fg,fontStyle:p.isNA?"italic":"normal",fontSize:10}}>{p.label}</span>
+                      <span style={{color:p.col,fontWeight:700,opacity:p.isNA?0.4:1}}>{p.n}</span>
+                    </div>;})}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:T.fgMuted,marginBottom:4}}>
+                      <span>Couverture {cfg.title.split("—")[0].trim()}</span>
+                      <span style={{fontWeight:700,color:cfg.ac}}>{cfg.defN}/{tot3} · {defPct}%</span>
+                    </div>
+                    <div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden"}}>
+                      <div style={{height:"100%",width:defPct+"%",borderRadius:3,background:"linear-gradient(90deg,"+cfg.ac+"88,"+cfg.ac+")",transition:"width 0.7s cubic-bezier(.4,0,.2,1)"}}/>
                     </div>
                   </div>
                 </div>;
               })}
             </div>
-            {d1Def.length>0&&d2Def.length>0&&<div style={{background:T.bgAlt,borderRadius:8,padding:14}}>
-              <div style={{fontSize:11,fontWeight:600,color:T.fg,marginBottom:10}}>Matrice D1 vers D2</div>
+            {/* Heatmap matrice D1 → D2 */}
+            {d1Def.length>0&&d2Def.length>0&&<div style={{background:T.bgAlt,borderRadius:10,padding:16,border:"1px solid "+T.border}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.fg,marginBottom:12}}>Matrice D1 → D2</div>
               <table style={{borderCollapse:"collapse",fontSize:10,width:"100%"}}>
-                <thead><tr><th style={{padding:"5px 8px",color:T.fgDim,textAlign:"left",borderBottom:"1px solid "+T.border}}>D1 / D2</th>{["Clone & Clean","Transfert","Abandon","Rebuild"].map(function(d2){return <th key={d2} style={{padding:"5px 8px",color:SD2[d2],fontWeight:700,borderBottom:"1px solid "+T.border,textAlign:"center"}}>{d2==="Clone & Clean"?"Clone":d2}</th>;})}<th style={{padding:"5px 8px",color:T.fgDim,borderBottom:"1px solid "+T.border,textAlign:"center"}}>N/A</th></tr></thead>
-                <tbody>{["Transfert TSA","Abandon"].map(function(d1){return <tr key={d1}><td style={{padding:"5px 8px",color:SD1[d1],fontWeight:700,borderBottom:"1px solid "+T.border}}>{d1==="Transfert TSA"?"TSA":d1}</td>{["Clone & Clean","Transfert","Abandon","Rebuild"].map(function(d2){var n=apps.filter(function(a){return a.statusD1===d1&&a.statusD2===d2;}).length;var contra=d1==="Abandon"&&d2==="Rebuild";return <td key={d2} style={{padding:"5px 8px",textAlign:"center",borderBottom:"1px solid "+T.border,background:n>0?(contra?"#EF444422":(SD2[d2]||"#666")+"18"):"transparent",color:n>0?(contra?"#EF4444":(SD2[d2]||"#666")):T.fgDim,fontWeight:n>0?700:400}}>{n>0?n:"—"}</td>;})}<td style={{padding:"5px 8px",textAlign:"center",borderBottom:"1px solid "+T.border,color:T.fgDim}}>{apps.filter(function(a){return a.statusD1===d1&&!a.statusD2;}).length||"—"}</td></tr>;})}
+                <thead><tr>
+                  <th style={{padding:"6px 10px",color:T.fgDim,textAlign:"left",borderBottom:"1px solid "+T.border,fontSize:9}}> </th>
+                  {d2Cols.map(function(d2){return <th key={d2} style={{padding:"6px 8px",color:SD2[d2],fontWeight:700,borderBottom:"1px solid "+T.border,textAlign:"center",fontSize:10}}>{d2==="Clone & Clean"?"Clone":d2}</th>;})}
+                  <th style={{padding:"6px 8px",color:T.fgDim,borderBottom:"1px solid "+T.border,textAlign:"center",fontSize:9}}>N/A</th>
+                </tr></thead>
+                <tbody>{d1Rows.map(function(d1){return <tr key={d1}>
+                  <td style={{padding:"7px 10px",color:SD1[d1],fontWeight:700,borderBottom:"1px solid "+T.border,fontSize:10}}>{d1==="Transfert TSA"?"TSA":d1}</td>
+                  {d2Cols.map(function(d2){
+                    var n=apps.filter(function(a){return a.statusD1===d1&&a.statusD2===d2;}).length;
+                    var contra=d1==="Abandon"&&d2==="Rebuild";
+                    var intensity=n>0?Math.round(n/mxMat*100):0;
+                    var bg=n>0?(contra?"rgba(239,68,68,"+(0.1+intensity/100*0.5)+")":"rgba("+hexToRgbCo(SD2[d2]||"#666")+","+(0.08+intensity/100*0.45)+")"):"transparent";
+                    return <td key={d2} style={{padding:"8px",textAlign:"center",borderBottom:"1px solid "+T.border,background:bg,color:n>0?(contra?"#EF4444":(SD2[d2]||"#888")):T.fgFaint,fontWeight:n>0?800:400,fontSize:n>0?12:10,transition:"background 0.2s"}}>
+                      {n>0?n:"—"}
+                    </td>;
+                  })}
+                  <td style={{padding:"7px 8px",textAlign:"center",borderBottom:"1px solid "+T.border,color:T.fgDim,fontSize:10}}>{apps.filter(function(a){return a.statusD1===d1&&!a.statusD2;}).length||"—"}</td>
+                </tr>;})}
                 </tbody>
               </table>
-              {riskApps.length>0&&<div style={{marginTop:10,padding:"8px 12px",background:"#EF444418",border:"1px solid #EF444444",borderRadius:6}}><span style={{fontSize:11,color:"#EF4444",fontWeight:600}}>{"Abandon D1 avec flux actifs : "}</span><span style={{fontSize:10,color:"#EF4444"}}>{riskApps.map(function(a){return a.name;}).join(", ")}</span></div>}
+              {riskApps.length>0&&<div style={{marginTop:12,padding:"8px 12px",background:"#EF444415",border:"1px solid #EF444440",borderRadius:7,display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13}}>⚠</span><span style={{fontSize:11,color:"#EF4444",fontWeight:600}}>Abandon D1 avec flux actifs : </span><span style={{fontSize:10,color:"#EF4444"}}>{riskApps.map(function(a){return a.name;}).join(", ")}</span></div>}
             </div>}
           </div>;
         }()}
-      </div></div>);
-        if(sid==="flowreg")return(<div key="flowreg"><div style={{background:T.bgCard,borderRadius:8,padding:20,marginBottom:32}}>
+      </div>);
+        if(sid==="flowreg")return wrapWidget(sid,"#2979FF","Registre des flux",null,<div style={{background:T.bgCard,borderRadius:8,padding:20}}>
         <SectionHdr id="flowreg" title={"REGISTRE D'ÉCHANGES DES FLUX ("+flows.length+")"} extra={<span style={{fontSize:11,color:T.fgMuted}}>Séquencier technique complet des interconnexions IT</span>}/>
         {!hiddenSections.includes("flowreg")&&function(){
           // Compute unique values for each column
@@ -2861,13 +3499,43 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             return true;
           });
           var hasFilter=fSrcApp||fSrcDom||fTgtApp||fTgtDom||fProto||fFreq||fDesc||flxSearch;
-          var selSt={background:T.bgInput,border:"1px solid "+T.border,borderRadius:4,padding:"3px 4px",color:T.fg,fontSize:9,cursor:"pointer",maxWidth:120};
+          var activeFilterCount=[fSrcApp,fSrcDom,fTgtApp,fTgtDom,fProto,fFreq,fDesc].filter(Boolean).length;
+          var selSt={background:T.bgInput,border:"1px solid "+T.border,borderRadius:4,padding:"4px 6px",color:T.fg,fontSize:10,cursor:"pointer",width:"100%"};
           var selAct=Object.assign({},selSt,{borderColor:"#2979FF",background:"#2979FF10"});
-          return <div>
+          var clearAll=function(){setFlxSearch("");setFSrcApp("");setFSrcDom("");setFTgtApp("");setFTgtDom("");setFProto("");setFFreq("");setFDesc("");};
+          return <div style={{display:"flex",gap:0}}>
+            {/* Panneau latéral de filtres */}
+            {showFlxFilter&&<div style={{width:220,flexShrink:0,background:T.bgAlt,borderRadius:8,padding:14,marginRight:12,border:"1px solid "+T.border,alignSelf:"flex-start",position:"sticky",top:0}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <span style={{fontSize:11,fontWeight:700,color:T.fg}}>Filtres</span>
+                {activeFilterCount>0&&<button onClick={clearAll} style={{background:"#FF525215",color:"#FF5252",border:"none",borderRadius:4,padding:"2px 6px",fontSize:9,cursor:"pointer"}}>Effacer ({activeFilterCount})</button>}
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <div><div style={{fontSize:9,color:T.fgMuted,marginBottom:3,textTransform:"uppercase",fontWeight:600}}>Application source</div><select value={fSrcApp} onChange={function(e){setFSrcApp(e.target.value);}} style={fSrcApp?selAct:selSt}><option value="">Toutes</option>{uSrcApp.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></div>
+                <div><div style={{fontSize:9,color:T.fgMuted,marginBottom:3,textTransform:"uppercase",fontWeight:600}}>Domaine source</div><select value={fSrcDom} onChange={function(e){setFSrcDom(e.target.value);}} style={fSrcDom?selAct:selSt}><option value="">Tous</option>{uSrcDom.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></div>
+                <div><div style={{fontSize:9,color:T.fgMuted,marginBottom:3,textTransform:"uppercase",fontWeight:600}}>Application cible</div><select value={fTgtApp} onChange={function(e){setFTgtApp(e.target.value);}} style={fTgtApp?selAct:selSt}><option value="">Toutes</option>{uTgtApp.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></div>
+                <div><div style={{fontSize:9,color:T.fgMuted,marginBottom:3,textTransform:"uppercase",fontWeight:600}}>Domaine cible</div><select value={fTgtDom} onChange={function(e){setFTgtDom(e.target.value);}} style={fTgtDom?selAct:selSt}><option value="">Tous</option>{uTgtDom.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></div>
+                <div><div style={{fontSize:9,color:T.fgMuted,marginBottom:3,textTransform:"uppercase",fontWeight:600}}>Protocole</div><select value={fProto} onChange={function(e){setFProto(e.target.value);}} style={fProto?selAct:selSt}><option value="">Tous</option>{uProto.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></div>
+                <div><div style={{fontSize:9,color:T.fgMuted,marginBottom:3,textTransform:"uppercase",fontWeight:600}}>Fréquence</div><select value={fFreq} onChange={function(e){setFFreq(e.target.value);}} style={fFreq?selAct:selSt}><option value="">Toutes</option>{uFreq.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></div>
+                <div><div style={{fontSize:9,color:T.fgMuted,marginBottom:3,textTransform:"uppercase",fontWeight:600}}>Description</div><select value={fDesc} onChange={function(e){setFDesc(e.target.value);}} style={fDesc?selAct:selSt}><option value="">Toutes</option>{uDesc.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></div>
+              </div>
+            </div>}
+            <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
               <input placeholder="Rechercher..." value={flxSearch} onChange={function(e){setFlxSearch(e.target.value);}} style={{...I,width:160,padding:"5px 8px",fontSize:10}}/>
+              <button onClick={function(){setShowFlxFilter(function(p){return !p;});}} style={{background:showFlxFilter?"#2979FF20":T.bgAlt,color:showFlxFilter?"#2979FF":T.fg,border:"1px solid "+(showFlxFilter?"#2979FF":T.border),borderRadius:5,padding:"5px 10px",fontSize:10,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+                {"⊟ Filtres"}{activeFilterCount>0&&<span style={{background:"#2979FF",color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>{activeFilterCount}</span>}
+              </button>
               <span style={{fontSize:10,color:T.fgDim}}>{filtered2.length}/{flows.length} flux</span>
-              {hasFilter&&<button onClick={function(){setFlxSearch("");setFSrcApp("");setFSrcDom("");setFTgtApp("");setFTgtDom("");setFProto("");setFFreq("");setFDesc("");}} style={{background:"#FF525215",color:"#FF5252",border:"none",borderRadius:4,padding:"3px 8px",fontSize:9,cursor:"pointer"}}>Effacer filtres</button>}
+              {hasFilter&&!showFlxFilter&&<button onClick={clearAll} style={{background:"#FF525215",color:"#FF5252",border:"none",borderRadius:4,padding:"3px 8px",fontSize:9,cursor:"pointer"}}>Effacer filtres</button>}
+              <button onClick={function(){
+                var cols=["ID","Source","Domaine source","Cible","Domaine cible","Protocole","Fréquence","Description"];
+                var rows=filtered2.map(function(e){return["F-"+(e.f.order||e.fi+1),e.srcName,e.srcDom,e.tgtName,e.tgtDom,e.proto,e.freq,e.desc].map(function(v){return '"'+(v||"").replace(/"/g,'""')+'"';}).join(",");});
+                var csv=[cols.join(",")].concat(rows).join("\n");
+                var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download="flux_export.csv";a.click();
+              }} style={{background:T.bgAlt,color:T.fg,border:"1px solid "+T.border,borderRadius:5,padding:"5px 10px",fontSize:10,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:4,marginLeft:"auto"}}>
+                ⬇ CSV
+              </button>
             </div>
             <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
               <thead>
@@ -2879,21 +3547,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
                   <th style={{padding:"6px 8px",textAlign:"center",color:T.fgMuted,fontWeight:600,fontSize:9,textTransform:"uppercase"}}>Protocole</th>
                   <th style={{padding:"6px 8px",textAlign:"left",color:T.fgMuted,fontWeight:600,fontSize:9,textTransform:"uppercase"}}>Fréquence</th>
                   <th style={{padding:"6px 8px",textAlign:"left",color:T.fgMuted,fontWeight:600,fontSize:9,textTransform:"uppercase"}}>Description</th>
-                </tr>
-                <tr style={{borderBottom:"1px solid "+T.border}}>
-                  <th style={{padding:"2px 8px"}}></th>
-                  <th style={{padding:"2px 4px"}}>
-                    <select value={fSrcApp} onChange={function(e){setFSrcApp(e.target.value);}} style={fSrcApp?selAct:selSt}><option value="">Toutes</option>{uSrcApp.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select>
-                    <select value={fSrcDom} onChange={function(e){setFSrcDom(e.target.value);}} style={Object.assign({},fSrcDom?selAct:selSt,{marginLeft:2})}><option value="">Dom.</option>{uSrcDom.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select>
-                  </th>
-                  <th></th>
-                  <th style={{padding:"2px 4px"}}>
-                    <select value={fTgtApp} onChange={function(e){setFTgtApp(e.target.value);}} style={fTgtApp?selAct:selSt}><option value="">Toutes</option>{uTgtApp.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select>
-                    <select value={fTgtDom} onChange={function(e){setFTgtDom(e.target.value);}} style={Object.assign({},fTgtDom?selAct:selSt,{marginLeft:2})}><option value="">Dom.</option>{uTgtDom.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select>
-                  </th>
-                  <th style={{padding:"2px 4px",textAlign:"center"}}><select value={fProto} onChange={function(e){setFProto(e.target.value);}} style={fProto?selAct:selSt}><option value="">Tous</option>{uProto.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></th>
-                  <th style={{padding:"2px 4px"}}><select value={fFreq} onChange={function(e){setFFreq(e.target.value);}} style={fFreq?selAct:selSt}><option value="">Toutes</option>{uFreq.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></th>
-                  <th style={{padding:"2px 4px"}}><select value={fDesc} onChange={function(e){setFDesc(e.target.value);}} style={fDesc?selAct:selSt}><option value="">Tous</option>{uDesc.map(function(v){return <option key={v} value={v}>{v}</option>;})}</select></th>
                 </tr>
               </thead>
               <tbody>{filtered2.map(function(e){
@@ -2910,57 +3563,85 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
                 </tr>;
               })}</tbody>
             </table></div>
-          </div>;
+          </div></div>;
         }()}
-      </div></div>);
+      </div>);
         return null;
       })}
-
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <h3 style={{fontSize:16,fontWeight:700,margin:0}}>Détail par domaine</h3>
-        <div style={{display:"flex",gap:6}}>{hiddenSections.filter(s=>s.startsWith("domain_")).length>0&&<button onClick={()=>setHiddenSections(p=>p.filter(s=>!s.startsWith("domain_")))} style={{...B,padding:"3px 10px",fontSize:9,background:T.border}}>Tout afficher</button>}
-          <button onClick={()=>setHiddenSections(p=>[...p.filter(s=>!s.startsWith("domain_")),...dm.map(d=>"domain_"+d)])} style={{...B,padding:"3px 10px",fontSize:9,background:T.border}}>Tout masquer</button>
-        </div>
       </div>
-      {st.map(ds=>{const c=DC[ds.domain]||DC.Autre;const secId="domain_"+ds.domain;
-        const flt=dbFilter[ds.domain]||{status:"",criticality:"",search:""};
-        const setFlt=(k,v)=>setDbFilter(p=>({...p,[ds.domain]:{...flt,[k]:v}}));
-        const filtApps=ds.apps.filter(a=>{
+
+      {/* Détail par domaine — navigation par onglets */}
+      {function(){
+        var curDom=activeDomain||st[0]?.domain;
+        var ds=st.find(function(d){return d.domain===curDom;})||st[0];
+        if(!ds) return null;
+        var c=DC[ds.domain]||DC.Autre;
+        var flt=dbFilter[ds.domain]||{status:"",criticality:"",search:""};
+        var setFlt=function(k,v){setDbFilter(function(p){var next=Object.assign({},p);next[ds.domain]=Object.assign({},flt);next[ds.domain][k]=v;return next;});};
+        var filtApps=ds.apps.filter(function(a){
           if(flt.status&&a.status!==flt.status) return false;
           if(flt.criticality&&a.criticality!==flt.criticality) return false;
           if(flt.search&&!a.name.toLowerCase().includes(flt.search.toLowerCase())&&!(a.vendor||"").toLowerCase().includes(flt.search.toLowerCase())) return false;
+          if(quickFilter==="critiques"&&a.criticality!=="Haute") return false;
+          if(statusFilter&&a.status!==statusFilter) return false;
           return true;
         });
-        return <div key={ds.domain} style={{background:T.bgCard,borderRadius:8,padding:20,marginBottom:16,borderLeft:`3px solid ${c.ac}`}}>
-        <SectionHdr id={secId} title={ds.domain} extra={<span style={{fontSize:11,color:T.fgMuted}}>{ds.count} apps · {ds.flows} flux · {ds.critical} critiques</span>}/>
-        {!hiddenSections.includes(secId)&&<>
-          {/* Filters */}
-          <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
-            <input placeholder="Rechercher..." value={flt.search||""} onChange={e=>setFlt("search",e.target.value)} style={{...I,width:140,padding:"4px 8px",fontSize:11}}/>
-            <select value={flt.status||""} onChange={e=>setFlt("status",e.target.value)} style={{...I,width:130,padding:"4px 8px",fontSize:11}}>
-              <option value="">Tous statuts</option>
-              {["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"].map(s=><option key={s} value={s}>{s}</option>)}
-            </select>
-            <select value={flt.criticality||""} onChange={e=>setFlt("criticality",e.target.value)} style={{...I,width:110,padding:"4px 8px",fontSize:11}}>
-              <option value="">Toutes criticités</option>
-              {["Haute","Moyenne","Basse"].map(cr=><option key={cr} value={cr}>{cr}</option>)}
-            </select>
-            {(flt.status||flt.criticality||flt.search)&&<button onClick={()=>setFlt("status","")&setFlt("criticality","")&setFlt("search","")} style={{...B,padding:"3px 8px",fontSize:9,background:"#E06C7520",color:"#E06C75",borderRadius:3}}>✕</button>}
-            <span style={{fontSize:10,color:T.fgDim}}>{filtApps.length}/{ds.count}</span>
+        return <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+            <h3 style={{fontSize:16,fontWeight:700,margin:0}}>Détail par domaine</h3>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {quickFilter&&<button onClick={function(){setQuickFilter("");}} style={{background:"#FF525215",color:"#FF5252",border:"1px solid #FF525240",borderRadius:5,padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>⚠ Critiques uniquement <span style={{opacity:0.6}}>✕</span></button>}
+              {statusFilter&&<button onClick={function(){setStatusFilter("");}} style={{background:"#2979FF15",color:"#2979FF",border:"1px solid #2979FF40",borderRadius:5,padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>◉ {statusFilter} <span style={{opacity:0.6}}>✕</span></button>}
+            </div>
           </div>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-            <thead><tr style={{borderBottom:"1px solid "+T.border}}>{["Application","Statut","Criticité","Éditeur","Responsable","Flux sortants"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",color:T.fgMuted,fontWeight:600}}>{h}</th>)}</tr></thead>
-            <tbody>{filtApps.map(app=>{const of2=flows.filter(f=>f.from===app.id);return <tr key={app.id} style={{borderBottom:"1px solid "+T.borderLight}}>
-              <td style={{padding:"6px 8px",fontWeight:500}}>{app.name}</td>
-              <td style={{padding:"6px 8px",color:(SC[app.status]||"#888")}}>{app.status}</td>
-              <td style={{padding:"6px 8px",color:CC[app.criticality]}}>{app.criticality}</td>
-              <td style={{padding:"6px 8px",color:T.fgMuted}}>{app.vendor||"—"}</td>
-              <td style={{padding:"6px 8px",color:T.fgMuted}}>{app.owner||"—"}</td>
-              <td style={{padding:"6px 8px",color:"#548CA8"}}>{of2.length>0?of2.map(f=>{const n=apps.find(a=>a.id===f.to)?.name||"?";return f.label?n+" ("+f.label+")":n;}).join(", "):"—"}</td>
-            </tr>;})}</tbody>
-          </table>
-        </>}
-      </div>;})}
+          {/* Onglets */}
+          <div style={{display:"flex",gap:0,marginBottom:0,borderBottom:"2px solid "+T.border,overflowX:"auto",flexWrap:"nowrap"}}>
+            {st.map(function(d){
+              var dc=DC[d.domain]||DC.Autre;
+              var isActive=d.domain===curDom;
+              return <button key={d.domain} onClick={function(){setActiveDomain(d.domain);}} style={{background:"transparent",border:"none",borderBottom:isActive?"2px solid "+dc.ac:"2px solid transparent",marginBottom:-2,padding:"8px 14px",fontSize:11,fontWeight:isActive?700:500,color:isActive?dc.ac:T.fgMuted,cursor:"pointer",whiteSpace:"nowrap",transition:"color 0.15s",display:"flex",alignItems:"center",gap:5}}>
+                <span>{d.domain}</span>
+                <span style={{background:isActive?dc.ac+"20":T.border,color:isActive?dc.ac:T.fgDim,borderRadius:10,padding:"1px 6px",fontSize:9,fontWeight:700}}>{d.count}</span>
+              </button>;
+            })}
+          </div>
+          {/* Contenu de l'onglet actif */}
+          <div style={{background:T.bgCard,borderRadius:"0 0 8px 8px",padding:20,borderLeft:"3px solid "+c.ac,border:"1px solid "+T.border,borderTop:"none"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div>
+                <span style={{fontSize:14,fontWeight:700,color:c.ac}}>{ds.domain}</span>
+                <span style={{fontSize:11,color:T.fgMuted,marginLeft:10}}>{ds.count} apps · {ds.flows} flux · {ds.critical} critiques</span>
+              </div>
+            </div>
+            {/* Filtres */}
+            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+              <input placeholder="Rechercher..." value={flt.search||""} onChange={function(e){setFlt("search",e.target.value);}} style={{...I,width:140,padding:"4px 8px",fontSize:11}}/>
+              <select value={flt.status||""} onChange={function(e){setFlt("status",e.target.value);}} style={{...I,width:130,padding:"4px 8px",fontSize:11}}>
+                <option value="">Tous statuts</option>
+                {["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"].map(function(s){return <option key={s} value={s}>{s}</option>;})}
+              </select>
+              <select value={flt.criticality||""} onChange={function(e){setFlt("criticality",e.target.value);}} style={{...I,width:110,padding:"4px 8px",fontSize:11}}>
+                <option value="">Toutes criticités</option>
+                {["Haute","Moyenne","Basse"].map(function(cr){return <option key={cr} value={cr}>{cr}</option>;})}
+              </select>
+              {(flt.status||flt.criticality||flt.search)&&<button onClick={function(){setFlt("status","");setFlt("criticality","");setFlt("search","");}} style={{...B,padding:"3px 8px",fontSize:9,background:"#E06C7520",color:"#E06C75",borderRadius:3}}>✕</button>}
+              <span style={{fontSize:10,color:T.fgDim}}>{filtApps.length}/{ds.count}</span>
+            </div>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead><tr style={{borderBottom:"1px solid "+T.border}}>{["Application","Statut","Criticité","Éditeur","Responsable","Flux sortants"].map(function(h){return <th key={h} style={{padding:"6px 8px",textAlign:"left",color:T.fgMuted,fontWeight:600}}>{h}</th>;})}</tr></thead>
+              <tbody>{filtApps.map(function(app){var of2=flows.filter(function(f){return f.from===app.id;});return <tr key={app.id} style={{borderBottom:"1px solid "+T.borderLight}}>
+                <td style={{padding:"6px 8px",fontWeight:500}}>{app.name}</td>
+                <td style={{padding:"6px 8px",color:(SC[app.status]||"#888")}}>{app.status}</td>
+                <td style={{padding:"6px 8px",color:CC[app.criticality]}}>{app.criticality}</td>
+                <td style={{padding:"6px 8px",color:T.fgMuted}}>{app.vendor||"—"}</td>
+                <td style={{padding:"6px 8px",color:T.fgMuted}}>{app.owner||"—"}</td>
+                <td style={{padding:"6px 8px",color:"#548CA8"}}>{of2.length>0?of2.map(function(f){var n=(apps.find(function(a){return a.id===f.to;})||{}).name||"?";return f.label?n+" ("+f.label+")":n;}).join(", "):"—"}</td>
+              </tr>;})}
+              </tbody>
+            </table>
+          </div>
+        </div>;
+      }()}
     </div>;
   };
 
@@ -3220,7 +3901,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     </div>
 
     {/* ── Detail panel (slide-in) ── */}
-    {cardSelApp&&<div style={{position:"fixed",right:0,top:0,bottom:0,width:360,background:T.bgAlt,borderLeft:"1px solid "+T.border,overflowY:"auto",zIndex:200,boxShadow:"-8px 0 32px rgba(0,0,0,0.25)",animation:"panelIn 0.22s cubic-bezier(0.16,1,0.3,1)"}}>
+    {cardSelApp&&<div style={{position:"fixed",right:0,top:topOffset,bottom:0,width:360,background:T.bgAlt,borderLeft:"1px solid "+T.border,overflowY:"auto",zIndex:200,boxShadow:"-8px 0 32px rgba(0,0,0,0.25)",animation:"panelIn 0.22s cubic-bezier(0.16,1,0.3,1)"}}>
       <div style={{background:(DC[cardSelApp.domain]||DC.Autre).ac,padding:"20px 20px 16px",position:"sticky",top:0,zIndex:1}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{flex:1,minWidth:0}}>
@@ -3726,9 +4407,8 @@ if(view==="dashboard") return <div style={{display:"flex",flexDirection:"column"
     </div>;
 
   /* ═══ MAPPING ═══ */
-  return <AppCtx.Provider value={ctxValue}><div style={{height:"100vh",display:"flex",overflow:"hidden"}}><Sidebar/><div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-    <div style={{background:T.bgAlt,borderBottom:"1px solid "+T.borderLight,padding:"8px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0,zIndex:100,flexWrap:"wrap"}}>
-      <span style={{fontSize:16,marginRight:4}}>◈</span><span style={{fontSize:13,fontWeight:700,marginRight:12}}>Cartographe</span>
+  return <AppCtx.Provider value={ctxValue}><div style={{height:"100vh",display:"flex",overflow:"hidden"}}><Sidebar/><div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
+    <div ref={toolbarRef} style={{background:T.bgAlt,borderBottom:"1px solid "+T.borderLight,padding:"8px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0,zIndex:100,flexWrap:"wrap"}}>
       <input placeholder="Rechercher..." value={search} onChange={e=>setSearch(e.target.value)} style={{...I,width:140}}/>
       {/* Dropdown filters */}
       {[
@@ -3926,7 +4606,7 @@ if(view==="dashboard") return <div style={{display:"flex",flexDirection:"column"
         Molette = déplacer · Ctrl+Molette = zoom · Échap = quitter
       </div>
     </div>}
-    {selApp&&!showAM&&<div data-panel="1" style={{position:"absolute",right:0,top:48,width:300,background:T.bgAlt,borderLeft:"1px solid "+T.borderLight,height:"calc(100% - 48px)",overflowY:"auto",zIndex:50}}>
+    {selApp&&!showAM&&<div data-panel="1" style={{position:"absolute",right:0,top:toolbarH,width:300,background:T.bgAlt,borderLeft:"1px solid "+T.borderLight,height:"calc(100% - "+toolbarH+"px)",overflowY:"auto",zIndex:150}}>
       {/* Header with domain color accent */}
       <div style={{background:isDark?(DC[selApp.domain]||DC.Autre).bg:((DC[selApp.domain]||DC.Autre).ac+"18"),padding:"16px 18px 12px",borderBottom:"2px solid "+(DC[selApp.domain]||DC.Autre).ac}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>

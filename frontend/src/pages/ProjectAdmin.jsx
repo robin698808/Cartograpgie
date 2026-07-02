@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getMembers, inviteMember, removeMember, updateMemberRole, getProjects, updateProject } from '../api/client';
 import { useAuth } from '../api/AuthContext';
 import { LogoMark } from '../components/Logo';
+import ProfileModal from '../components/ProfileModal';
 
 function initials(nom) {
   if (!nom) return '?';
@@ -21,10 +22,11 @@ export default function ProjectAdmin() {
   const { user: me, logout }  = useAuth();
   const navigate              = useNavigate();
 
-  const [project,  setProject]  = useState(null);
-  const [members,  setMembers]  = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [toast,    setToast]    = useState(null);
+  const [project,     setProject]     = useState(null);
+  const [members,     setMembers]     = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [toast,       setToast]       = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Formulaire invitation
   const [invEmail, setInvEmail] = useState('');
@@ -134,7 +136,6 @@ export default function ProjectAdmin() {
       <header className="header">
         <div className="row g3">
           <button onClick={() => navigate('/')} className="btn btn-s btn-sm row g2">
-            <LogoMark size={20} />
             <span>Projets</span>
           </button>
           <span className="ctx-sep">/</span>
@@ -153,10 +154,18 @@ export default function ProjectAdmin() {
               🛡️ Utilisateurs
             </button>
           )}
-          <span className="f13 t3 w5">{me?.nom}</span>
+          <div className="row g2" onClick={() => setShowProfile(true)}
+            style={{ cursor: 'pointer' }} title="Modifier mon profil">
+            {me?.avatar
+              ? <img src={me.avatar} alt="avatar" style={{ width:28, height:28, borderRadius:'50%', objectFit:'cover', border:'2px solid var(--border)' }} />
+              : <div className="av av-sm">{initials(me?.nom)}</div>
+            }
+            <span className="f13 t2 w5">{me?.prenom ? `${me.prenom} ${me.nom}` : me?.nom}</span>
+          </div>
           <button onClick={logout} className="btn btn-s btn-sm">Déconnexion</button>
         </div>
       </header>
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
       <div className="container">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}>
@@ -394,7 +403,10 @@ function MemberRow({ member, isMe, canManage, isLast, onRoleChange, onRemove }) 
     >
       {/* Identité */}
       <div className="row g2">
-        <div className="av av-sm">{initials(member.user?.nom)}</div>
+        {member.user?.avatar
+          ? <img src={member.user.avatar} alt={member.user?.nom} title={member.user?.nom} style={{ width:32, height:32, borderRadius:'50%', objectFit:'cover', border:'2px solid var(--border)', flexShrink:0 }} />
+          : <div className="av av-sm">{initials(member.user?.nom)}</div>
+        }
         <div>
           <div className="f13 w6 t1">
             {member.user?.nom}
