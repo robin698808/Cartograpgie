@@ -5,6 +5,7 @@ import { loadSavedTheme } from './utils/themes';
 
 // Apply persisted theme before first render
 loadSavedTheme();
+import Home from './pages/Home';
 import Login from './pages/Login';
 import Projects from './pages/Projects';
 import Canvas from './pages/Canvas';
@@ -17,10 +18,14 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Page d'accueil publique */}
+          <Route path="/" element={<Home />} />
+
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          <Route path="/" element={
+          {/* Dashboard projets — protégé */}
+          <Route path="/projects" element={
             <ProtectedRoute><Projects /></ProtectedRoute>
           } />
 
