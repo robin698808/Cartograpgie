@@ -1413,7 +1413,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       var nDoms=synDoms.length;
       var _sX=0.15,_sY=0.5,_sW=W-0.3,_sH=H-0.6;
       var domColW=_sW/nDoms;
-      var appH4=0.14;
+      var appH4=0.18;
       var colGap=0.10; // gap between 2 columns inside a domain (for intra synFlows)
       // === Barycentric ordering: align connected synApps across domains ===
       // Step 1: Sort domains by connectivity (most connected first as anchor)
@@ -1480,10 +1480,10 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         var maxRowsP=Math.floor((_sH-0.25)/(appH4+0.02));
         if(Math.ceil(n/nc)>maxRowsP&&nc<3)nc=3;
         domNColsM[d]=nc;
-        domContentW[d]=0.12+nc*1.25+(nc-1)*colGap;
+        domContentW[d]=0.12+nc*0.88+(nc-1)*colGap;
       });
       var totContentW=0;synDoms.forEach(function(d){totContentW+=domContentW[d];});
-      var corridorW=synDoms.length>1?Math.max(0.35,(_sW-totContentW)/(synDoms.length-1)):0;
+      var corridorW=synDoms.length>1?Math.max(0.80,(_sW-totContentW)/(synDoms.length-1)):0;
       var domColXsM={};var _cx0=_sX;
       synDoms.forEach(function(d){domColXsM[d]=_cx0;_cx0+=domContentW[d]+corridorW;});
       synDoms.forEach(function(dom,di){
@@ -1494,7 +1494,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         var innerW4=domContentW[dom]-0.12;
         var nRows4=Math.ceil(dApps.length/nCols4);
         var appW4=nCols4>1?(innerW4-(nCols4-1)*colGap)/nCols4:innerW4;
-        appW4=Math.min(1.25,appW4);
+        appW4=Math.min(0.88,appW4);
         var availH4=slideBottom-_sY-0.2;
         // Adaptive app height: shrink if too many rows
         var ah4=appH4;
@@ -1794,6 +1794,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       });
       var bundleList=Object.values(bundles);
       var synLR=[];
+      // App boxes = obstacles pour le placement des labels
+      Object.values(synPos).forEach(function(p){synLR.push({x:p.x-0.05,y:p.y-0.05,w:p.w+0.10,h:p.h+0.10});});
       var clipP=function(cx5,cy5,w5,h5,tx5,ty5){var dx5=tx5-cx5,dy5=ty5-cy5;if(Math.abs(dx5)<0.01&&Math.abs(dy5)<0.01)return{x:cx5,y:cy5};var sx5=Math.abs(dx5)>0.01?(w5/2)/Math.abs(dx5):999;var sy5=Math.abs(dy5)>0.01?(h5/2)/Math.abs(dy5):999;var s5=Math.min(sx5,sy5);return{x:cx5+dx5*s5,y:cy5+dy5*s5};};
       var hubP=synPos[hubApp.id];
       bundleList.forEach(function(bun){
@@ -1841,8 +1843,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         var txt5="";
         txt5=n===1?(bun.synFlows[0].label||n+" flux"):n+" flux";
         if(txt5){
-          var lblW5=Math.min(0.7*fS,(txt5.length*0.028+0.05)*fS);
-          var lblH5=0.09*fS;
+          var lblW5=Math.min(1.5*fS,(txt5.length*0.042+0.12)*fS);
+          var lblH5=0.17*fS;
           // Place label at 40% along the ray (closer to satellite) to avoid hub congestion
           var t_lbl=bun.agg?0.38:0.5;
           var lblX5=(ep.x+(en.x-ep.x)*t_lbl)-lblW5/2;
@@ -1852,8 +1854,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           var px_lbl=-dy_lbl/len_lbl*0.08,py_lbl=dx_lbl/len_lbl*0.08;
           // Try positions along ray with perpendicular offsets
           var bestLbl=null;
-          var tPositionsL=bun.agg?[0.35,0.45,0.55,0.65,0.25]:[0.4,0.5,0.6,0.3,0.7];
-          var offsL=[0,0.08,-0.08,0.15,-0.15,0.22,-0.22];
+          var tPositionsL=bun.agg?[0.22,0.32,0.42,0.52,0.62,0.14,0.70]:[0.35,0.50,0.65,0.20,0.80,0.10,0.90];
+          var offsL=[0,0.20,-0.20,0.40,-0.40,0.60,-0.60,0.85,-0.85,1.10,-1.10];
           outerLbl: for(var tli=0;tli<tPositionsL.length;tli++){
             for(var oli=0;oli<offsL.length;oli++){
               var clx=ep.x+dx_lbl*tPositionsL[tli]+px_lbl*offsL[oli]-lblW5/2;
@@ -1867,8 +1869,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           }
           if(!bestLbl)bestLbl={x:Math.max(0.02,Math.min(W-lblW5-0.02,lblX5)),y:Math.max(0.02,Math.min(H-lblH5-0.02,lblY5))};
           synLR.push({x:bestLbl.x,y:bestLbl.y,w:lblW5,h:lblH5});
-          synSl.addShape(pres.shapes.RECTANGLE,{x:bestLbl.x-0.01,y:bestLbl.y-0.005,w:lblW5+0.02,h:lblH5+0.01,fill:{color:"F5F6FA"},line:{color:pc,width:0.25}});
-          synSl.addText(txt5,{x:bestLbl.x,y:bestLbl.y,w:lblW5,h:lblH5,fontSize:Math.round(4*(bun.agg?1:fS)*10)/10,color:"444444",fontFace:"Calibri",margin:0,valign:"middle",shrinkText:true});
+          synSl.addShape(pres.shapes.RECTANGLE,{x:bestLbl.x-0.02,y:bestLbl.y-0.02,w:lblW5+0.04,h:lblH5+0.04,fill:{color:"FFFFFF"},line:{color:pc,width:0.55}});
+          synSl.addText(txt5,{x:bestLbl.x,y:bestLbl.y,w:lblW5,h:lblH5,fontSize:Math.round(7*(bun.agg?1:fS)*10)/10,color:"222222",fontFace:"Calibri",margin:0,valign:"middle",shrinkText:true});
         }
       });
       // Apps ON TOP
