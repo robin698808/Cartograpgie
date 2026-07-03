@@ -4398,15 +4398,6 @@ if(view==="urbanisme"){
               <div style={{width:3,height:18,background:dc.ac,borderRadius:2,flexShrink:0}}/>
               <span style={{fontSize:12,fontWeight:800,color:T.fg,textTransform:"uppercase",letterSpacing:"0.06em"}}>{dom}</span>
               <span style={{fontSize:10,color:T.fgMuted,background:T.bgCard,border:"1px solid "+T.border,borderRadius:4,padding:"1px 6px"}}>{da.length} app{da.length>1?"s":""}</span>
-              {/* D1/D2 coverage for this domain */}
-              {function(){
-                var d1n=da.filter(function(a){return a.statusD1;}).length;
-                var d2n=da.filter(function(a){return a.statusD2;}).length;
-                return <div style={{display:"flex",gap:5,marginLeft:4}}>
-                  {d1n>0&&<span style={{fontSize:10,color:"#F59E0B",background:"#F59E0B12",border:"1px solid #F59E0B30",borderRadius:4,padding:"1px 6px"}}>D1: {d1n}/{da.length}</span>}
-                  {d2n>0&&<span style={{fontSize:10,color:"#8B5CF6",background:"#8B5CF612",border:"1px solid #8B5CF630",borderRadius:4,padding:"1px 6px"}}>D2: {d2n}/{da.length}</span>}
-                </div>;
-              }()}
             </div>
             {/* App cards */}
             <div style={{display:"flex",flexWrap:"wrap",gap:10}}>
