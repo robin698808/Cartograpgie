@@ -3677,30 +3677,126 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     {loadStatus.step==="error"&&<button onClick={()=>{setLoadStatus(null);setView("home");}} style={{...B,background:T.border,marginTop:24}}>← Retour</button>}
   </div></div>;
 
-  if(view==="home") return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{textAlign:"center",maxWidth:640,padding:20}}>
+  if(view==="home") return <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:isDark?"linear-gradient(160deg,#08080F 0%,#0D0D20 50%,#0A0A1A 100%)":"linear-gradient(160deg,#F0F0FF 0%,#F7F7FF 100%)",position:"relative",overflow:"hidden",padding:"40px 20px"}}>
+
+    {/* ── Réseau décoratif SVG en fond ── */}
+    <svg aria-hidden="true" style={{position:"fixed",inset:0,width:"100%",height:"100%",pointerEvents:"none",opacity:isDark?0.07:0.05}} viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+      {[[80,90],[200,60],[340,120],[500,80],[650,130],[100,250],[260,210],[420,270],[580,220],[720,270],[60,400],[200,370],[360,420],[520,380],[680,410],[140,520],[320,500],[480,530],[640,490]].map(function(n,i){return <circle key={i} cx={n[0]} cy={n[1]} r={i<4?5:3.5} fill="#6366F1" fillOpacity={i<4?0.8:0.5}><animate attributeName="r" values={(i<4?5:3.5)+";"+(i<4?7:5)+";"+(i<4?5:3.5)} dur={(2.5+i*0.3)+"s"} repeatCount="indefinite"/></circle>;})}
+      {[[0,1],[1,2],[2,3],[3,4],[0,5],[1,6],[2,7],[3,8],[4,9],[5,6],[6,7],[7,8],[8,9],[5,10],[6,11],[7,12],[8,13],[9,14],[10,11],[11,12],[12,13],[13,14],[10,15],[11,16],[12,17],[13,18]].map(function(e,i){var ns=[[80,90],[200,60],[340,120],[500,80],[650,130],[100,250],[260,210],[420,270],[580,220],[720,270],[60,400],[200,370],[360,420],[520,380],[680,410],[140,520],[320,500],[480,530],[640,490]];return <line key={i} x1={ns[e[0]][0]} y1={ns[e[0]][1]} x2={ns[e[1]][0]} y2={ns[e[1]][1]} stroke="#6366F1" strokeWidth="0.8" strokeOpacity="0.4"><animate attributeName="strokeOpacity" values="0.15;0.6;0.15" dur={(3+i*0.2)+"s"} begin={(i*0.15)+"s"} repeatCount="indefinite"/></line>;})}
+    </svg>
+
+    {/* ── Bouton thème ── */}
     <div style={{position:"fixed",top:16,right:16,zIndex:999}}>
-      <button onClick={toggleTheme} style={{background:T.bgCard,color:T.fg,border:"1px solid "+T.border,padding:"8px 14px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:600,boxShadow:T.shadow}}>{isDark?"☀️":"🌙"}</button>
+      <button onClick={toggleTheme} style={{background:T.bgCard,color:T.fg,border:"1px solid "+T.border,padding:"8px 14px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:600,boxShadow:T.shadow,transition:"all 0.2s"}}>{isDark?"☀️ Clair":"🌙 Sombre"}</button>
     </div>
-    <div style={{fontSize:48,marginBottom:8}}>◈</div>
-    <h1 style={{fontSize:28,fontWeight:700,marginBottom:8,letterSpacing:-0.5}}>Cartographe</h1>
-    <p style={{color:T.fgMuted,fontSize:13,marginBottom:32,lineHeight:1.6}}>Outil de cartographie applicative pour due diligence IT & audit.<br/>Importez vos données ou créez from scratch.</p>
-    <div style={{display:"flex",gap:16,justifyContent:"center",flexWrap:"wrap"}}>
-      <label style={{...B,background:"#2979FF",padding:"14px 28px",fontSize:13,display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}><span>⬆ Importer un fichier</span><input type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb,.ods" style={{display:"none"}} onChange={e=>e.target.files[0]&&handleFile(e.target.files[0])}/></label>
-      <button onClick={()=>{setApps([]);setFlows([]);setView("mapping");}} style={{...B,background:T.border,padding:"14px 28px",fontSize:14}}>✎ Créer from scratch</button>
-      <label style={{...B,background:"#2979FF",padding:"14px 28px",fontSize:13,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:8}}>📂 Charger .json<input type="file" accept=".json" style={{display:"none"}} onChange={e=>e.target.files[0]&&loadJSON(e.target.files[0])}/></label>
-    </div>
-    <div style={{display:"flex",gap:8,justifyContent:"center",marginTop:14}}>{["CSV","XLSX","XLS","ODS","TSV"].map(f=><span key={f} style={{fontSize:10,padding:"3px 8px",background:T.bgCard,borderRadius:4,color:T.fgMuted,border:"1px solid "+T.border}}>{f}</span>)}</div>
-    <div style={{marginTop:28,padding:18,background:T.bgCard,borderRadius:8,border:"1px solid "+T.border}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16}}>
-        <div style={{textAlign:"left"}}><div style={{fontSize:12,fontWeight:700,color:"#52B788",marginBottom:4}}>📋 Template d'import</div><div style={{fontSize:11,color:T.fgMuted}}>Excel pré-formaté avec exemples, listes déroulantes et instructions</div></div>
-        <button onClick={downloadTemplate} style={{...B,background:"#52B788",padding:"10px 20px",whiteSpace:"nowrap"}}>⬇ Télécharger .xlsx</button>
+
+    {/* ── Logo SVG Cartographe ── */}
+    <div style={{marginBottom:20,position:"relative",zIndex:1}}>
+      <div style={{display:"inline-block",borderRadius:20,padding:5,background:"linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.25))",boxShadow:"0 0 0 0 rgba(99,102,241,0.4)",animation:"homePulse 3s ease-in-out infinite"}}>
+        <svg width="72" height="72" viewBox="0 0 64 64" fill="none" aria-label="Cartographe">
+          <defs>
+            <linearGradient id="hLg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#6366F1"/><stop offset="1" stopColor="#7C3AED"/>
+            </linearGradient>
+            <linearGradient id="hLb" x1="32" y1="1" x2="32" y2="31" gradientUnits="userSpaceOnUse">
+              <stop stopColor="white" stopOpacity="0.22"/><stop offset="1" stopColor="white" stopOpacity="0"/>
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="18" fill="url(#hLg)"/>
+          <rect x="1" y="1" width="62" height="30" rx="17" fill="url(#hLb)"/>
+          <rect x="0" y="32" width="64" height="32" rx="17" fill="rgba(0,0,0,0.08)"/>
+          <line x1="32" y1="16" x2="16" y2="38" stroke="rgba(255,255,255,0.40)" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="32" y1="16" x2="48" y2="38" stroke="rgba(255,255,255,0.40)" strokeWidth="2" strokeLinecap="round"/>
+          <line x1="16" y1="38" x2="48" y2="38" stroke="rgba(255,255,255,0.25)" strokeWidth="1.8" strokeLinecap="round"/>
+          <line x1="32" y1="16" x2="32" y2="50" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="3 3.5"/>
+          <line x1="16" y1="38" x2="10" y2="50" stroke="rgba(255,255,255,0.20)" strokeWidth="1.4" strokeLinecap="round"/>
+          <line x1="48" y1="38" x2="54" y2="50" stroke="rgba(255,255,255,0.20)" strokeWidth="1.4" strokeLinecap="round"/>
+          <circle cx="32" cy="16" r="7" fill="white"/>
+          <circle cx="32" cy="16" r="3.5" fill="url(#hLg)" opacity="0.5"/>
+          <circle cx="16" cy="38" r="5.5" fill="rgba(255,255,255,0.92)"/>
+          <circle cx="48" cy="38" r="5.5" fill="rgba(255,255,255,0.92)"/>
+          <circle cx="32" cy="50" r="3.5" fill="rgba(255,255,255,0.65)"/>
+          <circle cx="10" cy="50" r="2.5" fill="rgba(255,255,255,0.45)"/>
+          <circle cx="54" cy="50" r="2.5" fill="rgba(255,255,255,0.45)"/>
+        </svg>
       </div>
     </div>
-    <div style={{marginTop:20,padding:18,background:T.bgCard,borderRadius:8,textAlign:"left"}}>
-      <div style={{fontSize:11,fontWeight:700,color:"#548CA8",marginBottom:8,letterSpacing:1}}>STRUCTURE ATTENDUE</div>
-      <code style={{fontSize:10,color:T.fgMuted,lineHeight:1.8,display:"block",whiteSpace:"pre-wrap"}}>{"Nom Application;Domaine;Statut;Criticité;Éditeur;Flux vers\nSAP;Finance;Maintien;Haute;SAP SE;Salesforce|Power BI\nSalesforce;Commercial;Maintien;Haute;Salesforce;SAP"}</code>
+
+    {/* ── Titre ── */}
+    <div style={{textAlign:"center",marginBottom:8,position:"relative",zIndex:1}}>
+      <h1 style={{fontSize:32,fontWeight:900,letterSpacing:"-0.04em",marginBottom:6,background:"linear-gradient(135deg,"+T.fg+" 0%,#818CF8 100%)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>Cartographe</h1>
+      <p style={{color:T.fgMuted,fontSize:13,lineHeight:1.7,maxWidth:440,margin:"0 auto"}}>Cartographie applicative pour due diligence IT &amp; audit.<br/>Choisissez comment démarrer votre projet.</p>
     </div>
-  </div></div>;
+
+    {/* ── Badge ── */}
+    <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(99,102,241,0.12)",border:"1px solid rgba(99,102,241,0.30)",borderRadius:999,padding:"4px 12px",marginBottom:32,position:"relative",zIndex:1}}>
+      <span style={{width:6,height:6,borderRadius:"50%",background:"#6366F1",display:"inline-block"}}/>
+      <span style={{fontSize:11,fontWeight:700,color:"#818CF8",letterSpacing:"0.06em"}}>CARTOGRAPHIE APPLICATIVE · SI &amp; AUDIT</span>
+    </div>
+
+    {/* ── Cartes d'action ── */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14,width:"100%",maxWidth:780,position:"relative",zIndex:1,marginBottom:20}}>
+
+      {/* Carte 1 — Import fichier */}
+      <label style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:10,padding:"22px 20px",background:isDark?"rgba(41,121,255,0.10)":"rgba(41,121,255,0.07)",border:"1.5px solid "+(isDark?"rgba(41,121,255,0.35)":"rgba(41,121,255,0.3)"),borderRadius:14,cursor:"pointer",transition:"all 0.2s",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(41,121,255,0.08),transparent)",pointerEvents:"none"}}/>
+        <div style={{width:42,height:42,borderRadius:12,background:"linear-gradient(135deg,#2979FF,#1565C0)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 16px rgba(41,121,255,0.4)",flexShrink:0}}>⬆</div>
+        <div>
+          <div style={{fontSize:14,fontWeight:700,color:T.fg,marginBottom:4}}>Importer un fichier</div>
+          <div style={{fontSize:11,color:T.fgMuted,lineHeight:1.5}}>Excel, CSV, TSV, ODS — mappage automatique des colonnes</div>
+        </div>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:2}}>
+          {["XLSX","CSV","XLS","ODS","TSV"].map(function(f){return <span key={f} style={{fontSize:9,padding:"2px 7px",background:"rgba(41,121,255,0.15)",borderRadius:4,color:"#64B5F6",border:"1px solid rgba(41,121,255,0.25)",fontWeight:700,letterSpacing:"0.05em"}}>{f}</span>;})}
+        </div>
+        <input type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb,.ods" style={{display:"none"}} onChange={function(e){e.target.files[0]&&handleFile(e.target.files[0]);}}/>
+      </label>
+
+      {/* Carte 2 — From scratch */}
+      <button onClick={function(){setApps([]);setFlows([]);setView("mapping");}} style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:10,padding:"22px 20px",background:isDark?"rgba(99,102,241,0.10)":"rgba(99,102,241,0.07)",border:"1.5px solid rgba(99,102,241,0.35)",borderRadius:14,cursor:"pointer",transition:"all 0.2s",position:"relative",overflow:"hidden",textAlign:"left",fontFamily:"inherit"}}>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(99,102,241,0.08),transparent)",pointerEvents:"none"}}/>
+        <div style={{width:42,height:42,borderRadius:12,background:"linear-gradient(135deg,#6366F1,#4F46E5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 16px rgba(99,102,241,0.4)",flexShrink:0}}>✦</div>
+        <div>
+          <div style={{fontSize:14,fontWeight:700,color:T.fg,marginBottom:4}}>Créer from scratch</div>
+          <div style={{fontSize:11,color:T.fgMuted,lineHeight:1.5}}>Canvas vierge — ajoutez vos applications manuellement</div>
+        </div>
+        <div style={{marginTop:"auto",fontSize:11,color:"#818CF8",fontWeight:600}}>Canvas vide →</div>
+      </button>
+
+      {/* Carte 3 — Charger JSON */}
+      <label style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:10,padding:"22px 20px",background:isDark?"rgba(0,191,165,0.08)":"rgba(0,191,165,0.06)",border:"1.5px solid "+(isDark?"rgba(0,191,165,0.30)":"rgba(0,191,165,0.25)"),borderRadius:14,cursor:"pointer",transition:"all 0.2s",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,rgba(0,191,165,0.06),transparent)",pointerEvents:"none"}}/>
+        <div style={{width:42,height:42,borderRadius:12,background:"linear-gradient(135deg,#00BFA5,#00897B)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:"0 4px 16px rgba(0,191,165,0.3)",flexShrink:0}}>📂</div>
+        <div>
+          <div style={{fontSize:14,fontWeight:700,color:T.fg,marginBottom:4}}>Charger un export</div>
+          <div style={{fontSize:11,color:T.fgMuted,lineHeight:1.5}}>Reprendre un projet sauvegardé au format .json</div>
+        </div>
+        <div style={{marginTop:"auto",fontSize:11,color:"#4DB6AC",fontWeight:600}}>Fichier .json →</div>
+        <input type="file" accept=".json" style={{display:"none"}} onChange={function(e){e.target.files[0]&&loadJSON(e.target.files[0]);}}/>
+      </label>
+    </div>
+
+    {/* ── Template + Structure ── */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,width:"100%",maxWidth:780,position:"relative",zIndex:1}}>
+
+      {/* Template d'import */}
+      <div style={{padding:"16px 18px",background:T.bgCard,borderRadius:12,border:"1px solid "+T.border,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+        <div>
+          <div style={{fontSize:12,fontWeight:700,color:"#52B788",marginBottom:3,display:"flex",alignItems:"center",gap:5}}>📋 Template Excel</div>
+          <div style={{fontSize:11,color:T.fgMuted}}>Pré-formaté avec exemples &amp; instructions</div>
+        </div>
+        <button onClick={downloadTemplate} style={{...B,background:"#52B788",padding:"8px 14px",whiteSpace:"nowrap",fontSize:11,flexShrink:0}}>⬇ .xlsx</button>
+      </div>
+
+      {/* Structure attendue */}
+      <div style={{padding:"16px 18px",background:T.bgCard,borderRadius:12,border:"1px solid "+T.border}}>
+        <div style={{fontSize:11,fontWeight:700,color:"#548CA8",marginBottom:6,letterSpacing:"0.06em"}}>STRUCTURE MINIMALE</div>
+        <code style={{fontSize:10,color:T.fgMuted,lineHeight:1.7,display:"block",whiteSpace:"pre-wrap"}}>{"Nom Application ; Domaine\nSAP ; Finance\nSalesforce ; Commercial"}</code>
+      </div>
+    </div>
+
+    {/* ── Keyframes ── */}
+    <style>{"@keyframes homePulse{0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0.4)}50%{box-shadow:0 0 0 12px rgba(99,102,241,0)}}"}</style>
+  </div>;
 
   if(showSP&&shts.length>0) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{background:T.bgCard,borderRadius:8,padding:32,width:420,textAlign:"center"}}>
     <div style={{fontSize:32,marginBottom:12}}>📑</div><h2 style={{fontSize:18,fontWeight:700,marginBottom:4}}>Fichier multi-feuilles</h2>
