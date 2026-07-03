@@ -293,7 +293,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       for(const e of entries)setToolbarH(Math.ceil(e.contentRect.height)+16);
     });
     obs.observe(toolbarRef.current);
-    setToolbarH(Math.ceil(toolbarRef.current.getBoundingClientRect().height));
+    setToolbarH(Math.ceil(toolbarRef.current.getBoundingClientRect().height)+16);
     return()=>obs.disconnect();
   },[]);
 
@@ -4491,7 +4491,7 @@ if(view==="dashboard") return <div style={{display:"flex",flexDirection:"column"
 
   /* ═══ MAPPING ═══ */
   return <AppCtx.Provider value={ctxValue}><div style={{height:"100vh",display:"flex",overflow:"hidden"}}><Sidebar/><div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",position:"relative"}}>
-    <div ref={toolbarRef} style={{background:T.bgAlt,borderBottom:"1px solid "+T.borderLight,padding:"8px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0,zIndex:100,flexWrap:"wrap"}}>
+    <div ref={toolbarRef} style={{background:T.bgAlt,borderBottom:"1px solid "+T.borderLight,padding:"8px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0,zIndex:200,flexWrap:"wrap",position:"relative"}}>
       <input placeholder="Rechercher..." value={search} onChange={e=>setSearch(e.target.value)} style={{...I,width:140}}/>
       {/* Dropdown filters */}
       {[
@@ -4689,7 +4689,7 @@ if(view==="dashboard") return <div style={{display:"flex",flexDirection:"column"
         Molette = déplacer · Ctrl+Molette = zoom · Échap = quitter
       </div>
     </div>}
-    {selApp&&!showAM&&<div data-panel="1" style={{position:"absolute",right:0,top:toolbarH,width:300,background:T.bgAlt,borderLeft:"1px solid "+T.borderLight,height:"calc(100% - "+toolbarH+"px)",overflowY:"auto",zIndex:150}}>
+    {selApp&&!showAM&&<div data-panel="1" style={{position:"absolute",right:0,top:toolbarH,width:300,background:T.bgAlt,borderLeft:"1px solid "+T.borderLight,height:"calc(100% - "+toolbarH+"px)",overflowY:"auto",zIndex:80}}>
       {/* Header with domain color accent */}
       <div style={{background:isDark?(DC[selApp.domain]||DC.Autre).bg:((DC[selApp.domain]||DC.Autre).ac+"18"),padding:"16px 18px 12px",borderBottom:"2px solid "+(DC[selApp.domain]||DC.Autre).ac}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
