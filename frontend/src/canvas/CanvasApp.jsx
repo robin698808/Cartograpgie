@@ -293,7 +293,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       for(const e of entries)setToolbarH(Math.ceil(e.contentRect.height)+16);
     });
     obs.observe(toolbarRef.current);
-    setToolbarH(Math.ceil(toolbarRef.current.getBoundingClientRect().height)+16);
+    setToolbarH(Math.ceil(toolbarRef.current.getBoundingClientRect().height));
     return()=>obs.disconnect();
   },[]);
 
