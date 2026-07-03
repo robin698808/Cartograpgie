@@ -3685,10 +3685,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       {[[0,1],[1,2],[2,3],[3,4],[0,5],[1,6],[2,7],[3,8],[4,9],[5,6],[6,7],[7,8],[8,9],[5,10],[6,11],[7,12],[8,13],[9,14],[10,11],[11,12],[12,13],[13,14],[10,15],[11,16],[12,17],[13,18]].map(function(e,i){var ns=[[80,90],[200,60],[340,120],[500,80],[650,130],[100,250],[260,210],[420,270],[580,220],[720,270],[60,400],[200,370],[360,420],[520,380],[680,410],[140,520],[320,500],[480,530],[640,490]];return <line key={i} x1={ns[e[0]][0]} y1={ns[e[0]][1]} x2={ns[e[1]][0]} y2={ns[e[1]][1]} stroke="#6366F1" strokeWidth="0.8" strokeOpacity="0.4"><animate attributeName="strokeOpacity" values="0.15;0.6;0.15" dur={(3+i*0.2)+"s"} begin={(i*0.15)+"s"} repeatCount="indefinite"/></line>;})}
     </svg>
 
-    {/* ── Bouton thème ── */}
-    <div style={{position:"fixed",top:16,right:16,zIndex:999}}>
-      <button onClick={toggleTheme} style={{background:T.bgCard,color:T.fg,border:"1px solid "+T.border,padding:"8px 14px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:600,boxShadow:T.shadow,transition:"all 0.2s"}}>{isDark?"☀️ Clair":"🌙 Sombre"}</button>
-    </div>
+
 
     {/* ── Logo SVG Cartographe ── */}
     <div style={{marginBottom:20,position:"relative",zIndex:1}}>
@@ -3724,7 +3721,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
     {/* ── Titre ── */}
     <div style={{textAlign:"center",marginBottom:8,position:"relative",zIndex:1}}>
-      <h1 style={{fontSize:32,fontWeight:900,letterSpacing:"-0.04em",marginBottom:6,color:"#FFFFFF"}}>Cartographe</h1>
+      <h1 style={{fontSize:32,fontWeight:900,letterSpacing:"-0.04em",marginBottom:6,color:isDark?"#FFFFFF":T.fg}}>Cartographe</h1>
       <p style={{color:T.fgMuted,fontSize:13,lineHeight:1.7,maxWidth:440,margin:"0 auto"}}>Cartographie applicative pour due diligence IT &amp; audit.<br/>Choisissez comment démarrer votre projet.</p>
     </div>
 
@@ -3777,6 +3774,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         <div style={{fontSize:11,color:T.fgMuted}}>Pré-formaté avec exemples &amp; instructions</div>
       </div>
       <button onClick={downloadTemplate} style={{...B,background:"#52B788",padding:"8px 14px",whiteSpace:"nowrap",fontSize:11,flexShrink:0}}>⬇ .xlsx</button>
+    </div>
+
+    {/* ── Bouton thème ── */}
+    <div style={{marginTop:24,position:"relative",zIndex:1}}>
+      <button onClick={toggleTheme} style={{background:T.bgCard,color:T.fg,border:"1px solid "+T.border,padding:"8px 16px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:600,boxShadow:T.shadow,transition:"all 0.2s"}}>{isDark?"☀️ Mode clair":"🌙 Mode sombre"}</button>
     </div>
 
     {/* ── Keyframes ── */}
