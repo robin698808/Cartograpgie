@@ -2726,8 +2726,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           sSC.addText("✓ Aucune application à risque",{x:cx+0.12,y:cy+0.50,w:scCW-0.24,h:0.40,fontSize:9,color:"10B981",fontFace:"Calibri",margin:0});
         } else {
           sSC.addText(String(scRisk.length),{x:cx+0.12,y:cy+0.44,w:1.10,h:0.56,fontSize:40,bold:true,color:"EF4444",fontFace:"Trebuchet MS",margin:0});
-          sSC.addText("app"+(scRisk.length>1?"s":"")+" Abandon D1
-with active flows",{x:cx+1.30,y:cy+0.50,w:1.62,h:0.50,fontSize:8,color:"FCA5A5",fontFace:"Calibri",margin:0});
+          sSC.addText("app"+(scRisk.length>1?"s":"")+" Abandon D1 avec flux actifs",{x:cx+1.30,y:cy+0.50,w:1.62,h:0.50,fontSize:8,color:"FCA5A5",fontFace:"Calibri",margin:0});
           sSC.addText("À traiter en priorité avant le Day 1.",{x:cx+0.12,y:cy+1.06,w:scCW-0.24,h:0.26,fontSize:7.5,color:"8899AA",fontFace:"Calibri",margin:0});
           sSC.addShape(pres.shapes.LINE,{x:cx+0.12,y:cy+1.36,w:scCW-0.24,h:0,line:{color:"EF444434",width:0.3}});
           scRisk.slice(0,5).forEach(function(a,ri){
