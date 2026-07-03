@@ -875,6 +875,116 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     ],{x:0.6,y:2.8,w:8,h:0.5,fontSize:13,fontFace:"Calibri"});
     s1.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:0.6,y:4.8,w:4,h:0.4,fontSize:10,color:"5577AA",fontFace:"Calibri"});
 
+    // --- Slide Synthese Executive ---
+    {
+    const sSX=SS(pres.addSlide());
+    sSX.background={color:"0B2545"};
+    // Bandeau header
+    sSX.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.60,fill:{color:"081C36"},line:{type:"none"}});
+    sSX.addShape(pres.shapes.RECTANGLE,{x:0,y:0.585,w:10,h:0.022,fill:{color:"6366F1"},line:{type:"none"}});
+    sSX.addText("SYNTHÈSE EXÉCUTIVE",{x:0.35,y:0.08,w:7.5,h:0.46,fontSize:22,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
+    sSX.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:7.5,y:0.18,w:2.2,h:0.25,fontSize:9,color:"5577AA",fontFace:"Calibri",align:"right",margin:0});
+    // Calculs D1/D2/risques
+    const sxD1Def=apps.filter(function(a){return a.statusD1;}).length;
+    const sxD2Def=apps.filter(function(a){return a.statusD2;}).length;
+    const sxPctD1=apps.length?Math.round(sxD1Def/apps.length*100):0;
+    const sxPctD2=apps.length?Math.round(sxD2Def/apps.length*100):0;
+    const sxRisk=apps.filter(function(a){return a.statusD1==="Abandon"&&flows.some(function(f){return f.from===a.id||f.to===a.id;});});
+    // KPI strip (5 tuiles)
+    const sxKpis=[
+      {l:"Applications",v:String(apps.length),c:"6366F1"},
+      {l:"Domaines",v:String(doms.length),c:"8B5CF6"},
+      {l:"Interfaces",v:String(flows.length),c:"22D3EE"},
+      {l:"Statut Day 1",v:sxPctD1+"%",c:"F59E0B",sub:sxD1Def+"/"+apps.length+" renseignées"},
+      {l:"Statut Day 2",v:sxPctD2+"%",c:"10B981",sub:sxD2Def+"/"+apps.length+" renseignées"},
+    ];
+    sxKpis.forEach(function(k,i){
+      const kx=0.25+i*1.90;const ky=0.72;
+      sSX.addShape(pres.shapes.RECTANGLE,{x:kx,y:ky,w:1.75,h:0.95,fill:{color:"132E50"},line:{color:"1E4070",width:0.5}});
+      sSX.addShape(pres.shapes.RECTANGLE,{x:kx,y:ky,w:0.055,h:0.95,fill:{color:k.c},line:{type:"none"}});
+      sSX.addText(k.v,{x:kx+0.14,y:ky+0.06,w:1.50,h:0.52,fontSize:30,bold:true,color:k.c,fontFace:"Trebuchet MS",margin:0});
+      sSX.addText(k.l,{x:kx+0.14,y:ky+0.60,w:1.50,h:0.18,fontSize:8,color:"8899AA",fontFace:"Calibri",margin:0});
+      if(k.sub)sSX.addText(k.sub,{x:kx+0.14,y:ky+0.78,w:1.50,h:0.14,fontSize:6.5,color:"5577AA",fontFace:"Calibri",margin:0});
+    });
+    // Helper barres horizontales empilees + legende
+    const sxDrawBars=function(sl,bx,by,bw,stats,tot){
+      if(!tot)return;
+      let cx2=bx;
+      stats.forEach(function(st){
+        if(!st.v)return;
+        const sw=(st.v/tot)*bw;
+        sl.addShape(pres.shapes.RECTANGLE,{x:cx2,y:by,w:sw,h:0.24,fill:{color:st.c},line:{type:"none"}});
+        cx2+=sw;
+      });
+      let lx2=bx;let ly2=by+0.30;
+      stats.forEach(function(st){
+        if(!st.v)return;
+        const pct2=Math.round(st.v/tot*100);
+        const lw3=1.48;
+        if(lx2+lw3>bx+bw+0.05){lx2=bx;ly2+=0.24;}
+        sl.addShape(pres.shapes.RECTANGLE,{x:lx2,y:ly2+0.055,w:0.10,h:0.10,fill:{color:st.c},line:{type:"none"}});
+        sl.addText(st.l+" ("+st.v+" — "+pct2+"%)",{x:lx2+0.14,y:ly2,w:lw3-0.14,h:0.22,fontSize:7.5,color:"AABBCC",fontFace:"Calibri",margin:0,shrinkText:true});
+        lx2+=lw3;
+      });
+    };
+    // Bloc Day 1
+    const d1Stats2=[
+      {l:"Transfert TSA",v:apps.filter(function(a){return a.statusD1==="Transfert TSA";}).length,c:"F59E0B"},
+      {l:"Abandon",v:apps.filter(function(a){return a.statusD1==="Abandon";}).length,c:"EF4444"},
+      {l:"Non défini",v:apps.filter(function(a){return !a.statusD1;}).length,c:"4A5568"},
+    ];
+    const d1bx=0.25,d1by=1.80,d1bw=4.50,d1bh=2.30;
+    sSX.addShape(pres.shapes.RECTANGLE,{x:d1bx,y:d1by,w:d1bw,h:d1bh,fill:{color:"132E50"},line:{color:"1E4070",width:0.5}});
+    sSX.addShape(pres.shapes.RECTANGLE,{x:d1bx,y:d1by,w:d1bw,h:0.28,fill:{color:"F59E0B18"},line:{type:"none"}});
+    sSX.addText("VISION CLOSING — DAY 1",{x:d1bx+0.14,y:d1by+0.05,w:3.2,h:0.20,fontSize:9,bold:true,color:"F59E0B",fontFace:"Calibri",charSpacing:1,margin:0});
+    sSX.addText(sxD1Def+" définies / "+apps.length,{x:d1bx+d1bw-1.55,y:d1by+0.05,w:1.45,h:0.18,fontSize:8,color:"8899AA",fontFace:"Calibri",align:"right",margin:0});
+    sxDrawBars(sSX,d1bx+0.15,d1by+0.36,d1bw-0.30,d1Stats2,apps.length);
+    if(sxRisk.length>0){
+      const rby2=d1by+1.30;
+      sSX.addShape(pres.shapes.RECTANGLE,{x:d1bx+0.12,y:rby2,w:d1bw-0.24,h:0.72,fill:{color:"EF444415"},line:{color:"EF4444",width:0.55}});
+      sSX.addShape(pres.shapes.RECTANGLE,{x:d1bx+0.12,y:rby2,w:0.04,h:0.72,fill:{color:"EF4444"},line:{type:"none"}});
+      sSX.addText("⚠  RISQUE DAY 1",{x:d1bx+0.22,y:rby2+0.05,w:3.8,h:0.18,fontSize:8.5,bold:true,color:"EF4444",fontFace:"Calibri",margin:0});
+      sSX.addText(sxRisk.length+" app"+(sxRisk.length>1?"s":"")+" en Abandon D1 avec des flux actifs",{x:d1bx+0.22,y:rby2+0.25,w:d1bw-0.40,h:0.18,fontSize:8,color:"FCA5A5",fontFace:"Calibri",margin:0});
+      const rNames2=sxRisk.slice(0,3).map(function(a){return a.name;}).join(", ")+(sxRisk.length>3?" +"+(sxRisk.length-3)+" autre"+(sxRisk.length-3>1?"s":""):"");
+      sSX.addText(rNames2,{x:d1bx+0.22,y:rby2+0.44,w:d1bw-0.40,h:0.22,fontSize:7,color:"8899AA",fontFace:"Calibri",margin:0,shrinkText:true});
+    }
+    // Bloc Day 2
+    const d2Stats2=[
+      {l:"Clone & Clean",v:apps.filter(function(a){return a.statusD2==="Clone & Clean";}).length,c:"3B82F6"},
+      {l:"Transfert",v:apps.filter(function(a){return a.statusD2==="Transfert";}).length,c:"10B981"},
+      {l:"Rebuild",v:apps.filter(function(a){return a.statusD2==="Rebuild";}).length,c:"8B5CF6"},
+      {l:"Abandon",v:apps.filter(function(a){return a.statusD2==="Abandon";}).length,c:"EF4444"},
+      {l:"Non défini",v:apps.filter(function(a){return !a.statusD2;}).length,c:"4A5568"},
+    ];
+    const d2bx=5.00,d2by=1.80,d2bw=4.75,d2bh=2.30;
+    sSX.addShape(pres.shapes.RECTANGLE,{x:d2bx,y:d2by,w:d2bw,h:d2bh,fill:{color:"132E50"},line:{color:"1E4070",width:0.5}});
+    sSX.addShape(pres.shapes.RECTANGLE,{x:d2bx,y:d2by,w:d2bw,h:0.28,fill:{color:"8B5CF615"},line:{type:"none"}});
+    sSX.addText("VISION CIBLE — DAY 2",{x:d2bx+0.14,y:d2by+0.05,w:3.2,h:0.20,fontSize:9,bold:true,color:"8B5CF6",fontFace:"Calibri",charSpacing:1,margin:0});
+    sSX.addText(sxD2Def+" définies / "+apps.length,{x:d2bx+d2bw-1.55,y:d2by+0.05,w:1.45,h:0.18,fontSize:8,color:"8899AA",fontFace:"Calibri",align:"right",margin:0});
+    sxDrawBars(sSX,d2bx+0.15,d2by+0.36,d2bw-0.30,d2Stats2,apps.length);
+    // Bloc responsables (bas)
+    const sxOwners={};
+    apps.forEach(function(a){const o=a.owner&&a.owner.trim()?a.owner.trim():"Non renseigné";sxOwners[o]=(sxOwners[o]||0)+1;});
+    const sxTopOwn=Object.entries(sxOwners).filter(function(e){return e[0]!=="Non renseigné";}).sort(function(a,b){return b[1]-a[1];}).slice(0,7);
+    const oby3=4.22;
+    sSX.addShape(pres.shapes.RECTANGLE,{x:0.25,y:oby3,w:9.50,h:1.22,fill:{color:"132E50"},line:{color:"1E4070",width:0.5}});
+    sSX.addText("RÉPARTITION PAR RESPONSABLE",{x:0.40,y:oby3+0.06,w:5,h:0.18,fontSize:8,bold:true,color:"6366F1",fontFace:"Calibri",charSpacing:1,margin:0});
+    if(sxTopOwn.length>0){
+      const sxMaxOv=sxTopOwn[0][1];
+      const sxColW2=9.0/Math.min(sxTopOwn.length,7);
+      sxTopOwn.forEach(function(oe,i){
+        const ox=0.45+i*sxColW2;
+        const bw5=(oe[1]/sxMaxOv)*(sxColW2-0.18);
+        sSX.addShape(pres.shapes.RECTANGLE,{x:ox,y:oby3+0.33,w:bw5,h:0.20,fill:{color:"6366F1"},line:{type:"none"}});
+        sSX.addText(String(oe[1]),{x:ox+bw5+0.04,y:oby3+0.32,w:0.32,h:0.22,fontSize:8,bold:true,color:"6366F1",fontFace:"Calibri",margin:0,valign:"middle"});
+        sSX.addText(oe[0],{x:ox,y:oby3+0.57,w:sxColW2-0.06,h:0.20,fontSize:7,color:"8899AA",fontFace:"Calibri",margin:0,shrinkText:true});
+        sSX.addText(Math.round(oe[1]/apps.length*100)+"%",{x:ox,y:oby3+0.78,w:sxColW2-0.06,h:0.16,fontSize:6.5,color:"5577AA",fontFace:"Calibri",margin:0});
+      });
+    } else {
+      sSX.addText("Aucun responsable renseigné",{x:0.40,y:oby3+0.50,w:9,h:0.30,fontSize:10,color:"5577AA",fontFace:"Calibri",margin:0});
+    }
+    }// end sSX block
+
     // ═══════════════════════════════════════════════════════════════════
     // ─── Cartographie style URBANISATION SI (diagramme d'architecte) ───
     // ═════════════════════════════════════════════════════════════════════
@@ -2074,29 +2184,63 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             dSlide.addText(dom,{x:0.35,y:0.555,w:3.6,h:0.11,fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",margin:0,shrinkText:true});
             dSlide.addShape(pres.shapes.RECTANGLE,{x:6.0,y:0.55,w:3.7,h:0.12,fill:{color:hubCC.ac.replace("#","")},line:{type:"none"}});
             dSlide.addText(_hubDom.domain,{x:6.05,y:0.555,w:3.6,h:0.11,fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",margin:0,shrinkText:true});
-            // Flows
+            // Flows — L-routing via corridor vertical central
             var lblRects=[];
             var clipPD=function(cx,cy,w,h,tx,ty){var dx=tx-cx,dy=ty-cy;if(Math.abs(dx)<0.01&&Math.abs(dy)<0.01)return{x:cx,y:cy};var sx=Math.abs(dx)>0.01?(w/2)/Math.abs(dx):999,sy=Math.abs(dy)>0.01?(h/2)/Math.abs(dy):999,s=Math.min(sx,sy);return{x:cx+dx*s,y:cy+dy*s};};
+            // Corridor vertical au centre entre les deux colonnes (bord droit col gauche=3.9, bord gauche col droite=6.1)
+            var corrXD=5.0;
             domFlows.forEach(function(f){
               var A=posD[f.from],B=posD[f.to];if(!A||!B)return;
               var pc=protoColor(f.protocol||"Autre");
               var ep=clipPD(A.cx,A.cy,A.w,A.h,B.cx,B.cy);
               var en=clipPD(B.cx,B.cy,B.w,B.h,A.cx,A.cy);
-              var lx=Math.min(ep.x,en.x),ly=Math.min(ep.y,en.y);
-              var lw=Math.abs(en.x-ep.x)||0.001,lh=Math.abs(en.y-ep.y)||0.001;
-              dSlide.addShape(pres.shapes.LINE,{x:lx,y:ly,w:lw,h:lh,line:{color:"F5F6FA",width:1.5},flipH:en.x<ep.x,flipV:en.y<ep.y});
-              dSlide.addShape(pres.shapes.LINE,{x:lx,y:ly,w:lw,h:lh,line:{color:pc,width:0.7,endArrowType:"triangle",endArrowSize:3},flipH:en.x<ep.x,flipV:en.y<ep.y});
+              // L-routing : 3 segments via corridor vertical
+              var dyAbs=Math.abs(en.y-ep.y);
+              var segsD;
+              if(dyAbs<0.05){
+                // Quasi-horizontale : segment direct
+                segsD=[[ep.x,ep.y,en.x,en.y]];
+              } else {
+                segsD=[[ep.x,ep.y,corrXD,ep.y],[corrXD,ep.y,corrXD,en.y],[corrXD,en.y,en.x,en.y]];
+              }
+              segsD.forEach(function(seg,si){
+                var sw=Math.abs(seg[2]-seg[0]),sh=Math.abs(seg[3]-seg[1]);
+                if(sw<0.003&&sh<0.003)return;
+                var bx=Math.min(seg[0],seg[2]),by=Math.min(seg[1],seg[3]);
+                var bw=sw||0.001,bh=sh||0.001;
+                var fH=seg[2]<seg[0],fV=seg[3]<seg[1];
+                var halo={x:bx,y:by,w:bw,h:bh,line:{color:"F5F6FA",width:2.5}};
+                if(fH)halo.flipH=true;if(fV)halo.flipV=true;
+                dSlide.addShape(pres.shapes.LINE,halo);
+                var mLine={color:pc,width:0.7};
+                if(si===segsD.length-1){mLine.endArrowType="triangle";mLine.endArrowSize=3;}
+                var mOpts={x:bx,y:by,w:bw,h:bh,line:mLine};
+                if(fH)mOpts.flipH=true;if(fV)mOpts.flipV=true;
+                dSlide.addShape(pres.shapes.LINE,mOpts);
+              });
               dSlide.addShape(pres.shapes.OVAL,{x:ep.x-0.04,y:ep.y-0.04,w:0.08,h:0.08,fill:{color:pc},line:{type:"none"}});
               if(f.label){
-                var lw2=Math.min(1.6,f.label.length*0.055+0.1);var lh2=0.18;
-                var lx2=3.9;var ly2=(ep.y+en.y)/2-lh2/2;
-                var ok=true;lblRects.forEach(function(r){if(!(lx2+lw2<r.x||r.x+r.w<lx2||ly2+lh2<r.y||r.y+r.h<ly2))ok=false;});
-                if(!ok)ly2+=lh2+0.04;
-                ly2=Math.max(0.5,Math.min(4.8,ly2));
-                lblRects.push({x:lx2,y:ly2,w:lw2,h:lh2});
-                dSlide.addShape(pres.shapes.RECTANGLE,{x:lx2-0.04,y:ly2-0.02,w:lw2+0.08,h:lh2+0.04,fill:{color:"FFFFFF"},line:{color:pc,width:0.5}});
-                dSlide.addText(f.label,{x:lx2,y:ly2,w:lw2,h:lh2,fontSize:10,bold:false,color:"333333",fontFace:"Calibri",margin:0,valign:"middle",shrinkText:true});
-                if(f.protocol){dSlide.addShape(pres.shapes.RECTANGLE,{x:lx2-0.04,y:ly2+lh2-0.02,w:0.5,h:0.13,fill:{color:pc},line:{type:"none"}});dSlide.addText(f.protocol,{x:lx2-0.04,y:ly2+lh2-0.02,w:0.5,h:0.13,fontSize:6,color:"FFFFFF",fontFace:"Calibri",bold:true,margin:0,valign:"middle",align:"center"});}
+                var lw2=Math.min(1.6,f.label.length*0.052+0.12);var lh2=0.19;
+                // Label centré sur le segment vertical du corridor
+                var lblCyD=(ep.y+en.y)/2;
+                var hOffsD=[0,0.18,-0.18,0.36,-0.36,0.54,-0.54,0.72,-0.72];
+                var bestD=null;
+                for(var oiD=0;oiD<hOffsD.length;oiD++){
+                  var clxD=corrXD+hOffsD[oiD]-lw2/2;
+                  var clyD=lblCyD-lh2/2;
+                  clxD=Math.max(0.05,Math.min(9.9-lw2,clxD));
+                  clyD=Math.max(0.50,Math.min(4.85-lh2,clyD));
+                  var okD=true;lblRects.forEach(function(r){if(!(clxD+lw2<r.x||r.x+r.w<clxD||clyD+lh2<r.y||r.y+r.h<clyD))okD=false;});
+                  if(okD){bestD={x:clxD,y:clyD};break;}
+                }
+                if(!bestD)bestD={x:Math.max(0.05,Math.min(9.9-lw2,corrXD-lw2/2)),y:Math.max(0.50,Math.min(4.85-lh2,lblCyD-lh2/2))};
+                lblRects.push({x:bestD.x,y:bestD.y,w:lw2,h:lh2});
+                dSlide.addShape(pres.shapes.RECTANGLE,{x:bestD.x-0.03,y:bestD.y-0.02,w:lw2+0.06,h:lh2+0.04,fill:{color:"FFFFFF"},line:{color:pc,width:0.55}});
+                dSlide.addText(f.label,{x:bestD.x,y:bestD.y,w:lw2,h:lh2,fontSize:10,bold:false,color:"333333",fontFace:"Calibri",margin:0,valign:"middle",shrinkText:true});
+                if(f.protocol){
+                  dSlide.addShape(pres.shapes.RECTANGLE,{x:bestD.x-0.03,y:bestD.y+lh2-0.01,w:Math.min(lw2+0.06,0.55),h:0.13,fill:{color:pc},line:{type:"none"}});
+                  dSlide.addText(f.protocol,{x:bestD.x-0.03,y:bestD.y+lh2-0.01,w:Math.min(lw2+0.06,0.55),h:0.13,fontSize:6,color:"FFFFFF",fontFace:"Calibri",bold:true,margin:0,valign:"middle",align:"center"});
+                }
               }
             });
             // Apps
@@ -2528,6 +2672,109 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     sLeg.addText("Flux dense (3+)",{x:2.0,y:5.2,w:2,h:0.2,fontSize:11,color:"666666",fontFace:"Calibri",margin:0});
 
     }// end inclLegend
+        // --- Slide Synthese Consolidee ---
+    {
+    const sSC=SS(pres.addSlide());
+    sSC.background={color:"0B2545"};
+    sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.60,fill:{color:"081C36"},line:{type:"none"}});
+    sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0.585,w:10,h:0.022,fill:{color:"6366F1"},line:{type:"none"}});
+    sSC.addText("SYNTHÈSE & MESSAGES CLÉS",{x:0.35,y:0.08,w:8,h:0.46,fontSize:22,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
+    // Donnees
+    const scPairs={};
+    flows.forEach(function(f){
+      const fd=(apps.find(function(a){return a.id===f.from;})||{}).domain;
+      const td=(apps.find(function(a){return a.id===f.to;})||{}).domain;
+      if(fd&&td&&fd!==td){const k=fd+" → "+td;scPairs[k]=(scPairs[k]||0)+1;}
+    });
+    const scTopP=Object.entries(scPairs).sort(function(a,b){return b[1]-a[1]||(a[0]<b[0]?-1:1);}).slice(0,5);
+    const scTotI=Object.values(scPairs).reduce(function(acc,v){return acc+v;},0);
+    const scRisk=apps.filter(function(a){return a.statusD1==="Abandon"&&flows.some(function(f){return f.from===a.id||f.to===a.id;});});
+    const scConn={};
+    apps.forEach(function(a){scConn[a.id]=0;});
+    flows.forEach(function(f){if(scConn[f.from]!==undefined)scConn[f.from]++;if(scConn[f.to]!==undefined)scConn[f.to]++;});
+    const scHubs=apps.filter(function(a){return scConn[a.id]>0;}).sort(function(a,b){return scConn[b.id]-scConn[a.id];}).slice(0,5);
+    // 3 cartes messages
+    const scCW=3.02,scCH=3.52,scCGap=0.23,scCX0=0.25,scCY0=0.72;
+    const scCardDefs=[
+      {icon:"◎",title:"CONCENTRATION DES FLUX",accent:"6366F1",type:"pairs"},
+      {icon:"⚠",title:"APPLICATIONS À RISQUE D1",accent:"EF4444",type:"risk"},
+      {icon:"◈",title:"HUBS DU SYSTÈME D'INFORMATION",accent:"F59E0B",type:"hubs"},
+    ];
+    scCardDefs.forEach(function(card,ci){
+      const cx=scCX0+ci*(scCW+scCGap);const cy=scCY0;
+      sSC.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy,w:scCW,h:scCH,fill:{color:"132E50"},line:{color:card.accent,width:0.7}});
+      sSC.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy,w:scCW,h:0.035,fill:{color:card.accent},line:{type:"none"}});
+      sSC.addText(card.icon+" "+card.title,{x:cx+0.12,y:cy+0.08,w:scCW-0.20,h:0.24,fontSize:8,bold:true,color:card.accent,fontFace:"Calibri",charSpacing:0.5,margin:0,shrinkText:true});
+      sSC.addShape(pres.shapes.LINE,{x:cx+0.12,y:cy+0.37,w:scCW-0.24,h:0,line:{color:card.accent,width:0.35}});
+      if(card.type==="pairs"){
+        if(scTopP.length===0){
+          sSC.addText("Aucun flux inter-domaine",{x:cx+0.12,y:cy+0.50,w:scCW-0.24,h:0.30,fontSize:9,color:"5577AA",fontFace:"Calibri",margin:0});
+        } else {
+          const scMaxPv=scTopP[0][1];
+          scTopP.forEach(function(pe,pi){
+            const py=cy+0.44+pi*0.58;
+            const pct3=scTotI>0?Math.round(pe[1]/scTotI*100):0;
+            sSC.addText(String(pe[1]),{x:cx+0.12,y:py,w:0.45,h:0.30,fontSize:22,bold:true,color:card.accent,fontFace:"Trebuchet MS",margin:0});
+            sSC.addText("flux — "+pct3+"%",{x:cx+0.60,y:py+0.10,w:scCW-0.80,h:0.18,fontSize:7,color:"8899AA",fontFace:"Calibri",margin:0});
+            sSC.addText(pe[0],{x:cx+0.12,y:py+0.28,w:scCW-0.24,h:0.18,fontSize:8,color:"AABBCC",fontFace:"Calibri",margin:0,shrinkText:true});
+            const bw6=(pe[1]/scMaxPv)*(scCW-0.30);
+            sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:py+0.46,w:bw6,h:0.06,fill:{color:card.accent},line:{type:"none"}});
+          });
+        }
+      } else if(card.type==="risk"){
+        if(scRisk.length===0){
+          sSC.addText("✓ Aucune application à risque",{x:cx+0.12,y:cy+0.50,w:scCW-0.24,h:0.40,fontSize:9,color:"10B981",fontFace:"Calibri",margin:0});
+        } else {
+          sSC.addText(String(scRisk.length),{x:cx+0.12,y:cy+0.44,w:1.10,h:0.56,fontSize:40,bold:true,color:"EF4444",fontFace:"Trebuchet MS",margin:0});
+          sSC.addText("app"+(scRisk.length>1?"s":"")+" Abandon D1
+with active flows",{x:cx+1.30,y:cy+0.50,w:1.62,h:0.50,fontSize:8,color:"FCA5A5",fontFace:"Calibri",margin:0});
+          sSC.addText("À traiter en priorité avant le Day 1.",{x:cx+0.12,y:cy+1.06,w:scCW-0.24,h:0.26,fontSize:7.5,color:"8899AA",fontFace:"Calibri",margin:0});
+          sSC.addShape(pres.shapes.LINE,{x:cx+0.12,y:cy+1.36,w:scCW-0.24,h:0,line:{color:"EF444434",width:0.3}});
+          scRisk.slice(0,5).forEach(function(a,ri){
+            const ry4=cy+1.44+ri*0.40;
+            sSC.addShape(pres.shapes.OVAL,{x:cx+0.12,y:ry4+0.08,w:0.09,h:0.09,fill:{color:"EF4444"},line:{type:"none"}});
+            sSC.addText(a.name,{x:cx+0.25,y:ry4,w:scCW-0.40,h:0.22,fontSize:8.5,bold:true,color:"FFFFFF",fontFace:"Calibri",margin:0,shrinkText:true});
+            const afc=flows.filter(function(f){return f.from===a.id||f.to===a.id;}).length;
+            sSC.addText(a.domain+" · "+afc+" flux",{x:cx+0.25,y:ry4+0.22,w:scCW-0.40,h:0.16,fontSize:7,color:"7B92A8",fontFace:"Calibri",margin:0,shrinkText:true});
+          });
+          if(scRisk.length>5)sSC.addText("+"+(scRisk.length-5)+" autre"+(scRisk.length-5>1?"s":""),{x:cx+0.12,y:cy+scCH-0.22,w:scCW-0.24,h:0.18,fontSize:7.5,color:"5577AA",fontFace:"Calibri",margin:0});
+        }
+      } else if(card.type==="hubs"){
+        if(scHubs.length===0){
+          sSC.addText("Aucun flux défini",{x:cx+0.12,y:cy+0.50,w:scCW-0.24,h:0.30,fontSize:9,color:"5577AA",fontFace:"Calibri",margin:0});
+        } else {
+          const scMaxConn=scConn[scHubs[0].id]||1;
+          scHubs.forEach(function(a,hi){
+            const hy=cy+0.44+hi*0.60;
+            const conn3=scConn[a.id]||0;
+            const bw7=(conn3/scMaxConn)*(scCW-0.70);
+            sSC.addText(a.name,{x:cx+0.12,y:hy,w:scCW-0.28,h:0.22,fontSize:9,bold:true,color:"FFFFFF",fontFace:"Calibri",margin:0,shrinkText:true});
+            sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:hy+0.26,w:bw7,h:0.14,fill:{color:card.accent},line:{type:"none"}});
+            sSC.addText(String(conn3)+" cx",{x:cx+0.18+bw7,y:hy+0.24,w:0.50,h:0.18,fontSize:8,bold:true,color:card.accent,fontFace:"Calibri",margin:0});
+            sSC.addText(a.domain,{x:cx+0.12,y:hy+0.42,w:scCW-0.24,h:0.14,fontSize:7,color:"7B92A8",fontFace:"Calibri",margin:0,shrinkText:true});
+          });
+        }
+      }
+    });
+    // Bandeau chiffres bas
+    const scInterDoms=new Set();
+    Object.keys(scPairs).forEach(function(k){scInterDoms.add(k.split(" → ")[0]);});
+    const scBsy=scCY0+scCH+0.16;
+    sSC.addShape(pres.shapes.RECTANGLE,{x:0.25,y:scBsy,w:9.50,h:0.76,fill:{color:"081C36"},line:{color:"1E4070",width:0.5}});
+    const scBKpi=[
+      {l:"Total flux",v:flows.length,c:"6366F1"},
+      {l:"Flux inter-domaines",v:scTotI,c:"8B5CF6"},
+      {l:"Ratio flux / app",v:apps.length?+(flows.length/apps.length).toFixed(1):0,c:"22D3EE"},
+      {l:"Domaines avec flux sortants",v:scInterDoms.size,c:"F59E0B"},
+    ];
+    scBKpi.forEach(function(k,i){
+      const bkx2=0.60+i*2.30;
+      sSC.addShape(pres.shapes.RECTANGLE,{x:bkx2-0.08,y:scBsy+0.06,w:0.04,h:0.65,fill:{color:k.c},line:{type:"none"}});
+      sSC.addText(String(k.v),{x:bkx2+0.06,y:scBsy+0.06,w:1.80,h:0.40,fontSize:24,bold:true,color:k.c,fontFace:"Trebuchet MS",margin:0});
+      sSC.addText(k.l,{x:bkx2+0.06,y:scBsy+0.48,w:2.05,h:0.22,fontSize:7.5,color:"8899AA",fontFace:"Calibri",margin:0});
+    });
+    }// end sSC block
+
     pres.writeFile({fileName:"Cartographie_Applicative.pptx"});
   };
 
