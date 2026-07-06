@@ -873,9 +873,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       set(t,prop,val){t[prop]=val;return true;}
     });
 
+    const cp=_opts.clientPrimary||"2979FF";
     // ─── Slide 1: Title ───
     if(_opts.inclExecSlides){
-    const cp=_opts.clientPrimary||"2979FF";
     const s1=SS(pres.addSlide());
     s1.background={color:"FFFFFF"};
     // Left accent panel
