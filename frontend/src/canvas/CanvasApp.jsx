@@ -1316,7 +1316,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       return{byDom,domList,cells,cols,rows,cellW,cellH,gap,domConn,appConn,crossings:best};
     };
 
-    const drawCartoSlide=(title,subset,subFlows,showFlows,showLabels=true)=>{
+    const drawCartoSlide=(title,subset,subFlows,showFlows,showLabels=true,greyedIds=null)=>{
       const sC=pres.addSlide();
       sC.background={color:"FFFFFF"};
       const sW=13.333,sH=7.5;
@@ -1698,11 +1698,138 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         const app=subset.find(x=>x.id===id);if(!app)return;
         const box=domBoxes[app.domain];const ac=box?box.ac:"888888";
         const isArret=app.status==="Arrêt";
-        sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:isArret?"FFEAEA":"FFFFFF"},line:{color:ac,width:0.8},shadow:{type:"outer",blur:1,offset:0.5,color:"000000",opacity:0.06,angle:135}});
-        var fSize=Math.min(7,p.w*6);
-        sC.addText(app.name,{x:p.x+0.05,y:p.y,w:p.w-0.1,h:p.h,fontSize:fSize,bold:true,color:isArret?"990000":"1A1A1A",fontFace:"Calibri",margin:0,valign:"middle",align:"center",shrinkText:true,wrap:true});
+        const isGreyed=greyedIds&&greyedIds.has(id);
+        if(isGreyed){
+          sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:"F0F2F5"},line:{color:"C8CDD6",width:0.5}});
+          var fSizeG=Math.min(7,p.w*6);
+          sC.addText(app.name,{x:p.x+0.04,y:p.y,w:p.w-0.08,h:p.h,fontSize:fSizeG,bold:false,color:"9CA3AF",fontFace:"Calibri",margin:0,valign:"middle",align:"center",shrinkText:true,wrap:true});
+        }else{
+          sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:isArret?"FFEAEA":"FFFFFF"},line:{color:ac,width:0.8},shadow:{type:"outer",blur:1,offset:0.5,color:"000000",opacity:0.06,angle:135}});
+          var fSize=Math.min(7,p.w*6);
+          sC.addText(app.name,{x:p.x+0.05,y:p.y,w:p.w-0.1,h:p.h,fontSize:fSize,bold:true,color:isArret?"990000":"1A1A1A",fontFace:"Calibri",margin:0,valign:"middle",align:"center",shrinkText:true,wrap:true});
+        }
       });
 
+    };
+
+    // ── Hub radial slide : hub au centre, voisins en couronne ──
+    const drawHubRadialSlide=(hub,subset,subFlows,totalFlowCount)=>{
+      const sC=pres.addSlide();
+      sC.background={color:"FFFFFF"};
+      const sW=13.333,sH=7.5;
+      // Header bar
+      sC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:sW,h:0.58,fill:{color:cp||"0B2545"},line:{type:"none"}});
+      sC.addText("HUB · "+hub.name.toUpperCase(),{x:0.3,y:0.10,w:sW-1.6,h:0.38,fontSize:16,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
+      sC.addText((totalFlowCount||0)+" flux · "+hub.domain,{x:0.3,y:0.40,w:6,h:0.18,fontSize:8,color:"BFD7FF",fontFace:"Calibri",margin:0});
+      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.05,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
+      const CX=0.3,CY=0.70,CW=sW-0.6,CH=sH-0.85;
+      const cx=CX+CW/2,cy=CY+CH/2;
+      const hubDomColor=(_pDC[hub.domain]||_pDC.Autre).ac.replace("#","");
+      const hubW=1.80,hubH=0.78;
+      const hubCx=cx,hubCy=cy;
+      // Neighbors
+      const neighbors=subset.filter(function(a){return a.id!==hub.id;});
+      const nN=neighbors.length;
+      // Aggregate flows per neighbor: {out, in, protos}
+      const neighFlows={};
+      subFlows.forEach(function(f){
+        var nid=null;
+        if(f.from===hub.id)nid=f.to;
+        else if(f.to===hub.id)nid=f.from;
+        if(!nid)return;
+        if(!neighFlows[nid])neighFlows[nid]={out:0,in:0,protos:{}};
+        var p=f.protocol||"Autre";
+        neighFlows[nid].protos[p]=(neighFlows[nid].protos[p]||0)+1;
+        if(f.from===hub.id)neighFlows[nid].out++;else neighFlows[nid].in++;
+      });
+      // Ring geometry — adapt radii to number of neighbors
+      var rx=Math.min(CW/2-1.0,Math.max(2.2,nN*0.38));
+      var ry=Math.min(CH/2-0.55,Math.max(1.5,nN*0.24));
+      const neighW=Math.min(1.55,Math.max(1.0,2.8-nN*0.04));
+      const neighH=0.56;
+      // Sort neighbors: by domain then name (visual grouping)
+      const sorted=[...neighbors].sort(function(a,b){return a.domain.localeCompare(b.domain)||a.name.localeCompare(b.name);});
+      const neighPos={};
+      sorted.forEach(function(a,i){
+        var ang=-Math.PI/2+(nN>0?2*Math.PI*i/nN:0);
+        var ncx=cx+rx*Math.cos(ang),ncy=cy+ry*Math.sin(ang);
+        neighPos[a.id]={x:ncx-neighW/2,y:ncy-neighH/2,w:neighW,h:neighH,cx:ncx,cy:ncy};
+      });
+      // Edge point helper (rect boundary toward target)
+      const edgePt=function(bcx,bcy,bw,bh,tx,ty){
+        var dx=tx-bcx,dy=ty-bcy;
+        if(Math.abs(dx)<0.001&&Math.abs(dy)<0.001)return{x:bcx,y:bcy};
+        var sx=(bw/2)/Math.abs(dx||0.001),sy=(bh/2)/Math.abs(dy||0.001),s=Math.min(sx,sy)*0.96;
+        return{x:bcx+dx*s,y:bcy+dy*s};
+      };
+      // Segment helper
+      const seg=function(x1,y1,x2,y2,arrow,color,width){
+        var w=Math.abs(x2-x1),h=Math.abs(y2-y1);
+        if(w<0.004&&h<0.004)return;
+        var o={x:Math.min(x1,x2),y:Math.min(y1,y2),w:w||0.001,h:h||0.001,line:{color:color,width:width,dashType:"solid"}};
+        if(x2<x1)o.flipH=true;if(y2<y1)o.flipV=true;
+        if(arrow){o.line.endArrowType="triangle";o.line.endArrowSize=6;}
+        sC.addShape(pres.shapes.LINE,o);
+      };
+      // Draw edges (under nodes)
+      sorted.forEach(function(a){
+        var nf=neighFlows[a.id]||{out:0,in:0,protos:{}};
+        var np=neighPos[a.id];
+        var total=nf.out+nf.in;
+        var domP=Object.entries(nf.protos).sort(function(a,b){return b[1]-a[1];})[0];
+        var color=protoColor(domP?domP[0]:"Autre");
+        if(total===0)return;
+        var lineW=Math.min(3.2,1.2+(total-1)*0.28);
+        var p1=edgePt(hubCx,hubCy,hubW,hubH,np.cx,np.cy);
+        var p2=edgePt(np.cx,np.cy,np.w,np.h,hubCx,hubCy);
+        var bidir=nf.out>0&&nf.in>0;
+        if(bidir){
+          var dx=p2.x-p1.x,dy=p2.y-p1.y,len=Math.hypot(dx,dy)||1;
+          var ox=-dy/len*0.055,oy=dx/len*0.055;
+          seg(p1.x+ox,p1.y+oy,p2.x+ox,p2.y+oy,false,"FFFFFF",lineW+1.8);
+          seg(p1.x+ox,p1.y+oy,p2.x+ox,p2.y+oy,true,color,lineW);
+          seg(p2.x-ox,p2.y-oy,p1.x-ox,p1.y-oy,false,"FFFFFF",lineW+1.8);
+          seg(p2.x-ox,p2.y-oy,p1.x-ox,p1.y-oy,true,color,lineW);
+        }else if(nf.out>0){
+          seg(p1.x,p1.y,p2.x,p2.y,false,"FFFFFF",lineW+1.8);
+          seg(p1.x,p1.y,p2.x,p2.y,true,color,lineW);
+        }else{
+          seg(p2.x,p2.y,p1.x,p1.y,false,"FFFFFF",lineW+1.8);
+          seg(p2.x,p2.y,p1.x,p1.y,true,color,lineW);
+        }
+        // Count badge at midpoint
+        var mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+        if(total>1){
+          sC.addShape(pres.shapes.RECTANGLE,{x:mx-0.18,y:my-0.11,w:0.36,h:0.21,fill:{color:color},line:{type:"none"}});
+          sC.addText("×"+total,{x:mx-0.18,y:my-0.11,w:0.36,h:0.21,fontSize:7.5,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
+        }
+      });
+      // Neighbor boxes
+      sorted.forEach(function(a){
+        var np=neighPos[a.id];
+        var domColor=(_pDC[a.domain]||_pDC.Autre).ac.replace("#","");
+        var isArret=a.status==="Arrêt";
+        // Domain color accent left strip
+        sC.addShape(pres.shapes.RECTANGLE,{x:np.x,y:np.y,w:0.05,h:np.h,fill:{color:domColor},line:{type:"none"}});
+        sC.addShape(pres.shapes.RECTANGLE,{x:np.x,y:np.y,w:np.w,h:np.h,fill:{color:isArret?"FFF0F0":"FFFFFF"},line:{color:isArret?"E06C75":domColor,width:1.0},shadow:{type:"outer",blur:2,offset:1,color:"000000",opacity:0.08,angle:135}});
+        sC.addText(a.name,{x:np.x+0.08,y:np.y,w:np.w-0.12,h:np.h*0.62,fontSize:8,bold:true,color:isArret?"CC0000":"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
+        sC.addText(a.domain,{x:np.x+0.08,y:np.y+np.h*0.60,w:np.w-0.12,h:np.h*0.40,fontSize:6,color:"6B7280",fontFace:"Calibri",align:"center",valign:"top",margin:0,shrinkText:true});
+      });
+      // Hub box (on top)
+      sC.addShape(pres.shapes.RECTANGLE,{x:hubCx-hubW/2,y:hubCy-hubH/2,w:hubW,h:hubH,fill:{color:hubDomColor},line:{color:"FFFFFF",width:2.5},shadow:{type:"outer",blur:6,offset:2,color:"000000",opacity:0.18,angle:135}});
+      sC.addText("★  "+hub.name,{x:hubCx-hubW/2+0.06,y:hubCy-hubH/2,w:hubW-0.12,h:hubH*0.60,fontSize:12,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",align:"center",valign:"middle",margin:0,shrinkText:true});
+      sC.addText(hub.domain,{x:hubCx-hubW/2+0.06,y:hubCy-hubH/2+hubH*0.57,w:hubW-0.12,h:hubH*0.43,fontSize:7.5,color:"D0E8FF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
+      // Protocol legend
+      var usedPH=new Set();
+      sorted.forEach(function(a){var nf=neighFlows[a.id]||{protos:{}};var domP=Object.entries(nf.protos).sort(function(a,b){return b[1]-a[1];})[0];if(domP)usedPH.add(domP[0]);});
+      var seenH=new Set(),entriesH=[];
+      [...usedPH].forEach(function(p){var lbl=protoLabel(p);if(seenH.has(lbl))return;seenH.add(lbl);entriesH.push({label:lbl,color:protoColor(p)});});
+      if(entriesH.length){
+        var lw=1.9,lh=0.18+entriesH.length*0.13,lx=CX,ly=CY+CH-lh;
+        sC.addShape(pres.shapes.RECTANGLE,{x:lx,y:ly,w:lw,h:lh,fill:{color:"FAFBFC"},line:{color:"E8EAED",width:0.3}});
+        sC.addText("PROTOCOLES",{x:lx+0.04,y:ly+0.01,w:lw-0.08,h:0.12,fontSize:5.5,bold:true,color:"0B2545",fontFace:"Calibri",charSpacing:0.5,margin:0});
+        entriesH.forEach(function(e,i){var ey=ly+0.18+i*0.13;sC.addShape(pres.shapes.LINE,{x:lx+0.08,y:ey+0.05,w:0.2,h:0,line:{color:e.color,width:1.5,endArrowType:"triangle",endArrowSize:4}});sC.addText(e.label,{x:lx+0.32,y:ey,w:lw-0.38,h:0.12,fontSize:6.5,color:"333333",fontFace:"Calibri",margin:0,valign:"middle"});});
+      }
     };
 
     // ── Tableau récapitulatif des flux (paginé) ──
@@ -1873,7 +2000,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           return fa&&ta&&(fa.domain===D||ta.domain===D);
         });
         if(subset.length===0)return;
-        drawCartoSlide("Cartographie — "+D,subset,subFlows,true);
+        // Greyed IDs = neighbor apps from other domains (context, not focal)
+        const externalIds=new Set(subset.filter(function(a){return a.domain!==D;}).map(function(a){return a.id;}));
+        drawCartoSlide("Cartographie — "+D,subset,subFlows,true,true,externalIds);
       });
     } else if(_opts.cartoMode==="byHub"){
       const appConn={};
@@ -1884,8 +2013,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         const neighborIds=new Set([hub.id]);
         flows.forEach(function(f){if(f.from===hub.id)neighborIds.add(f.to);if(f.to===hub.id)neighborIds.add(f.from);});
         const subset=apps.filter(function(a){return neighborIds.has(a.id);});
-        const subFlows=flows.filter(function(f){return neighborIds.has(f.from)&&neighborIds.has(f.to);});
-        drawCartoSlide("Hub · "+hub.name+" ("+(appConn[hub.id]||0)+" flux)",subset,subFlows,true);
+        const subFlows=flows.filter(function(f){return neighborIds.has(f.from)||neighborIds.has(f.to);}).filter(function(f){return f.from===hub.id||f.to===hub.id;});
+        drawHubRadialSlide(hub,subset,subFlows,appConn[hub.id]||0);
       });
       if(topHubs.length===0){drawCartoSlide("Cartographie globale AS-IS",apps,[],false);drawCartoSlide("Cartographie globale — avec flux",apps,flows,true);}
     } else {
