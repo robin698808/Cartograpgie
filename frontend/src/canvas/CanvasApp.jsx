@@ -1111,41 +1111,59 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         mkSlide.addText(t.unit,{x:tx+0.74,y:tY+0.50,w:tW-0.82,h:0.22,fontSize:9,bold:true,color:"0F172A",fontFace:"Calibri",margin:0});
         mkSlide.addText(t.sub,{x:tx+0.74,y:tY+0.72,w:tW-0.82,h:0.22,fontSize:7.5,color:"64748B",fontFace:"Calibri",margin:0,shrinkText:true});
       });
-      // ── Row 2 : 2 progress bars (D1 / D2) ──
+      // ── Row 2 : Répartition AS-IS | Trajectoire D1 / D2 ──
       var bY=1.72,bW=4.55,bH=1.30,bGap=0.20;
-      var mkBars=[
-        {title:"Avancement Day 1 — Closing",color:"F59E0B",pct:mkD1Pct,
-         sub1:mkTSA+" Transfert TSA",sub2:mkAbD1+" Abandon",sub3:(apps.length-mkD1Def)+" Non qualifié"},
-        {title:"Couverture Day 2 — Cible",color:"6366F1",pct:mkD2Pct,
-         sub1:mkClone+" Clone & Clean",sub2:mkRebuild+" Rebuild",sub3:(apps.length-mkD2Def)+" Non qualifié"},
+      // Panel helper : draw one horizontal distribution row
+      var mkDistRow=function(sl,rx,ry,rw,label,count,total,color){
+        var pct=total?count/total:0;
+        var barW=Math.min(rw-1.10,Math.max(0.04,(rw-1.10)*pct));
+        sl.addShape(pres.shapes.RECTANGLE,{x:rx,y:ry+0.045,w:0.07,h:0.07,fill:{color:color},line:{type:"none"}});
+        sl.addText(label,{x:rx+0.12,y:ry,w:rw-1.20,h:0.16,fontSize:7.5,color:"334155",fontFace:"Calibri",margin:0,valign:"middle",shrinkText:true});
+        sl.addText(String(count),{x:rx+rw-0.50,y:ry,w:0.46,h:0.16,fontSize:7.5,bold:true,color:color,fontFace:"Calibri",align:"right",margin:0,valign:"middle"});
+        sl.addShape(pres.shapes.RECTANGLE,{x:rx+0.12,y:ry+0.18,w:rw-1.10,h:0.06,fill:{color:"F1F5F9"},line:{type:"none"}});
+        if(barW>0)sl.addShape(pres.shapes.RECTANGLE,{x:rx+0.12,y:ry+0.18,w:barW,h:0.06,fill:{color:color},line:{type:"none"}});
+      };
+      // ── Panel gauche : Répartition AS-IS ──
+      var bx0=0.25;
+      mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx0,y:bY,w:bW,h:bH,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
+      mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx0,y:bY,w:bW,h:0.07,fill:{color:"0B2545"},line:{type:"none"}});
+      mkSlide.addText("RÉPARTITION AS-IS — STATUT APPLICATIF",{x:bx0+0.12,y:bY+0.10,w:bW-0.24,h:0.18,fontSize:8,bold:true,color:"0B2545",fontFace:"Calibri",charSpacing:0.5,margin:0});
+      var mkStatRows=[
+        {l:"Maintien",c:"00C853",v:apps.filter(function(a){return a.status==="Maintien";}).length},
+        {l:"Arrêt",c:"FF5252",v:apps.filter(function(a){return a.status==="Arrêt";}).length},
+        {l:"Standalone temporaire",c:"EF6C00",v:apps.filter(function(a){return a.status==="Standalone temporaire";}).length},
+        {l:"Migrée",c:"2979FF",v:apps.filter(function(a){return a.status==="Migrée";}).length},
+        {l:"Remplacée",c:"7C4DFF",v:apps.filter(function(a){return a.status==="Remplacée";}).length},
       ];
-      mkBars.forEach(function(b,i){
-        var bx=0.25+i*(bW+bGap);
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx,y:bY,w:bW,h:bH,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx,y:bY,w:bW,h:0.07,fill:{color:b.color},line:{type:"none"}});
-        mkSlide.addText(b.title,{x:bx+0.14,y:bY+0.12,w:bW-1.10,h:0.26,fontSize:9.5,bold:true,color:"0F172A",fontFace:"Trebuchet MS",margin:0});
-        mkSlide.addText(b.pct+"%",{x:bx+bW-1.00,y:bY+0.08,w:0.86,h:0.34,fontSize:24,bold:true,color:b.color,fontFace:"Trebuchet MS",margin:0,align:"right"});
-        // Progress bar
-        var tkX=bx+0.14,tkY=bY+0.46,tkW=bW-0.28,tkH=0.24;
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:tkX,y:tkY,w:tkW,h:tkH,fill:{color:"E2E8F0"},line:{type:"none"}});
-        if(b.pct>0)mkSlide.addShape(pres.shapes.RECTANGLE,{x:tkX,y:tkY,w:Math.max(0.08,tkW*b.pct/100),h:tkH,fill:{color:b.color},line:{type:"none"}});
-        // Pct label inside bar
-        mkSlide.addText(b.pct+"%",{x:tkX+0.06,y:tkY,w:0.60,h:tkH,fontSize:8.5,bold:true,color:b.pct>15?"FFFFFF":b.color,fontFace:"Calibri",margin:0,valign:"middle"});
-        // Sub-stats
-        var subs=[[b.sub1,b.color],[b.sub2,"EF4444"],["  "+b.sub3,"94A3B8"]];
-        subs.forEach(function(s,si){
-          mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx+0.14+si*(bW-0.28)/3,y:bY+0.80,w:0.08,h:0.08,fill:{color:s[1]},line:{type:"none"}});
-          mkSlide.addText(s[0],{x:bx+0.26+si*(bW-0.28)/3,y:bY+0.76,w:(bW-0.40)/3,h:0.18,fontSize:7.5,color:"475569",fontFace:"Calibri",margin:0,shrinkText:true});
-        });
-        // Target label
-        mkSlide.addText(b.pct===100?"✓ Couverture complète":b.pct+"/100 — Effort requis",{x:bx+0.14,y:bY+1.04,w:bW-0.28,h:0.20,fontSize:7.5,color:b.pct===100?"10B981":"94A3B8",fontFace:"Calibri",margin:0,italic:true});
-      });
+      mkStatRows.forEach(function(r,ri){mkDistRow(mkSlide,bx0+0.12,bY+0.32+ri*0.20,bW-0.14,r.l,r.v,apps.length,r.c);});
+      // ── Panel droit : Trajectoire D1 / D2 ──
+      var bx1=bx0+bW+bGap;
+      mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx1,y:bY,w:bW,h:bH,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
+      mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx1,y:bY,w:bW,h:0.07,fill:{color:"0B2545"},line:{type:"none"}});
+      mkSlide.addText("TRAJECTOIRE CARVE-OUT — DAY 1 & DAY 2",{x:bx1+0.12,y:bY+0.10,w:bW-0.24,h:0.18,fontSize:8,bold:true,color:"0B2545",fontFace:"Calibri",charSpacing:0.5,margin:0});
+      mkSlide.addText("DAY 1",{x:bx1+0.12,y:bY+0.32,w:0.60,h:0.13,fontSize:7,bold:true,color:"F59E0B",fontFace:"Calibri",margin:0});
+      var mkD1Rows=[
+        {l:"Transfert TSA",c:"F59E0B",v:mkTSA},
+        {l:"Abandon",c:"EF4444",v:mkAbD1},
+        {l:"Non défini",c:"CBD5E1",v:apps.length-mkD1Def},
+      ];
+      mkD1Rows.forEach(function(r,ri){mkDistRow(mkSlide,bx1+0.12,bY+0.46+ri*0.19,bW-0.14,r.l,r.v,apps.length,r.c);});
+      mkSlide.addShape(pres.shapes.LINE,{x:bx1+0.12,y:bY+0.47+mkD1Rows.length*0.19,w:bW-0.24,h:0,line:{color:"E2E8F0",width:0.3}});
+      mkSlide.addText("DAY 2",{x:bx1+0.12,y:bY+0.51+mkD1Rows.length*0.19,w:0.60,h:0.13,fontSize:7,bold:true,color:"6366F1",fontFace:"Calibri",margin:0});
+      var mkD2Rows=[
+        {l:"Clone & Clean",c:"3B82F6",v:mkClone},
+        {l:"Transfert",c:"10B981",v:apps.filter(function(a){return a.statusD2==="Transfert";}).length},
+        {l:"Rebuild",c:"F97316",v:mkRebuild},
+        {l:"Abandon",c:"EF4444",v:apps.filter(function(a){return a.statusD2==="Abandon";}).length},
+        {l:"Non défini",c:"CBD5E1",v:apps.length-mkD2Def},
+      ];
+      mkD2Rows.forEach(function(r,ri){mkDistRow(mkSlide,bx1+0.12,bY+0.66+mkD1Rows.length*0.19+ri*0.14,bW-0.14,r.l,r.v,apps.length,r.c);});
       // ── Row 3 : 3 actions ──
       var aY=3.14,aW=2.92,mkAH=1.12,aGap=0.37;
       var mkActs=[
         {num:"①",color:cp,title:"Qualifier les statuts",body:"Compléter les "+(apps.length-mkD1Def)+" applications sans statut Day 1 avant la prochaine revue de gouvernance"},
         {num:"②",color:"6366F1",title:"Accélérer la couverture D2",body:"Définir la stratégie cible pour les "+(apps.length-mkD2Def)+" applications sans vision Day 2 — prioriser les apps critiques"},
-        {num:"③",color:"10B981",title:"Valider la stratégie D2",body:"Définir la cible pour les "+(apps.length-mkD2Def)+" applications sans vision Day 2 — revue par domaine recommandée"},
+        {num:"③",color:"10B981",title:"Gouvernance & suivi",body:"Piloter l'avancement par domaine, désigner un responsable par application et planifier les revues de trajectoire"},
       ];
       mkActs.forEach(function(a,i){
         var ax=0.25+i*(aW+aGap);
