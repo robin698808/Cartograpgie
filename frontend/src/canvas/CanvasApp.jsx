@@ -410,11 +410,17 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   const [showExportModal,setShowExportModal]=useState(false);
   const [exportOpts,setExportOpts]=useState({
     synthDetail:"radial",// "none" | "radial" | "byDomain"
+    inclExecSlides:true,
     inclFocusDomain:true,
     inclKPI:true,
     inclLegend:true,
     inclAggregated:true,
     inclHubSlides:true,
+    inclDomainStatus:true,
+    inclHeatmap:true,
+    inclReco:true,
+    clientPrimary:"2979FF",
+    clientLogo:null,
   });
   const [fontScale,setFontScale]=useState(1); // font size multiplier (independent of card size)
   const [renCat,setRenCat]=useState(null) // {old,new} for renaming category
@@ -863,6 +869,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     });
 
     // ─── Slide 1: Title ───
+    if(_opts.inclExecSlides){
     const s1=SS(pres.addSlide());
     s1.background={color:"0B2545"};
     s1.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:5.625,fill:{color:"0B2545"}});
@@ -895,11 +902,10 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       {l:"Applications",v:String(apps.length),c:"6366F1"},
       {l:"Domaines",v:String(doms.length),c:"8B5CF6"},
       {l:"Interfaces",v:String(flows.length),c:"22D3EE"},
-      {l:"Statut Day 1",v:sxPctD1+"%",c:"F59E0B",sub:sxD1Def+"/"+apps.length+" renseignées"},
-      {l:"Statut Day 2",v:sxPctD2+"%",c:"10B981",sub:sxD2Def+"/"+apps.length+" renseignées"},
+      {l:"Apps à risque D1",v:String(sxRisk.length),c:"EF4444",sub:sxRisk.length>0?"Abandon D1 avec flux actifs":"Aucun risque D1"},
     ];
     sxKpis.forEach(function(k,i){
-      const kx=0.25+i*1.90;const ky=0.72;
+      const kx=0.25+i*2.30;const ky=0.72;
       sSX.addShape(pres.shapes.RECTANGLE,{x:kx,y:ky,w:1.75,h:0.95,fill:{color:"132E50"},line:{color:"1E4070",width:0.5}});
       sSX.addShape(pres.shapes.RECTANGLE,{x:kx,y:ky,w:0.055,h:0.95,fill:{color:k.c},line:{type:"none"}});
       sSX.addText(k.v,{x:kx+0.14,y:ky+0.06,w:1.50,h:0.52,fontSize:30,bold:true,color:k.c,fontFace:"Trebuchet MS",margin:0});
@@ -984,6 +990,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       sSX.addText("Aucun responsable renseigné",{x:0.40,y:oby3+0.50,w:9,h:0.30,fontSize:10,color:"5577AA",fontFace:"Calibri",margin:0});
     }
     }// end sSX block
+    }// end inclExecSlides
 
     // ═══════════════════════════════════════════════════════════════════
     // ─── Cartographie style URBANISATION SI (diagramme d'architecte) ───
@@ -2773,6 +2780,148 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       sSC.addText(k.l,{x:bkx2+0.06,y:scBsy+0.48,w:2.05,h:0.22,fontSize:7.5,color:"8899AA",fontFace:"Calibri",margin:0});
     });
     }// end sSC block
+
+    // ─── Slides: Vue par domaine - Statut Day 1 & Day 2 ───
+    if(_opts.inclDomainStatus){
+      const d1Colors={"Transfert TSA":"F59E0B","Abandon":"EF4444","Non défini":"94A3B8"};
+      const d2Colors={"Clone & Clean":"3B82F6","Transfert":"10B981","Rebuild":"8B5CF6","Abandon":"EF4444","Non défini":"94A3B8"};
+      [
+        {label:"CARTOGRAPHIE PAR DOMAINE — STATUT DAY 1 (CLOSING)",field:"statusD1",colorMap:d1Colors,legend:[["Transfert TSA","F59E0B"],["Abandon","EF4444"],["Non défini","94A3B8"]]},
+        {label:"CARTOGRAPHIE PAR DOMAINE — STATUT DAY 2 (CIBLE)",field:"statusD2",colorMap:d2Colors,legend:[["Clone & Clean","3B82F6"],["Transfert","10B981"],["Rebuild","8B5CF6"],["Abandon","EF4444"],["Non défini","94A3B8"]]},
+      ].forEach(function(cfg){
+        const dsSlide=SS(pres.addSlide());
+        dsSlide.background={color:"F8F9FC"};
+        const cp=_opts.clientPrimary||"2979FF";
+        // Header
+        dsSlide.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.50,fill:{color:cp},line:{type:"none"}});
+        dsSlide.addText(cfg.label,{x:0.30,y:0.08,w:8.0,h:0.35,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
+        dsSlide.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:8.20,y:0.14,w:1.60,h:0.22,fontSize:8,color:"FFFFFFAA",fontFace:"Calibri",align:"right",margin:0});
+        // Legend
+        var legX=0.30,legY=0.58;
+        cfg.legend.forEach(function(le){
+          dsSlide.addShape(pres.shapes.RECTANGLE,{x:legX,y:legY+0.04,w:0.18,h:0.14,fill:{color:le[1]},line:{type:"none"}});
+          dsSlide.addText(le[0],{x:legX+0.22,y:legY,w:1.30,h:0.22,fontSize:7.5,color:"444444",fontFace:"Calibri",margin:0});
+          legX+=1.58;
+        });
+        // Domain rows
+        const domList2=[...new Set(apps.map(function(a){return a.domain;}))];
+        const rowH2=0.42;
+        const startY=0.88;
+        const maxRows=Math.floor((5.625-startY-0.15)/rowH2);
+        domList2.slice(0,maxRows).forEach(function(dom,di){
+          const rowY=startY+di*rowH2;
+          const domAppsD=apps.filter(function(a){return a.domain===dom;});
+          const dc=_pDC[dom]||_pDC.Autre;
+          const domAc=(dc.ac||"#548CA8").replace("#","");
+          // Domain label
+          dsSlide.addShape(pres.shapes.RECTANGLE,{x:0.25,y:rowY,w:1.80,h:rowH2-0.04,fill:{color:domAc,transparency:88},line:{color:domAc,width:0.5}});
+          dsSlide.addText(dom,{x:0.28,y:rowY+0.04,w:1.74,h:rowH2-0.12,fontSize:8,bold:true,color:domAc,fontFace:"Calibri",margin:0,shrinkText:true,valign:"middle"});
+          dsSlide.addText(domAppsD.length+" apps",{x:0.28,y:rowY+rowH2-0.18,w:1.74,h:0.14,fontSize:6,color:"888888",fontFace:"Calibri",margin:0});
+          // App chips
+          var chipX=2.18;var chipY=rowY+0.04;var chipW=1.10;var chipH=rowH2-0.10;var chipGap=0.06;
+          var chipsPerRow=Math.floor((9.50-chipX)/(chipW+chipGap));
+          domAppsD.slice(0,chipsPerRow).forEach(function(app){
+            var st=app[cfg.field]||"Non défini";
+            var stc=cfg.colorMap[st]||"94A3B8";
+            dsSlide.addShape(pres.shapes.RECTANGLE,{x:chipX,y:chipY,w:chipW,h:chipH,fill:{color:stc,transparency:82},line:{color:stc,width:0.5}});
+            dsSlide.addShape(pres.shapes.RECTANGLE,{x:chipX,y:chipY,w:0.04,h:chipH,fill:{color:stc},line:{type:"none"}});
+            dsSlide.addText(app.name,{x:chipX+0.07,y:chipY,w:chipW-0.10,h:chipH*0.60,fontSize:6.5,bold:true,color:"1a1a1a",fontFace:"Calibri",margin:0,shrinkText:true,valign:"middle"});
+            dsSlide.addText(st==="Non défini"?"—":st,{x:chipX+0.07,y:chipY+chipH*0.58,w:chipW-0.10,h:chipH*0.38,fontSize:5.5,color:stc,fontFace:"Calibri",margin:0,shrinkText:true});
+            chipX+=chipW+chipGap;
+          });
+          if(domAppsD.length>chipsPerRow){
+            dsSlide.addText("+"+(domAppsD.length-chipsPerRow)+" apps",{x:chipX,y:chipY+0.04,w:0.70,h:chipH-0.08,fontSize:6,color:"888888",fontFace:"Calibri",margin:0,valign:"middle"});
+          }
+          // Separator
+          dsSlide.addShape(pres.shapes.LINE,{x:0.25,y:rowY+rowH2-0.04,w:9.50,h:0,line:{color:"E2E8F0",width:0.35}});
+        });
+        if(domList2.length>maxRows){
+          dsSlide.addText("... et "+(domList2.length-maxRows)+" autres domaines",{x:0.30,y:startY+maxRows*rowH2,w:9,h:0.25,fontSize:8,color:"888888",fontFace:"Calibri",margin:0});
+        }
+      });
+    }// end inclDomainStatus
+
+    // ─── Slide: Heatmap applications par domaine ───
+    if(_opts.inclHeatmap){
+      const hmSlide=SS(pres.addSlide());
+      hmSlide.background={color:"F8F9FC"};
+      const cp=_opts.clientPrimary||"2979FF";
+      hmSlide.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.50,fill:{color:cp},line:{type:"none"}});
+      hmSlide.addText("HEATMAP — APPLICATIONS PAR DOMAINE",{x:0.30,y:0.08,w:8,h:0.35,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
+      hmSlide.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:8.20,y:0.14,w:1.60,h:0.22,fontSize:8,color:"FFFFFFAA",fontFace:"Calibri",align:"right",margin:0});
+      // Sub-title
+      hmSlide.addText("Taille = nombre d'applications · Rouge = applications à risque (Abandon D1 avec flux actifs)",{x:0.30,y:0.55,w:9.2,h:0.20,fontSize:8.5,color:"555555",fontFace:"Calibri",margin:0,italic:true});
+      // Compute domain stats
+      var hmRiskIds=new Set(apps.filter(function(a){return a.statusD1==="Abandon"&&flows.some(function(f){return f.from===a.id||f.to===a.id;});}).map(function(a){return a.id;}));
+      var hmDoms=([...new Set(apps.map(function(a){return a.domain;}))]).map(function(d){
+        var dApps=apps.filter(function(a){return a.domain===d;});
+        var riskApps=dApps.filter(function(a){return hmRiskIds.has(a.id);});
+        var critApps=dApps.filter(function(a){return a.criticality==="Haute";});
+        return {d:d,n:dApps.length,risk:riskApps.length,crit:critApps.length,riskNames:riskApps.slice(0,3).map(function(a){return a.name;})};
+      }).sort(function(a,b){return b.n-a.n;});
+      var hmMax=hmDoms.length>0?hmDoms[0].n:1;
+      // Table header
+      var hmHdr=[
+        {text:"Domaine",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9}},
+        {text:"Nb apps",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9,align:"center"}},
+        {text:"Critiques",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9,align:"center"}},
+        {text:"⚠ Risques D1",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9,align:"center"}},
+        {text:"Répartition",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9}},
+        {text:"Applications à risque",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9}},
+      ];
+      var hmRows=hmDoms.map(function(row,ri){
+        var dc2=_pDC[row.d]||_pDC.Autre;
+        var domAc2=(dc2.ac||"#548CA8").replace("#","");
+        var intensity=Math.round((row.n/hmMax)*100);
+        var bgHex=row.risk>0?"FFEAEA":ri%2===0?"FFFFFF":"F8F9FC";
+        var barPct=Math.round(row.n/hmMax*100);
+        return [
+          {text:row.d,options:{fontSize:9,bold:true,color:domAc2,fill:{color:bgHex}}},
+          {text:String(row.n),options:{fontSize:11,bold:true,align:"center",color:"1a1a1a",fill:{color:bgHex}}},
+          {text:row.crit>0?String(row.crit):"—",options:{fontSize:9,align:"center",color:row.crit>0?"E06C75":"999999",bold:row.crit>0,fill:{color:bgHex}}},
+          {text:row.risk>0?String(row.risk)+" ⚠":"✓",options:{fontSize:9,align:"center",color:row.risk>0?"EF4444":"10B981",bold:true,fill:{color:bgHex}}},
+          {text:"█".repeat(Math.max(1,Math.round(barPct/10))),options:{fontSize:8,color:row.risk>0?"EF4444":domAc2,fill:{color:bgHex}}},
+          {text:row.riskNames.join(", ")+(row.risk>3?" +"+(row.risk-3)+" autres":""),options:{fontSize:7.5,color:row.risk>0?"EF4444":"999999",fill:{color:bgHex},shrinkText:true}},
+        ];
+      });
+      var hmColW=hmDoms.length>0?[2.00,0.70,0.70,0.80,1.30,4.00]:[2.00,0.70,0.70,0.80,1.30,4.00];
+      hmSlide.addTable([hmHdr,...hmRows],{x:0.25,y:0.82,w:9.50,colW:hmColW,border:{pt:0.5,color:"DDDDDD"},rowH:0.28,autoPage:true,autoPageRepeatHeader:true});
+    }// end inclHeatmap
+
+    // ─── Slide: Recommandations ───
+    if(_opts.inclReco){
+      const recoSlide=SS(pres.addSlide());
+      recoSlide.background={color:"F8F9FC"};
+      const cp=_opts.clientPrimary||"2979FF";
+      recoSlide.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.50,fill:{color:cp},line:{type:"none"}});
+      recoSlide.addText("RECOMMANDATIONS",{x:0.30,y:0.08,w:8,h:0.35,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
+      // Compute recommendations
+      var rAppsNoD1=apps.filter(function(a){return !a.statusD1;});
+      var rAppsNoD2=apps.filter(function(a){return !a.statusD2;});
+      var rRiskD1=apps.filter(function(a){return a.statusD1==="Abandon"&&flows.some(function(f){return f.from===a.id||f.to===a.id;});});
+      var rNoCrit=apps.filter(function(a){return !a.criticality||a.criticality==="—";});
+      var rNoOwner=apps.filter(function(a){return !a.owner||!a.owner.trim();});
+      var rCritNoD1=apps.filter(function(a){return a.criticality==="Haute"&&!a.statusD1;});
+      var rRecos=[];
+      if(rRiskD1.length>0) rRecos.push({prio:"CRITIQUE",color:"EF4444",icon:"⚠",text:rRiskD1.length+" application"+(rRiskD1.length>1?"s":"")+" en statut Abandon Day 1 avec des interfaces actives : traitement prioritaire requis avant le Day 1.",detail:"Applis concernées : "+rRiskD1.slice(0,4).map(function(a){return a.name;}).join(", ")+(rRiskD1.length>4?" +"+(rRiskD1.length-4)+" autres":"")});
+      if(rCritNoD1.length>0) rRecos.push({prio:"HAUTE",color:"F59E0B",icon:"▲",text:rCritNoD1.length+" application"+(rCritNoD1.length>1?"s critiques":"")+" critique"+(rCritNoD1.length>1?"s":"")+" sans statut Day 1 défini.",detail:"Applis concernées : "+rCritNoD1.slice(0,4).map(function(a){return a.name;}).join(", ")+(rCritNoD1.length>4?" +"+(rCritNoD1.length-4)+" autres":"")});
+      if(rAppsNoD1.length>0) rRecos.push({prio:"MOYENNE",color:"6366F1",icon:"●",text:rAppsNoD1.length+" application"+(rAppsNoD1.length>1?"s":"")+" sans statut Day 1 renseigné — compléter avant la prochaine revue.",detail:Math.round(rAppsNoD1.length/apps.length*100)+"% du parc applicatif non qualifié pour le Day 1"});
+      if(rAppsNoD2.length>0) rRecos.push({prio:"MOYENNE",color:"8B5CF6",icon:"●",text:rAppsNoD2.length+" application"+(rAppsNoD2.length>1?"s":"")+" sans stratégie Day 2 définie.",detail:Math.round(rAppsNoD2.length/apps.length*100)+"% du parc sans vision cible"});
+      if(rNoOwner.length>0) rRecos.push({prio:"FAIBLE",color:"22D3EE",icon:"◦",text:rNoOwner.length+" application"+(rNoOwner.length>1?"s":"")+" sans responsable identifié — désigner un owner pour chaque application.",detail:"Nécessaire pour la gouvernance et le suivi des migrations"});
+      if(flows.length>0&&apps.length>0&&flows.length/apps.length>3) rRecos.push({prio:"INFO",color:"10B981",icon:"◦",text:"Ratio interfaces/applications élevé ("++(flows.length/apps.length).toFixed(1)+"). Cartographier les dépendances critiques pour anticiper les impacts de migration.",detail:"Identifier les hubs applicatifs à fort couplage"});
+      if(rRecos.length===0) rRecos.push({prio:"INFO",color:"10B981",icon:"✓",text:"Aucun risque majeur identifié. Le parc applicatif est bien qualifié.",detail:""});
+      // Draw recommendations
+      var ry=0.62;
+      rRecos.slice(0,6).forEach(function(r){
+        recoSlide.addShape(pres.shapes.RECTANGLE,{x:0.25,y:ry,w:9.50,h:0.70,fill:{color:r.color,transparency:92},line:{color:r.color,width:0.5}});
+        recoSlide.addShape(pres.shapes.RECTANGLE,{x:0.25,y:ry,w:0.06,h:0.70,fill:{color:r.color},line:{type:"none"}});
+        recoSlide.addShape(pres.shapes.RECTANGLE,{x:0.25,y:ry,w:1.10,h:0.28,fill:{color:r.color,transparency:80},line:{type:"none"}});
+        recoSlide.addText(r.prio,{x:0.28,y:ry+0.04,w:1.04,h:0.20,fontSize:7.5,bold:true,color:r.color,fontFace:"Calibri",margin:0,align:"center"});
+        recoSlide.addText(r.icon+" "+r.text,{x:1.42,y:ry+0.04,w:8.10,h:0.28,fontSize:9.5,bold:true,color:"1a1a1a",fontFace:"Calibri",margin:0,shrinkText:true});
+        if(r.detail) recoSlide.addText(r.detail,{x:1.42,y:ry+0.34,w:8.10,h:0.22,fontSize:8,color:"555555",fontFace:"Calibri",margin:0,italic:true,shrinkText:true});
+        ry+=0.78;
+      });
+    }// end inclReco
 
     pres.writeFile({fileName:"Cartographie_Applicative.pptx"});
   };
@@ -5151,16 +5300,70 @@ if(view==="dashboard") return <div style={{display:"flex",flexDirection:"column"
     </div></div>}
     {/* Domain color editor */}
     {showExportModal&&<div style={{position:"fixed",inset:0,background:T.overlay,display:"flex",alignItems:"center",justifyContent:"center",zIndex:400}} onMouseDown={function(e){if(e.target===e.currentTarget)setShowExportModal(false);}}>
-      <div style={{background:T.bgCard,borderRadius:12,padding:28,width:520,boxShadow:"0 8px 40px #00000060"}} onMouseDown={function(e){e.stopPropagation();}}>
+      <div style={{background:T.bgCard,borderRadius:12,padding:28,width:580,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 8px 40px #00000060"}} onMouseDown={function(e){e.stopPropagation();}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
           <div><div style={{fontSize:16,fontWeight:700,color:T.fg}}>Options d&apos;export PowerPoint</div><div style={{fontSize:11,color:T.fgMuted,marginTop:2}}>{apps.length} apps &middot; {flows.length} flux &middot; {doms.length} domaines</div></div>
           <button onClick={function(){setShowExportModal(false);}} style={{background:"none",border:"none",fontSize:18,color:T.fgMuted,cursor:"pointer"}}>&#10005;</button>
         </div>
 
         <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+          {/* Identité client */}
+          <div style={{background:T.bgAlt,borderRadius:8,padding:14}}>
+            <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>&#127775; Identit&#233; client</div>
+            <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                <label style={{fontSize:10,color:T.fgMuted}}>Couleur principale</label>
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <input type="color" value={"#"+(exportOpts.clientPrimary||"2979FF")} onChange={function(e){var hex=e.target.value.replace("#","");setExportOpts(function(p){return Object.assign({},p,{clientPrimary:hex});});}} style={{width:40,height:32,border:"1px solid #555",borderRadius:4,cursor:"pointer",padding:2}}/>
+                  <span style={{fontSize:10,color:T.fgDim,fontFamily:"monospace"}}>{"#"+(exportOpts.clientPrimary||"2979FF")}</span>
+                </div>
+                <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap"}}>
+                  {["1B3A5C","2979FF","10B981","6366F1","EF6C00","E06C75","0B2545","2D6A4F"].map(function(c){
+                    return <div key={c} onMouseDown={function(e){e.preventDefault();setExportOpts(function(p){return Object.assign({},p,{clientPrimary:c});});}} style={{width:20,height:20,borderRadius:4,background:"#"+c,cursor:"pointer",border:exportOpts.clientPrimary===c?"2px solid #fff":"2px solid transparent",boxShadow:exportOpts.clientPrimary===c?"0 0 6px #"+c+"80":"none"}}/>;
+                  })}
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                <label style={{fontSize:10,color:T.fgMuted}}>Logo client (PNG/JPG)</label>
+                <input type="file" accept="image/*" onChange={function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var rd=new FileReader();rd.onload=function(ev){setExportOpts(function(p){return Object.assign({},p,{clientLogo:ev.target.result});});};rd.readAsDataURL(f);}} style={{fontSize:10,color:T.fg,cursor:"pointer"}}/>
+                {exportOpts.clientLogo&&<div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <img src={exportOpts.clientLogo} alt="logo" style={{height:28,maxWidth:80,objectFit:"contain",borderRadius:4,border:"1px solid "+T.border}}/>
+                  <button onMouseDown={function(){setExportOpts(function(p){return Object.assign({},p,{clientLogo:null});});}} style={{background:"none",border:"none",fontSize:12,color:T.fgMuted,cursor:"pointer"}}>✕</button>
+                </div>}
+              </div>
+            </div>
+          </div>
+
+          {/* Slides exécutives */}
+          <div style={{background:T.bgAlt,borderRadius:8,padding:14}}>
+            <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>&#128101; Slides ex&#233;cutives</div>
+            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 8px",borderRadius:4,background:exportOpts.inclExecSlides?T.bgHover:"transparent"}}>
+              <input type="checkbox" checked={exportOpts.inclExecSlides} onChange={function(e){var v=e.target.checked;setExportOpts(function(p){var n=Object.assign({},p);n.inclExecSlides=v;return n;});}} style={{accentColor:"#2979FF",width:14,height:14}}/>
+              <span style={{fontSize:11,color:T.fg}}>Inclure les slides ex&#233;cutives (Page de titre + Synth&#232;se ex&#233;cutive)</span>
+            </label>
+          </div>
+
+          {/* Slides de synthèse */}
+          <div style={{background:T.bgAlt,borderRadius:8,padding:14}}>
+            <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>&#128202; Slides de synth&#232;se</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+              {[
+                {k:"inclDomainStatus",l:"Vue par domaine (Day 1 & Day 2)",d:"2 slides · applications colorées par statut"},
+                {k:"inclHeatmap",l:"Heatmap par domaine",d:"Nombre d'apps + risques mis en avant"},
+                {k:"inclReco",l:"Recommandations",d:"Actions prioritaires auto-générées"},
+              ].map(function(item){
+                return <label key={item.k} style={{display:"flex",alignItems:"flex-start",gap:8,cursor:"pointer",padding:"6px 8px",borderRadius:4,background:exportOpts[item.k]?T.bgHover:"transparent"}}>
+                  <input type="checkbox" checked={exportOpts[item.k]} onChange={function(e){var v=e.target.checked;setExportOpts(function(p){var n=Object.assign({},p);n[item.k]=v;return n;});}} style={{accentColor:"#2979FF",width:14,height:14,marginTop:2}}/>
+                  <div><div style={{fontSize:11,color:T.fg}}>{item.l}</div><div style={{fontSize:9,color:T.fgMuted}}>{item.d}</div></div>
+                </label>;
+              })}
+            </div>
+          </div>
+
           {/* Synthèse détaillée */}
           <div style={{background:T.bgAlt,borderRadius:8,padding:14}}>
-            <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>Slide Synth&#232;se d&#233;taill&#233;e</div>
+            <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>Slide Synth&#232;se d&#233;taill&#233;e (flux)</div>
             {[
               {v:"none",l:"Ne pas inclure",d:"Uniquement la synth\u00e8se agr\u00e9g\u00e9e"},
               {v:"radial",l:"Vue radiale",d:"Tous les flux individuels sur un slide orbital"},
@@ -5175,7 +5378,7 @@ if(view==="dashboard") return <div style={{display:"flex",flexDirection:"column"
 
           {/* Slides à inclure */}
           <div style={{background:T.bgAlt,borderRadius:8,padding:14}}>
-            <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>Slides &#224; inclure</div>
+            <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>Autres slides &#224; inclure</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
               {[
                 {k:"inclAggregated",l:"Vue agr\u00e9g\u00e9e domaines"},
@@ -5196,14 +5399,19 @@ if(view==="dashboard") return <div style={{display:"flex",flexDirection:"column"
           <div style={{fontSize:10,color:T.fgDim,padding:"6px 10px",background:T.bgAlt,borderRadius:6}}>
             &#128196; Estimation&nbsp;: environ {
               (function(){
-                var n=2;// title + urbanisation
-                n++;// synthèse agrégée
+                var n=1;// urbanisation
+                n++;// synthèse compacte
+                n++;// matrice flux
+                if(exportOpts.inclExecSlides)n+=2;// title + exec
                 if(exportOpts.synthDetail!=="none")n+=(exportOpts.synthDetail==="byDomain"?doms.length:1);
                 if(exportOpts.inclAggregated)n++;
                 if(exportOpts.inclHubSlides)n+=Math.ceil(flows.length/6)+2;
                 if(exportOpts.inclFocusDomain)n+=doms.length*2;
                 if(exportOpts.inclKPI)n+=2;
                 if(exportOpts.inclLegend)n++;
+                if(exportOpts.inclDomainStatus)n+=2;
+                if(exportOpts.inclHeatmap)n++;
+                if(exportOpts.inclReco)n++;
                 return n;
               })()
             } slides
