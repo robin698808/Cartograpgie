@@ -421,6 +421,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     inclDomainStatus:true,
     cartoMode:"global", // "global" | "byDomain" | "byHub"
     inclConsolidatedCarto:true,
+    inclRecapTable:true,
     clientPrimary:"2979FF",
     clientLogo:null,
   });
@@ -1332,7 +1333,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         if(arrow){opts.line.endArrowType="triangle";opts.line.endArrowSize=7;}
         sC.addShape(pres.shapes.LINE,opts);
       };
-      const drawPath=(pts,color,dash)=>{
+      const drawPath=(pts,color,dash,width=1.2)=>{
         // Trait coloré + très fin halo blanc (0.4pt de chaque côté) pour le contraste sur croisements.
         const segs=[];
         for(let i=0;i<pts.length-1;i++){
@@ -1342,9 +1343,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         }
         if(segs.length===0)return;
         // Halo blanc élargi pour contraste sur croisements
-        segs.forEach(s=>addLineSeg(s.x1,s.y1,s.x2,s.y2,false,"FFFFFF",3.5,false));
+        segs.forEach(s=>addLineSeg(s.x1,s.y1,s.x2,s.y2,false,"FFFFFF",width+2.3,false));
         // Trait coloré principal
-        segs.forEach((s,idx)=>addLineSeg(s.x1,s.y1,s.x2,s.y2,idx===segs.length-1,color,1.2,dash));
+        segs.forEach((s,idx)=>addLineSeg(s.x1,s.y1,s.x2,s.y2,idx===segs.length-1,color,width,dash));
       };
 
       // Title
@@ -1492,49 +1493,61 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         const LANE_SPACE=0.14;
 
         let flowIdx=1;
-        // Inter-domain
+        // Inter-domain — aggregated by app pair (×N badge + proportional thickness)
         Object.entries(pairMap).forEach(([key,pair])=>{
-          const n=pair.flows.length;
-          pair.flows.forEach((f,i)=>{
+          // Group flows by app pair (from+"|"+to)
+          const appPairMap={};
+          pair.flows.forEach(function(f){const apk=f.from+"|"+f.to;(appPairMap[apk]=appPairMap[apk]||[]).push(f);});
+          const appPairList=Object.entries(appPairMap);
+          const nPairs=appPairList.length;
+
+          appPairList.forEach(function([apk,groupFlows],i){
             flowIdx++;
-            const proto=f.protocol||"Autre";
+            // Most common protocol in the group
+            const protoCounts={};
+            groupFlows.forEach(function(f){const p=f.protocol||"Autre";protoCounts[p]=(protoCounts[p]||0)+1;});
+            const proto=Object.entries(protoCounts).sort(function(a,b){return b[1]-a[1];})[0][0];
             const lineColor=protoColor(proto);
             usedProtos.add(proto);
+            const count=groupFlows.length;
+            const lineWidth=Math.min(3.0,1.2+(count-1)*0.5);
+
+            const f=groupFlows[0];
             const Aa=positions[f.from],Bb=positions[f.to];
-
-            const sAkey=f.from+"|"+pair.sideA;
-            sideExitIdx[sAkey]=(sideExitIdx[sAkey]||0)+1;
-            const tA=sideExitCount[sAkey]>1?(sideExitIdx[sAkey])/(sideExitCount[sAkey]+1):0.5;
+            // Use evenly spaced t for exit/entry on app box edges
+            const tA=nPairs===1?0.5:(i+1)/(nPairs+1);
+            const tB=nPairs===1?0.5:(i+1)/(nPairs+1);
             const p1=sidePt(Aa,pair.sideA,tA);
-
-            const sBkey=f.to+"|"+pair.sideB;
-            sideEntryIdx[sBkey]=(sideEntryIdx[sBkey]||0)+1;
-            const tB=sideEntryCount[sBkey]>1?(sideEntryIdx[sBkey])/(sideEntryCount[sBkey]+1):0.5;
             const p2=sidePt(Bb,pair.sideB,tB);
 
-            const maxSpread=gr.gap*0.40; // never exceed 40% of gap width per side
-            const rawOff=n===1?0:(i-(n-1)/2)*LANE_SPACE;
+            const maxSpread=gr.gap*0.40;
+            const rawOff=nPairs===1?0:(i-(nPairs-1)/2)*LANE_SPACE;
             const laneOff=Math.max(-maxSpread,Math.min(maxSpread,rawOff));
             var MIN_LEG=0.15;
             var channelC=pair.coord+laneOff;
             if(pair.axis==="X"){if(Math.abs(channelC-p1.x)<MIN_LEG)channelC=p1.x+(channelC>=p1.x?MIN_LEG:-MIN_LEG);if(Math.abs(channelC-p2.x)<MIN_LEG)channelC=p2.x+(channelC>=p2.x?MIN_LEG:-MIN_LEG);}
             else{if(Math.abs(channelC-p1.y)<MIN_LEG)channelC=p1.y+(channelC>=p1.y?MIN_LEG:-MIN_LEG);if(Math.abs(channelC-p2.y)<MIN_LEG)channelC=p2.y+(channelC>=p2.y?MIN_LEG:-MIN_LEG);}
 
-            // Line starts ON source edge, ends ON target edge — visible connection both sides
-            let x1=p1.x,y1=p1.y,x2=p2.x,y2=p2.y;
-
-            let pts,channelSeg;
+            var x1=p1.x,y1=p1.y,x2=p2.x,y2=p2.y;
+            var pts2,channelSeg;
             if(pair.axis==="X"){
-              pts=[[x1,y1],[channelC,y1],[channelC,y2],[x2,y2]];
+              pts2=[[x1,y1],[channelC,y1],[channelC,y2],[x2,y2]];
               channelSeg={x:channelC,y:Math.min(y1,y2),w:0,h:Math.abs(y2-y1)};
-            } else {
-              pts=[[x1,y1],[x1,channelC],[x2,channelC],[x2,y2]];
+            }else{
+              pts2=[[x1,y1],[x1,channelC],[x2,channelC],[x2,y2]];
               channelSeg={x:Math.min(x1,x2),y:channelC,w:Math.abs(x2-x1),h:0};
             }
-            drawPath(pts,lineColor,false);
-            for(let si=0;si<pts.length-1;si++)flowSegs.push({x1:pts[si][0],y1:pts[si][1],x2:pts[si+1][0],y2:pts[si+1][1]});
+            drawPath(pts2,lineColor,false,lineWidth);
+            for(var si=0;si<pts2.length-1;si++)flowSegs.push({x1:pts2[si][0],y1:pts2[si][1],x2:pts2[si+1][0],y2:pts2[si+1][1]});
             sC.addShape(pres.shapes.OVAL,{x:x1-0.04,y:y1-0.04,w:0.08,h:0.08,fill:{color:lineColor},line:{color:"FFFFFF",width:0.5}});
-            flowMeta.push({flow:f,channelSeg,channelAxis:pair.axis,p1:{x:x1,y:y1},p2:{x:x2,y:y2},lineColor});
+            // ×N badge for aggregated flows
+            if(count>1){
+              var bx2=channelSeg.x+channelSeg.w/2-0.14;
+              var by2=channelSeg.y+channelSeg.h/2-0.09;
+              sC.addShape(pres.shapes.RECTANGLE,{x:bx2,y:by2,w:0.28,h:0.17,fill:{color:lineColor},line:{type:"none"}});
+              sC.addText("×"+count,{x:bx2,y:by2,w:0.28,h:0.17,fontSize:7,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
+            }
+            flowMeta.push({flow:f,channelSeg,channelAxis:pair.axis,p1:{x:x1,y:y1},p2:{x:x2,y:y2},lineColor,count});
           });
         });
 
@@ -1690,6 +1703,58 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         sC.addText(app.name,{x:p.x+0.05,y:p.y,w:p.w-0.1,h:p.h,fontSize:fSize,bold:true,color:isArret?"990000":"1A1A1A",fontFace:"Calibri",margin:0,valign:"middle",align:"center",shrinkText:true,wrap:true});
       });
 
+    };
+
+    // ── Tableau récapitulatif des flux (paginé) ──
+    const drawRecapTableSlides=()=>{
+      const ROWS_PER_SLIDE=18;
+      const SD1C={"Transfert TSA":"F59E0B","Abandon":"EF4444"};
+      const SD2C={"Clone & Clean":"3B82F6","Transfert":"10B981","Abandon":"EF4444","Rebuild":"F97316"};
+      // Aggregate flows by app pair
+      const pairAgg={};
+      flows.forEach(function(f){
+        const fa=apps.find(function(a){return a.id===f.from;});
+        const ta=apps.find(function(a){return a.id===f.to;});
+        if(!fa||!ta)return;
+        const k=f.from+"|"+f.to;
+        if(!pairAgg[k])pairAgg[k]={fa,ta,labels:[],protocols:new Set()};
+        pairAgg[k].labels.push(f.label||"");
+        if(f.protocol)pairAgg[k].protocols.add(f.protocol);
+      });
+      const rows=Object.values(pairAgg).sort(function(a,b){
+        if(a.fa.domain!==b.fa.domain)return a.fa.domain.localeCompare(b.fa.domain);
+        return a.fa.name.localeCompare(b.fa.name);
+      });
+      if(rows.length===0)return;
+      const totalPages=Math.ceil(rows.length/ROWS_PER_SLIDE);
+      for(var page=0;page<totalPages;page++){
+        const sT=pres.addSlide();
+        sT.background={color:"FFFFFF"};
+        const suffix=totalPages>1?" ("+(page+1)+"/"+totalPages+")":"";
+        sT.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.333,h:0.55,fill:{color:cp||"0B2545"},line:{type:"none"}});
+        sT.addText("RÉCAPITULATIF DES FLUX"+suffix,{x:0.3,y:0.10,w:12,h:0.35,fontSize:14,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
+        if(_opts.clientLogo){sT.addImage({data:_opts.clientLogo,x:12.10,y:0.10,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
+        const pageRows=rows.slice(page*ROWS_PER_SLIDE,(page+1)*ROWS_PER_SLIDE);
+        const hdrOpts=function(txt){return {text:txt,options:{bold:true,fill:{color:"1E293B"},color:"FFFFFF",fontSize:8,fontFace:"Calibri",valign:"middle"}};};
+        const header=[[hdrOpts("Domaine"),hdrOpts("App. Source"),hdrOpts("App. Cible"),hdrOpts("Flux / Protocole"),hdrOpts("Statut Day 1"),hdrOpts("Statut Day 2")]];
+        const tblRows=pageRows.map(function(r,ri){
+          const d1c=SD1C[r.fa.statusD1]||null;
+          const d2c=SD2C[r.fa.statusD2]||null;
+          const rowBg=ri%2===0?"FFFFFF":"F8FAFC";
+          const cell=function(txt,extra){return {text:txt,options:Object.assign({fontSize:8,fontFace:"Calibri",valign:"middle",fill:{color:rowBg},color:"1E293B"},extra||{})};};
+          const fluxTxt=[...r.protocols].join(", ")+(r.labels.filter(Boolean).length?" · "+r.labels.filter(Boolean).slice(0,3).join(", ")+(r.labels.filter(Boolean).length>3?" …":""):"");
+          return [
+            cell(r.fa.domain,{color:"6B7280",italic:true}),
+            cell(r.fa.name,{bold:true}),
+            cell(r.ta.name),
+            cell(fluxTxt,{color:"475569",shrinkText:true}),
+            cell(r.fa.statusD1||"—",d1c?{bold:true,color:d1c}:{color:"9CA3AF"}),
+            cell(r.fa.statusD2||"—",d2c?{bold:true,color:d2c}:{color:"9CA3AF"}),
+          ];
+        });
+        sT.addTable([...header,...tblRows],{x:0.25,y:0.65,w:12.83,colW:[2.0,2.60,2.60,3.00,1.30,1.33],border:{pt:0.4,color:"E2E8F0"},rowH:0.35});
+        sT.addText("Données : "+rows.length+" paires d'applications · "+flows.length+" flux total · Généré le "+new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}),{x:0.25,y:7.30,w:12.83,h:0.18,fontSize:7,color:"94A3B8",fontFace:"Calibri",margin:0,italic:true,align:"center"});
+      }
     };
 
     // ── Vue agrégée domaine→domaine (diagramme circulaire d'interactions) ──
@@ -2899,6 +2964,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     sf.addTable([mHdr,...mRows],{x:0.5,y:1.1,w:9,colW:Array(doms.length+1).fill(cw),border:{pt:0.5,color:"DDDDDD"},rowH:0.32});
 
 
+    if(_opts.inclRecapTable){drawRecapTableSlides();}
     if(_opts.inclLegend){
     // ─── Slide Légende ───
     const sLeg=SS(pres.addSlide());
@@ -5575,6 +5641,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
               {[
                 {k:"inclConsolidatedCarto",l:"Carto consolidée (sans étiquettes)"},
+                {k:"inclRecapTable",l:"Tableau récapitulatif flux"},
                 {k:"inclAggregated",l:"Vue agr\u00e9g\u00e9e domaines"},
                 {k:"inclHubSlides",l:"Slides hub (flux d\u00e9taill\u00e9s)"},
                 {k:"inclFocusDomain",l:"Focus par domaine"},
@@ -5599,6 +5666,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
                 if(exportOpts.inclExecSlides)n+=2;// title + exec
                 if(exportOpts.synthDetail!=="none")n+=(exportOpts.synthDetail==="byDomain"?doms.length:1);
                 if(exportOpts.inclConsolidatedCarto)n++;
+                if(exportOpts.inclRecapTable)n+=Math.ceil(flows.length/18)||1;
                 if(exportOpts.inclAggregated)n++;
                 if(exportOpts.inclHubSlides)n+=Math.ceil(flows.length/6)+2;
                 if(exportOpts.inclFocusDomain)n+=doms.length*2;
