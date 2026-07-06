@@ -1224,7 +1224,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         mkSlide.addText(b.pct===100?"✓ Couverture complète":b.pct+"/100 — Effort requis",{x:bx+0.14,y:bY+1.04,w:bW-0.28,h:0.20,fontSize:7.5,color:b.pct===100?"10B981":"94A3B8",fontFace:"Calibri",margin:0,italic:true});
       });
       // ── Row 3 : 3 actions ──
-      var aY=3.14,aW=2.92,aH=1.12,aGap=0.37;
+      var aY=3.14,aW=2.92,mkAH=1.12,aGap=0.37;
       var mkActs=[
         {num:"①",color:cp,title:"Qualifier les statuts",body:"Compléter les "+(apps.length-mkD1Def)+" applications sans statut Day 1 avant la prochaine revue de gouvernance"},
         {num:"②",color:"EF4444",title:"Traiter les risques D1",body:mkRisk.length>0?"Prioriser les "+mkRisk.length+" app"+(mkRisk.length>1?"s":"")+" Abandon avec flux actifs — plan de contingence requis":"Aucun risque urgent identifié à ce stade"},
@@ -1232,9 +1232,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       ];
       mkActs.forEach(function(a,i){
         var ax=0.25+i*(aW+aGap);
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:ax,y:aY,w:aW,h:aH,fill:{color:a.color,transparency:90},line:{color:a.color,width:0.75}});
+        mkSlide.addShape(pres.shapes.RECTANGLE,{x:ax,y:aY,w:aW,h:mkAH,fill:{color:a.color,transparency:90},line:{color:a.color,width:0.75}});
         mkSlide.addShape(pres.shapes.RECTANGLE,{x:ax,y:aY,w:aW,h:0.07,fill:{color:a.color},line:{type:"none"}});
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:ax,y:aY,w:0.58,h:aH,fill:{color:a.color,transparency:82},line:{type:"none"}});
+        mkSlide.addShape(pres.shapes.RECTANGLE,{x:ax,y:aY,w:0.58,h:mkAH,fill:{color:a.color,transparency:82},line:{type:"none"}});
         mkSlide.addText(a.num,{x:ax+0.05,y:aY+0.30,w:0.48,h:0.50,fontSize:22,bold:true,color:a.color,fontFace:"Trebuchet MS",margin:0,align:"center"});
         mkSlide.addText(a.title,{x:ax+0.64,y:aY+0.10,w:aW-0.72,h:0.28,fontSize:10,bold:true,color:"0F172A",fontFace:"Trebuchet MS",margin:0,valign:"middle"});
         mkSlide.addText(a.body,{x:ax+0.64,y:aY+0.42,w:aW-0.72,h:0.62,fontSize:8,color:"475569",fontFace:"Calibri",margin:0,shrinkText:true,wrap:true});
@@ -1304,7 +1304,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         const altRows=Math.ceil(n/(cols-1));
         if(altRows<=rows+1){cols=cols-1;rows=Math.ceil(n/cols);}
       }
-      const gap=0.55;
+      const gap=0.70;
       const cellW=(CW-gap*(cols-1))/cols;
       const cellH=(CH-gap*(rows-1))/rows;
 
@@ -1406,10 +1406,10 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           segs.push({x1,y1,x2,y2});
         }
         if(segs.length===0)return;
-        // Halo fin (3pt blanc sous trait 2.25pt = 0.375pt de marge visible)
-        segs.forEach(s=>addLineSeg(s.x1,s.y1,s.x2,s.y2,false,"FFFFFF",2.5,false));
+        // Halo blanc élargi pour contraste sur croisements
+        segs.forEach(s=>addLineSeg(s.x1,s.y1,s.x2,s.y2,false,"FFFFFF",3.5,false));
         // Trait coloré principal
-        segs.forEach((s,idx)=>addLineSeg(s.x1,s.y1,s.x2,s.y2,idx===segs.length-1,color,1.0,dash));
+        segs.forEach((s,idx)=>addLineSeg(s.x1,s.y1,s.x2,s.y2,idx===segs.length-1,color,1.2,dash));
       };
 
       // Title
@@ -1449,7 +1449,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         const innerW=cell.w-dPad*2;
         const innerH=cell.h-HEAD-dPad*1.4;
         // Cap app size so cells keep routing slack between domain panels
-        const aWmax=1.1,aHmax=0.28;
+        const aWmax=0.95,aHmax=0.26;
         const aW=Math.min(aWmax,(innerW-aGap*(aCols-1))/aCols);
         const aH=Math.min(aHmax,Math.max(0.20,(innerH-aGap*(aRows-1))/aRows));
         const actualGap=aRows>1?Math.max(aGap,(innerH-aRows*aH)/(aRows-1)):0;
@@ -1482,6 +1482,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       Object.values(positions).forEach(p=>labelRects.push({x:p.x-0.02,y:p.y-0.02,w:p.w+0.04,h:p.h+0.04,_isApp:true}));
       Object.values(domBoxes).forEach(b=>labelRects.push({x:b.x,y:b.y,w:b.w,h:HEAD,_isApp:true}));
       const flowMeta=[];
+      const flowSegs=[]; // all drawn flow line segments for label-vs-flow collision
       const usedProtos=new Set();
 
       if(showFlows){
@@ -1553,7 +1554,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           if(side==="top")  return{x:box.x+0.04+t*(box.w-0.08),y:box.y};
           return                 {x:box.x+0.04+t*(box.w-0.08),y:box.y+box.h};
         };
-        const LANE_SPACE=0.22;
+        const LANE_SPACE=0.14;
 
         let flowIdx=1;
         // Inter-domain
@@ -1576,7 +1577,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             const tB=sideEntryCount[sBkey]>1?(sideEntryIdx[sBkey])/(sideEntryCount[sBkey]+1):0.5;
             const p2=sidePt(Bb,pair.sideB,tB);
 
-            const laneOff=n===1?0:(i-(n-1)/2)*LANE_SPACE;
+            const maxSpread=gr.gap*0.40; // never exceed 40% of gap width per side
+            const rawOff=n===1?0:(i-(n-1)/2)*LANE_SPACE;
+            const laneOff=Math.max(-maxSpread,Math.min(maxSpread,rawOff));
             var MIN_LEG=0.15;
             var channelC=pair.coord+laneOff;
             if(pair.axis==="X"){if(Math.abs(channelC-p1.x)<MIN_LEG)channelC=p1.x+(channelC>=p1.x?MIN_LEG:-MIN_LEG);if(Math.abs(channelC-p2.x)<MIN_LEG)channelC=p2.x+(channelC>=p2.x?MIN_LEG:-MIN_LEG);}
@@ -1594,6 +1597,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
               channelSeg={x:Math.min(x1,x2),y:channelC,w:Math.abs(x2-x1),h:0};
             }
             drawPath(pts,lineColor,false);
+            for(let si=0;si<pts.length-1;si++)flowSegs.push({x1:pts[si][0],y1:pts[si][1],x2:pts[si+1][0],y2:pts[si+1][1]});
             sC.addShape(pres.shapes.OVAL,{x:x1-0.04,y:y1-0.04,w:0.08,h:0.08,fill:{color:lineColor},line:{color:"FFFFFF",width:0.5}});
             flowMeta.push({flow:f,channelSeg,channelAxis:pair.axis,p1:{x:x1,y:y1},p2:{x:x2,y:y2},lineColor});
           });
@@ -1616,6 +1620,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           const mid=horiz?{x:(x1+x2)/2,y:y1}:{x:x1,y:(y1+y2)/2};
           const pts=horiz?[[x1,y1],[mid.x,y1],[mid.x,y2],[x2,y2]]:[[x1,y1],[x1,mid.y],[x2,mid.y],[x2,y2]];
           drawPath(pts,lineColor,true);
+          for(let si=0;si<pts.length-1;si++)flowSegs.push({x1:pts[si][0],y1:pts[si][1],x2:pts[si+1][0],y2:pts[si+1][1]});
           sC.addShape(pres.shapes.OVAL,{x:x1-0.04,y:y1-0.04,w:0.08,h:0.08,fill:{color:lineColor},line:{color:"FFFFFF",width:0.5}});
           const channelSeg=horiz?{x:mid.x,y:Math.min(y1,y2),w:0,h:Math.abs(y2-y1)}:{x:Math.min(x1,x2),y:mid.y,w:Math.abs(x2-x1),h:0};
           flowMeta.push({flow:f,channelSeg,channelAxis:horiz?"X":"Y",p1:{x:x1,y:y1},p2:{x:x2,y:y2},lineColor});
@@ -1627,6 +1632,20 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           const dx=Math.max(0,Math.max(a.x-b.x-b.w,b.x-a.x-a.w));
           const dy=Math.max(0,Math.max(a.y-b.y-b.h,b.y-a.y-a.h));
           return Math.hypot(dx,dy);
+        };
+        // Check if a line segment crosses a rectangle (inflated by margin)
+        const segCrossRect=(seg,r,m)=>{
+          const rx=r.x-m,ry=r.y-m,rw=r.w+2*m,rh=r.h+2*m;
+          // Clip segment to rect bounding box — if any part inside, it crosses
+          const sx1=seg.x1,sy1=seg.y1,sx2=seg.x2,sy2=seg.y2;
+          const minX=Math.min(sx1,sx2),maxX=Math.max(sx1,sx2);
+          const minY=Math.min(sy1,sy2),maxY=Math.max(sy1,sy2);
+          // AABB overlap test
+          if(maxX<rx||minX>rx+rw||maxY<ry||minY>ry+rh)return false;
+          // For axis-aligned segments (most of ours), AABB test is sufficient
+          if(Math.abs(sx2-sx1)<0.005||Math.abs(sy2-sy1)<0.005)return true;
+          // For diagonal: check if segment endpoints are on same side of rect edges
+          return true; // conservative — diagonal segments through rect count as crossing
         };
         // Trier par longueur de couloir desc : les flux longs ont plus de positions possibles, on les place après
         // les courts pour leur laisser de la place. INVERSE : court d'abord (peu de marge), puis long.
@@ -1643,25 +1662,29 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             ?[0.2,0.35,0.5,0.65,0.8].map(t=>({x:cx0,y:channelSeg.y+channelSeg.h*t}))
             :[0.2,0.35,0.5,0.65,0.8].map(t=>({x:channelSeg.x+channelSeg.w*t,y:cy0}));
           // Sur les jambes courtes (exit/entry legs)
-          const exitMid={x:(p1.x+cx0)/2,y:(p1.y+cy0)/2};
-          const entryMid={x:(cx0+p2.x)/2,y:(cy0+p2.y)/2};
+          // Points along exit and entry legs (not just midpoints)
+          const legPts=[];
+          [0.25,0.5,0.75].forEach(t=>{
+            legPts.push({x:p1.x+(cx0-p1.x)*t,y:p1.y+(cy0-p1.y)*t});
+            legPts.push({x:cx0+(p2.x-cx0)*t,y:cy0+(p2.y-cy0)*t});
+          });
           const candidates=[];
+          const offsets=[
+            [0,0],
+            [0,-lh-0.04],[0,lh*0.5+0.04],
+            [-lw/2-0.06,0],[lw/2+0.06,0],
+            [-lw/2-0.06,-lh-0.04],[lw/2+0.06,-lh-0.04],
+            [-lw/2-0.06,lh*0.5+0.04],[lw/2+0.06,lh*0.5+0.04]
+          ];
           along.forEach(p=>{
-            // 8 directions autour du point sur le couloir
-            const offsets=[
-              [0,0],
-              [0,-lh-0.04],[0,lh*0.5+0.04],
-              [-lw/2-0.06,0],[lw/2+0.06,0],
-              [-lw/2-0.06,-lh-0.04],[lw/2+0.06,-lh-0.04],
-              [-lw/2-0.06,lh*0.5+0.04],[lw/2+0.06,lh*0.5+0.04]
-            ];
             offsets.forEach(([ox,oy])=>{
               candidates.push({x:p.x-lw/2+ox,y:p.y-lh/2+oy});
             });
           });
-          [exitMid,entryMid].forEach(p=>{
-            candidates.push({x:p.x-lw/2,y:p.y-lh-0.04});
-            candidates.push({x:p.x-lw/2,y:p.y+0.04});
+          legPts.forEach(p=>{
+            offsets.forEach(([ox,oy])=>{
+              candidates.push({x:p.x-lw/2+ox,y:p.y-lh/2+oy});
+            });
           });
           // Évaluer chaque candidat
           let bestR=null,bestScore=-Infinity;
@@ -1681,6 +1704,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
               const minD=labelRects.filter(p=>!p._isApp).reduce((m,p)=>Math.min(m,rectDist(r,p)),9999);
               score+=Math.min(minD,0.5)*2;
             }
+            // Penalize labels that cross flow line segments
+            const flowCross=flowSegs.filter(s=>segCrossRect(s,r,0.02)).length;
+            if(flowCross>0)score-=flowCross*30;
             // Slight preference : être proche du segment couloir (lisibilité)
             const dToChan=channelAxis==="X"
               ?Math.abs(r.x+r.w/2-cx0)
