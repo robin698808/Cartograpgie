@@ -1832,141 +1832,99 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       }
     };
 
-    // ── Cartographie consolidée radiale : hub au centre, voisins en anneau(x) ──
+    // ── Cartographie consolidée : swimlane horizontal par domaine ──
     const drawConsolidatedRadialSlide=()=>{
       if(apps.length===0)return;
       const sC=pres.addSlide();
       sC.background={color:"FFFFFF"};
       const sW=13.333,sH=7.5;
-      // Header
-      sC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:sW,h:0.58,fill:{color:cp||"0B2545"},line:{type:"none"}});
-      sC.addText("CARTOGRAPHIE CONSOLIDÉE — VUE D'ENSEMBLE",{x:0.3,y:0.10,w:sW-1.6,h:0.38,fontSize:15,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
-      sC.addText(apps.length+" applications · "+[...new Set(apps.map(function(a){return a.domain;}))].length+" domaines · "+flows.length+" flux",{x:0.3,y:0.40,w:7,h:0.17,fontSize:8,color:"BFD7FF",fontFace:"Calibri",margin:0});
-      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.05,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
-      const CX=0.25,CY=0.68,CW=sW-0.50,CH=sH-0.80;
-      const cx=CX+CW/2,cy=CY+CH/2;
-      // 1. Hub = app with most flows
-      const deg={};apps.forEach(function(a){deg[a.id]=0;});
-      flows.forEach(function(f){deg[f.from]=(deg[f.from]||0)+1;deg[f.to]=(deg[f.to]||0)+1;});
-      const hub=apps.reduce(function(best,a){return(deg[a.id]||0)>(deg[best.id]||0)?a:best;},apps[0]);
-      // 2. Ring 1 = direct neighbors of hub (sorted by domain)
-      const ring1Ids=new Set();
-      flows.forEach(function(f){if(f.from===hub.id)ring1Ids.add(f.to);if(f.to===hub.id)ring1Ids.add(f.from);});
-      const ring1=[...apps.filter(function(a){return ring1Ids.has(a.id);})].sort(function(a,b){return a.domain.localeCompare(b.domain)||a.name.localeCompare(b.name);});
-      const ring2=[...apps.filter(function(a){return a.id!==hub.id&&!ring1Ids.has(a.id);})].sort(function(a,b){return a.domain.localeCompare(b.domain)||a.name.localeCompare(b.name);});
-      // 3. Geometry — ellipse radii adapt to app counts
-      const n1=ring1.length,n2=ring2.length;
-      const hubW=1.80,hubH=0.76;
-      const rx1=n1>0?Math.min(CW/2-1.2,Math.max(1.8,n1*0.38)):0;
-      const ry1=rx1*0.70;
-      const rx2=n2>0?Math.min(CW/2-0.3,Math.max(rx1+1.2,n2*0.30)):0;
-      const ry2=rx2*0.70;
-      // App box sizes
-      const aW1=n1>0?Math.min(1.30,Math.max(0.65,Math.PI*2*rx1/n1*0.72)):1.0;
-      const aH1=0.40;
-      const aW2=n2>0?Math.min(1.10,Math.max(0.52,Math.PI*2*rx2/n2*0.68)):0.90;
-      const aH2=0.36;
-      // Position map
-      const pos={};
-      pos[hub.id]={x:cx-hubW/2,y:cy-hubH/2,w:hubW,h:hubH,cx,cy};
-      ring1.forEach(function(a,i){
-        var ang=-Math.PI/2+2*Math.PI*i/n1;
-        var ncx=cx+rx1*Math.cos(ang),ncy=cy+ry1*Math.sin(ang);
-        pos[a.id]={x:ncx-aW1/2,y:ncy-aH1/2,w:aW1,h:aH1,cx:ncx,cy:ncy};
+      const hdH=0.52;
+      sC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:sW,h:hdH,fill:{color:cp||"0B2545"},line:{type:"none"}});
+      sC.addText("CARTOGRAPHIE CONSOLIDÉE — VUE D'ENSEMBLE",{x:0.3,y:0.08,w:sW-1.6,h:0.28,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
+      sC.addText(apps.length+" applications · "+doms.length+" domaines · "+flows.length+" flux",{x:0.3,y:0.35,w:8,h:0.15,fontSize:7,color:"BFD7FF",fontFace:"Calibri",margin:0});
+      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.04,w:1.00,h:0.44,sizing:{type:"contain",w:1.00,h:0.44}});}
+      const CX=0.20,CY=hdH+0.10,CW=sW-0.40,CH=sH-CY-0.10;
+      const lblW=1.50,appX=CX+lblW+0.06,appW=CW-lblW-0.06;
+      const appDeg={};apps.forEach(function(a){appDeg[a.id]=0;});
+      flows.forEach(function(f){appDeg[f.from]=(appDeg[f.from]||0)+1;appDeg[f.to]=(appDeg[f.to]||0)+1;});
+      const hubApp=apps.reduce(function(b,a){return(appDeg[a.id]||0)>(appDeg[b.id]||0)?a:b;},apps[0]);
+      const hubDomain=hubApp.domain;
+      const netVsHub={};doms.forEach(function(d){netVsHub[d]=0;});
+      flows.forEach(function(f){
+        var fa=apps.find(function(a){return a.id===f.from;}),ta=apps.find(function(a){return a.id===f.to;});
+        if(!fa||!ta||fa.domain===ta.domain)return;
+        if(ta.domain===hubDomain)netVsHub[fa.domain]=(netVsHub[fa.domain]||0)+1;
+        if(fa.domain===hubDomain)netVsHub[ta.domain]=(netVsHub[ta.domain]||0)-1;
       });
-      ring2.forEach(function(a,i){
-        var ang=-Math.PI/2+2*Math.PI*i/Math.max(n2,1);
-        var ncx=cx+rx2*Math.cos(ang),ncy=cy+ry2*Math.sin(ang);
-        pos[a.id]={x:ncx-aW2/2,y:ncy-aH2/2,w:aW2,h:aH2,cx:ncx,cy:ncy};
+      const others=doms.filter(function(d){return d!==hubDomain;}).sort(function(a,b){return(netVsHub[b]||0)-(netVsHub[a]||0);});
+      const half=Math.ceil(others.length/2);
+      const sortedDoms=[...others.slice(0,half),hubDomain,...others.slice(half)];
+      const nD=sortedDoms.length;
+      const rowH=CH/nD;
+      const laneH=Math.min(rowH*0.86,0.80),laneGap=rowH-laneH;
+      const appPos={};
+      sortedDoms.forEach(function(d,di){
+        var domApps=apps.filter(function(a){return a.domain===d;}).sort(function(a,b){return(appDeg[b.id]||0)-(appDeg[a.id]||0);});
+        var n=domApps.length;
+        var ly=CY+di*rowH+laneGap/2;
+        var dc=(_pDC[d]||_pDC.Autre),acHex=dc.ac.replace("#",""),bgHex=dc.bg.replace("#","");
+        sC.addShape(pres.shapes.RECTANGLE,{x:CX,y:ly,w:CW,h:laneH,fill:{color:bgHex,transparency:82},line:{color:acHex,width:0.2,transparency:55}});
+        sC.addShape(pres.shapes.RECTANGLE,{x:CX,y:ly,w:lblW,h:laneH,fill:{color:acHex},line:{type:"none"}});
+        sC.addText(d,{x:CX+0.06,y:ly,w:lblW-0.10,h:laneH,fontSize:Math.min(8.5,laneH*11),bold:true,color:"FFFFFF",fontFace:"Calibri",align:"left",valign:"middle",margin:0,shrinkText:true});
+        if(n===0)return;
+        var aH=Math.min(laneH*0.76,0.44);
+        var aW=Math.min(1.50,Math.max(0.50,appW/n*0.86));
+        var spacing=Math.min(appW/n,aW+0.08);
+        var totalW=(n-1)*spacing+aW;
+        var startX=appX+(appW-totalW)/2;
+        domApps.forEach(function(a,ai){
+          var ax=startX+ai*spacing,ay=ly+(laneH-aH)/2;
+          var acx=ax+aW/2,acy=ay+aH/2;
+          var isHub=a.id===hubApp.id,isArret=a.status==="Arrêt";
+          appPos[a.id]={x:ax,y:ay,w:aW,h:aH,cx:acx,cy:acy,domain:d};
+          if(isHub){
+            sC.addShape(pres.shapes.RECTANGLE,{x:ax-0.04,y:ay-0.04,w:aW+0.08,h:aH+0.08,fill:{color:acHex},line:{color:"FFFFFF",width:1.8},shadow:{type:"outer",blur:5,offset:2,color:"000000",opacity:0.18,angle:135}});
+            sC.addText("★ "+a.name,{x:ax-0.02,y:ay-0.04,w:aW+0.04,h:aH+0.08,fontSize:Math.min(8,aW*6.5),bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",align:"center",valign:"middle",margin:0,shrinkText:true});
+          }else{
+            sC.addShape(pres.shapes.RECTANGLE,{x:ax,y:ay,w:aW,h:aH,fill:{color:isArret?"FFEAEA":"FFFFFF"},line:{color:isArret?"E06C75":acHex,width:0.7},shadow:{type:"outer",blur:1,offset:0.5,color:"000000",opacity:0.05,angle:135}});
+            sC.addText(a.name,{x:ax+0.03,y:ay,w:aW-0.06,h:aH,fontSize:Math.min(7.5,aW*6),bold:true,color:isArret?"990000":"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
+          }
+        });
       });
-      // 4. Helpers
+      const pAgg={};
+      flows.forEach(function(f){
+        var fa=appPos[f.from],ta=appPos[f.to];
+        if(!fa||!ta||fa.domain===ta.domain)return;
+        var k=f.from+"|"+f.to;
+        if(!pAgg[k])pAgg[k]={from:f.from,to:f.to,count:0};
+        pAgg[k].count++;
+      });
+      const pairs=Object.values(pAgg).sort(function(a,b){return b.count-a.count;}).slice(0,60);
       const edgePt=function(p,tx,ty){
         var dx=tx-p.cx,dy=ty-p.cy;
         if(Math.abs(dx)<0.001&&Math.abs(dy)<0.001)return{x:p.cx,y:p.cy};
-        var sx=(p.w/2)/Math.abs(dx||0.001),sy=(p.h/2)/Math.abs(dy||0.001),s=Math.min(sx,sy)*0.95;
+        var sx=(p.w/2)/Math.abs(dx||0.001),sy=(p.h/2)/Math.abs(dy||0.001),s=Math.min(sx,sy)*0.94;
         return{x:p.cx+dx*s,y:p.cy+dy*s};
       };
-      const drawSeg=function(x1,y1,x2,y2,arrow,color,width){
-        var w=Math.abs(x2-x1),h=Math.abs(y2-y1);if(w<0.003&&h<0.003)return;
-        var o={x:Math.min(x1,x2),y:Math.min(y1,y2),w:w||0.001,h:h||0.001,line:{color:color,width:width,dashType:"solid"}};
+      const drawSeg2=function(x1,y1,x2,y2,arrow,col,w){
+        var sw=Math.abs(x2-x1),sh=Math.abs(y2-y1);if(sw<0.003&&sh<0.003)return;
+        var o={x:Math.min(x1,x2),y:Math.min(y1,y2),w:sw||0.001,h:sh||0.001,line:{color:col,width:w,dashType:"solid"}};
         if(x2<x1)o.flipH=true;if(y2<y1)o.flipV=true;
-        if(arrow){o.line.endArrowType="triangle";o.line.endArrowSize=5;}
+        if(arrow){o.line.endArrowType="triangle";o.line.endArrowSize=4;}
         sC.addShape(pres.shapes.LINE,o);
       };
-      // 5. Aggregate flows by app pair (canonical key: smaller id first)
-      const pAgg={};
-      flows.forEach(function(f){
-        if(!pos[f.from]||!pos[f.to])return;
-        var ka=f.from<f.to?f.from:f.to,kb=f.from<f.to?f.to:f.from;
-        var k=ka+"|"+kb;
-        if(!pAgg[k])pAgg[k]={a:ka,b:kb,out:0,in:0,protos:{}};
-        var p=f.protocol||"Autre";
-        pAgg[k].protos[p]=(pAgg[k].protos[p]||0)+1;
-        if(f.from===ka)pAgg[k].out++;else pAgg[k].in++;
-      });
-      // 6. Draw edges — only hub-connected and ring1↔ring1 to avoid chaos on ring2
-      const usedProtos=new Set();
-      Object.values(pAgg).forEach(function(pa){
-        var pA=pos[pa.a],pB=pos[pa.b];if(!pA||!pB)return;
-        var isHubEdge=pa.a===hub.id||pa.b===hub.id;
-        var isR1R1=ring1Ids.has(pa.a)&&ring1Ids.has(pa.b);
-        if(!isHubEdge&&!isR1R1)return; // skip ring2↔ring2 (too many)
-        var domP=Object.entries(pa.protos).sort(function(a,b){return b[1]-a[1];})[0][0];
-        var color=protoColor(domP);usedProtos.add(domP);
-        var total=pa.out+pa.in;
-        var lw=Math.min(2.8,1.0+(total-1)*0.22);
-        var bidir=pa.out>0&&pa.in>0;
+      const flowCol=cp||"2979FF";
+      pairs.forEach(function(pa){
+        var pA=appPos[pa.from],pB=appPos[pa.to];if(!pA||!pB)return;
         var p1=edgePt(pA,pB.cx,pB.cy),p2=edgePt(pB,pA.cx,pA.cy);
-        if(bidir){
-          var dx=p2.x-p1.x,dy=p2.y-p1.y,len=Math.hypot(dx,dy)||1;
-          var ox=-dy/len*0.045,oy=dx/len*0.045;
-          drawSeg(p1.x+ox,p1.y+oy,p2.x+ox,p2.y+oy,false,"FFFFFF",lw+1.6);
-          drawSeg(p1.x+ox,p1.y+oy,p2.x+ox,p2.y+oy,true,color,lw);
-          drawSeg(p2.x-ox,p2.y-oy,p1.x-ox,p1.y-oy,false,"FFFFFF",lw+1.6);
-          drawSeg(p2.x-ox,p2.y-oy,p1.x-ox,p1.y-oy,true,color,lw);
-        }else{
-          var from=pa.out>0?p1:p2,to=pa.out>0?p2:p1;
-          drawSeg(from.x,from.y,to.x,to.y,false,"FFFFFF",lw+1.6);
-          drawSeg(from.x,from.y,to.x,to.y,true,color,lw);
-        }
-        if(total>1){
-          var mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
-          sC.addShape(pres.shapes.RECTANGLE,{x:mx-0.16,y:my-0.09,w:0.32,h:0.18,fill:{color:color},line:{type:"none"}});
-          sC.addText("×"+total,{x:mx-0.16,y:my-0.09,w:0.32,h:0.18,fontSize:7,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
-        }
+        var lw=Math.min(2.0,0.7+pa.count*0.25);
+        drawSeg2(p1.x,p1.y,p2.x,p2.y,false,"FFFFFF",lw+1.4);
+        drawSeg2(p1.x,p1.y,p2.x,p2.y,true,flowCol,lw);
+        var mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+        var bw=pa.count>=10?0.30:0.24,bh=0.16;
+        sC.addShape(pres.shapes.RECTANGLE,{x:mx-bw/2,y:my-bh/2,w:bw,h:bh,fill:{color:flowCol},line:{type:"none"}});
+        sC.addText(String(pa.count),{x:mx-bw/2,y:my-bh/2,w:bw,h:bh,fontSize:6.5,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
       });
-      // 7. Draw ring2 app boxes (bottom layer)
-      ring2.forEach(function(a){
-        var p=pos[a.id];if(!p)return;
-        var dc=(_pDC[a.domain]||_pDC.Autre).ac.replace("#","");
-        var isArret=a.status==="Arrêt";
-        sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:isArret?"FFF0F0":"FAFBFF"},line:{color:isArret?"E06C75":dc,width:0.7}});
-        sC.addText(a.name,{x:p.x+0.03,y:p.y,w:p.w-0.06,h:p.h,fontSize:6,bold:false,color:isArret?"CC0000":"374151",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
-      });
-      // 8. Draw ring1 app boxes (mid layer)
-      ring1.forEach(function(a){
-        var p=pos[a.id];if(!p)return;
-        var dc=(_pDC[a.domain]||_pDC.Autre).ac.replace("#","");
-        var isArret=a.status==="Arrêt";
-        sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:isArret?"FFEAEA":"FFFFFF"},line:{color:isArret?"E06C75":dc,width:1.0},shadow:{type:"outer",blur:2,offset:1,color:"000000",opacity:0.09,angle:135}});
-        // Domain accent strip left
-        sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:0.05,h:p.h,fill:{color:dc},line:{type:"none"}});
-        sC.addText(a.name,{x:p.x+0.08,y:p.y,w:p.w-0.12,h:p.h,fontSize:7,bold:true,color:isArret?"990000":"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
-      });
-      // 9. Hub box (top layer)
-      var hubDomColor=(_pDC[hub.domain]||_pDC.Autre).ac.replace("#","");
-      sC.addShape(pres.shapes.RECTANGLE,{x:pos[hub.id].x,y:pos[hub.id].y,w:hubW,h:hubH,fill:{color:hubDomColor},line:{color:"FFFFFF",width:2.5},shadow:{type:"outer",blur:7,offset:2,color:"000000",opacity:0.20,angle:135}});
-      sC.addText("★  "+hub.name,{x:pos[hub.id].x+0.06,y:pos[hub.id].y,w:hubW-0.12,h:hubH*0.60,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",align:"center",valign:"middle",margin:0,shrinkText:true});
-      sC.addText(hub.domain+" · "+(deg[hub.id]||0)+" flux",{x:pos[hub.id].x+0.06,y:pos[hub.id].y+hubH*0.57,w:hubW-0.12,h:hubH*0.43,fontSize:7.5,color:"D0E8FF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
-      // 10. Protocol legend
-      var seenC=new Set(),entriesC=[];
-      [...usedProtos].forEach(function(p){var lbl=protoLabel(p);if(seenC.has(lbl))return;seenC.add(lbl);entriesC.push({label:lbl,color:protoColor(p)});});
-      if(entriesC.length){
-        var lw2=1.9,lh2=0.18+entriesC.length*0.13,lx2=CX,ly2=CY+CH-lh2;
-        sC.addShape(pres.shapes.RECTANGLE,{x:lx2,y:ly2,w:lw2,h:lh2,fill:{color:"FAFBFC"},line:{color:"E8EAED",width:0.3}});
-        sC.addText("PROTOCOLES",{x:lx2+0.04,y:ly2+0.01,w:lw2-0.08,h:0.12,fontSize:5.5,bold:true,color:"0B2545",fontFace:"Calibri",charSpacing:0.5,margin:0});
-        entriesC.forEach(function(e,i){var ey=ly2+0.18+i*0.13;sC.addShape(pres.shapes.LINE,{x:lx2+0.08,y:ey+0.05,w:0.20,h:0,line:{color:e.color,width:1.5,endArrowType:"triangle",endArrowSize:4}});sC.addText(e.label,{x:lx2+0.32,y:ey,w:lw2-0.38,h:0.12,fontSize:6.5,color:"333333",fontFace:"Calibri",margin:0,valign:"middle"});});
-      }
     };
 
     // ── Tableau récapitulatif des flux (paginé) ──
