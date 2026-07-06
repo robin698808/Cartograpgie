@@ -419,8 +419,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     inclAggregated:true,
     inclHubSlides:true,
     inclDomainStatus:true,
-    inclHeatmap:true,
-    inclReco:true,
+    cartoMode:"global", // "global" | "byDomain" | "byHub"
     clientPrimary:"2979FF",
     clientLogo:null,
   });
@@ -918,12 +917,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     const sxPctD1=apps.length?Math.round(sxD1Def/apps.length*100):0;
     const sxPctD2=apps.length?Math.round(sxD2Def/apps.length*100):0;
     const sxRisk=apps.filter(function(a){return a.statusD1==="Abandon"&&flows.some(function(f){return f.from===a.id||f.to===a.id;});});
-    // KPI strip (5 tuiles)
+    // KPI strip (3 tuiles)
     const sxKpis=[
       {l:"Applications",v:String(apps.length),c:"6366F1"},
       {l:"Domaines",v:String(doms.length),c:"8B5CF6"},
       {l:"Interfaces",v:String(flows.length),c:"22D3EE"},
-      {l:"Apps à risque D1",v:String(sxRisk.length),c:"EF4444",sub:sxRisk.length>0?"Abandon D1 avec flux actifs":"Aucun risque D1"},
     ];
     sxKpis.forEach(function(k,i){
       const kx=0.25+i*2.30;const ky=0.72;
@@ -1086,78 +1084,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       });
     }// end inclDomainStatus
 
-    // ─── Slide: Heatmap applications par domaine ───
-    if(_opts.inclHeatmap){
-      const hmSlide=SS(pres.addSlide());
-      hmSlide.background={color:"F8F9FC"};
-      hmSlide.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.50,fill:{color:cp},line:{type:"none"}});
-      if(_opts.clientLogo){hmSlide.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});}
-      hmSlide.addText("HEATMAP — APPLICATIONS PAR DOMAINE",{x:0.30,y:0.08,w:8,h:0.35,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
-      hmSlide.addText("Taille = nombre d'applications · Rouge = applications à risque (Abandon D1 avec flux actifs)",{x:0.30,y:0.55,w:9.2,h:0.20,fontSize:8.5,color:"555555",fontFace:"Calibri",margin:0,italic:true});
-      var hmRiskIds=new Set(apps.filter(function(a){return a.statusD1==="Abandon"&&flows.some(function(f){return f.from===a.id||f.to===a.id;});}).map(function(a){return a.id;}));
-      var hmDoms=([...new Set(apps.map(function(a){return a.domain;}))]).map(function(d){
-        var dApps=apps.filter(function(a){return a.domain===d;});
-        var riskApps=dApps.filter(function(a){return hmRiskIds.has(a.id);});
-        var critApps=dApps.filter(function(a){return a.criticality==="Haute";});
-        return {d:d,n:dApps.length,risk:riskApps.length,crit:critApps.length,riskNames:riskApps.slice(0,3).map(function(a){return a.name;})};
-      }).sort(function(a,b){return b.n-a.n;});
-      var hmMax=hmDoms.length>0?hmDoms[0].n:1;
-      var hmHdr=[
-        {text:"Domaine",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9}},
-        {text:"Nb apps",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9,align:"center"}},
-        {text:"Critiques",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9,align:"center"}},
-        {text:"⚠ Risques D1",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9,align:"center"}},
-        {text:"Répartition",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9}},
-        {text:"Applications à risque",options:{bold:true,fill:{color:cp},color:"FFFFFF",fontSize:9}},
-      ];
-      var hmRows=hmDoms.map(function(row,ri){
-        var dc2=_pDC[row.d]||_pDC.Autre;
-        var domAc2=(dc2.ac||"#548CA8").replace("#","");
-        var bgHex=row.risk>0?"FFEAEA":ri%2===0?"FFFFFF":"F8F9FC";
-        var barPct=Math.round(row.n/hmMax*100);
-        return [
-          {text:row.d,options:{fontSize:9,bold:true,color:domAc2,fill:{color:bgHex}}},
-          {text:String(row.n),options:{fontSize:11,bold:true,align:"center",color:"1a1a1a",fill:{color:bgHex}}},
-          {text:row.crit>0?String(row.crit):"—",options:{fontSize:9,align:"center",color:row.crit>0?"E06C75":"999999",bold:row.crit>0,fill:{color:bgHex}}},
-          {text:row.risk>0?String(row.risk)+" ⚠":"✓",options:{fontSize:9,align:"center",color:row.risk>0?"EF4444":"10B981",bold:true,fill:{color:bgHex}}},
-          {text:"█".repeat(Math.max(1,Math.round(barPct/10))),options:{fontSize:8,color:row.risk>0?"EF4444":domAc2,fill:{color:bgHex}}},
-          {text:row.riskNames.join(", ")+(row.risk>3?" +"+(row.risk-3)+" autres":""),options:{fontSize:7.5,color:row.risk>0?"EF4444":"999999",fill:{color:bgHex},shrinkText:true}},
-        ];
-      });
-      hmSlide.addTable([hmHdr,...hmRows],{x:0.25,y:0.82,w:9.50,colW:[2.00,0.70,0.70,0.80,1.30,4.00],border:{pt:0.5,color:"DDDDDD"},rowH:0.28,autoPage:true,autoPageRepeatHeader:true});
-    }// end inclHeatmap
-
-    // ─── Slide: Recommandations ───
-    if(_opts.inclReco){
-      const recoSlide=SS(pres.addSlide());
-      recoSlide.background={color:"F8F9FC"};
-      recoSlide.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.50,fill:{color:cp},line:{type:"none"}});
-      if(_opts.clientLogo){recoSlide.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});}
-      recoSlide.addText("RECOMMANDATIONS",{x:0.30,y:0.08,w:8,h:0.35,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
-      var rAppsNoD1=apps.filter(function(a){return !a.statusD1;});
-      var rAppsNoD2=apps.filter(function(a){return !a.statusD2;});
-      var rRiskD1=apps.filter(function(a){return a.statusD1==="Abandon"&&flows.some(function(f){return f.from===a.id||f.to===a.id;});});
-      var rNoOwner=apps.filter(function(a){return !a.owner||!a.owner.trim();});
-      var rCritNoD1=apps.filter(function(a){return a.criticality==="Haute"&&!a.statusD1;});
-      var rRecos=[];
-      if(rRiskD1.length>0) rRecos.push({prio:"CRITIQUE",color:"EF4444",icon:"⚠",text:rRiskD1.length+" application"+(rRiskD1.length>1?"s":"")+" en statut Abandon Day 1 avec des interfaces actives : traitement prioritaire requis avant le Day 1.",detail:"Applis concernées : "+rRiskD1.slice(0,4).map(function(a){return a.name;}).join(", ")+(rRiskD1.length>4?" +"+(rRiskD1.length-4)+" autres":"")});
-      if(rCritNoD1.length>0) rRecos.push({prio:"HAUTE",color:"F59E0B",icon:"▲",text:rCritNoD1.length+" application"+(rCritNoD1.length>1?"s":"")+" critique"+(rCritNoD1.length>1?"s":"")+" sans statut Day 1 défini.",detail:"Applis concernées : "+rCritNoD1.slice(0,4).map(function(a){return a.name;}).join(", ")+(rCritNoD1.length>4?" +"+(rCritNoD1.length-4)+" autres":"")});
-      if(rAppsNoD1.length>0) rRecos.push({prio:"MOYENNE",color:"6366F1",icon:"●",text:rAppsNoD1.length+" application"+(rAppsNoD1.length>1?"s":"")+" sans statut Day 1 renseigné — compléter avant la prochaine revue.",detail:Math.round(rAppsNoD1.length/apps.length*100)+"% du parc applicatif non qualifié pour le Day 1"});
-      if(rAppsNoD2.length>0) rRecos.push({prio:"MOYENNE",color:"8B5CF6",icon:"●",text:rAppsNoD2.length+" application"+(rAppsNoD2.length>1?"s":"")+" sans stratégie Day 2 définie.",detail:Math.round(rAppsNoD2.length/apps.length*100)+"% du parc sans vision cible"});
-      if(rNoOwner.length>0) rRecos.push({prio:"FAIBLE",color:"22D3EE",icon:"◦",text:rNoOwner.length+" application"+(rNoOwner.length>1?"s":"")+" sans responsable identifié — désigner un owner pour chaque application.",detail:"Nécessaire pour la gouvernance et le suivi des migrations"});
-      if(flows.length>0&&apps.length>0&&flows.length/apps.length>3) rRecos.push({prio:"INFO",color:"10B981",icon:"◦",text:"Ratio interfaces/applications élevé ("+(flows.length/apps.length).toFixed(1)+"). Cartographier les dépendances critiques pour anticiper les impacts de migration.",detail:"Identifier les hubs applicatifs à fort couplage"});
-      if(rRecos.length===0) rRecos.push({prio:"INFO",color:"10B981",icon:"✓",text:"Aucun risque majeur identifié. Le parc applicatif est bien qualifié.",detail:""});
-      var ry=0.62;
-      rRecos.slice(0,6).forEach(function(r){
-        recoSlide.addShape(pres.shapes.RECTANGLE,{x:0.25,y:ry,w:9.50,h:0.70,fill:{color:r.color,transparency:92},line:{color:r.color,width:0.5}});
-        recoSlide.addShape(pres.shapes.RECTANGLE,{x:0.25,y:ry,w:0.06,h:0.70,fill:{color:r.color},line:{type:"none"}});
-        recoSlide.addShape(pres.shapes.RECTANGLE,{x:0.25,y:ry,w:1.10,h:0.28,fill:{color:r.color,transparency:80},line:{type:"none"}});
-        recoSlide.addText(r.prio,{x:0.28,y:ry+0.04,w:1.04,h:0.20,fontSize:7.5,bold:true,color:r.color,fontFace:"Calibri",margin:0,align:"center"});
-        recoSlide.addText(r.icon+" "+r.text,{x:1.42,y:ry+0.04,w:8.10,h:0.28,fontSize:9.5,bold:true,color:"1a1a1a",fontFace:"Calibri",margin:0,shrinkText:true});
-        if(r.detail) recoSlide.addText(r.detail,{x:1.42,y:ry+0.34,w:8.10,h:0.22,fontSize:8,color:"555555",fontFace:"Calibri",margin:0,italic:true,shrinkText:true});
-        ry+=0.78;
-      });
-    }// end inclReco
 
     // ─── Slide: Messages clés (layout KPI visuel) ───
     if(_opts.inclExecSlides){
@@ -1847,8 +1773,44 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
     var MFS=6; // max flows per slide
 
-    // ── Slide 1: Urbanisation sans flux ──
-    drawCartoSlide("URBANISATION — VUE D'ENSEMBLE",apps,[],false);
+    // ── Cartographie principale selon le mode choisi ──
+    if(_opts.cartoMode==="byDomain"){
+      doms.forEach(function(D){
+        const domApps=apps.filter(function(a){return a.domain===D;});
+        const neighborIds=new Set();
+        flows.forEach(function(f){
+          const fa=apps.find(function(a){return a.id===f.from;});
+          const ta=apps.find(function(a){return a.id===f.to;});
+          if(!fa||!ta)return;
+          if(fa.domain===D&&ta.domain!==D)neighborIds.add(ta.id);
+          if(ta.domain===D&&fa.domain!==D)neighborIds.add(fa.id);
+        });
+        const subset=[...domApps,...apps.filter(function(a){return neighborIds.has(a.id);})];
+        const subFlows=flows.filter(function(f){
+          const fa=apps.find(function(a){return a.id===f.from;});
+          const ta=apps.find(function(a){return a.id===f.to;});
+          return fa&&ta&&(fa.domain===D||ta.domain===D);
+        });
+        if(subset.length===0)return;
+        drawCartoSlide("Cartographie — "+D,subset,subFlows,true);
+      });
+    } else if(_opts.cartoMode==="byHub"){
+      const appConn={};
+      flows.forEach(function(f){appConn[f.from]=(appConn[f.from]||0)+1;appConn[f.to]=(appConn[f.to]||0)+1;});
+      const sortedHubs=[...apps].sort(function(a,b){return (appConn[b.id]||0)-(appConn[a.id]||0);});
+      const topHubs=sortedHubs.filter(function(a){return (appConn[a.id]||0)>0;}).slice(0,8);
+      topHubs.forEach(function(hub){
+        const neighborIds=new Set([hub.id]);
+        flows.forEach(function(f){if(f.from===hub.id)neighborIds.add(f.to);if(f.to===hub.id)neighborIds.add(f.from);});
+        const subset=apps.filter(function(a){return neighborIds.has(a.id);});
+        const subFlows=flows.filter(function(f){return neighborIds.has(f.from)&&neighborIds.has(f.to);});
+        drawCartoSlide("Hub · "+hub.name+" ("+(appConn[hub.id]||0)+" flux)",subset,subFlows,true);
+      });
+      if(topHubs.length===0){drawCartoSlide("Cartographie globale AS-IS",apps,[],false);drawCartoSlide("Cartographie globale — avec flux",apps,flows,true);}
+    } else {
+      // global (default)
+      drawCartoSlide("URBANISATION — VUE D'ENSEMBLE",apps,[],false);
+    }
 
     // ── Slide SYNTHÈSE GLOBALE (fonction réutilisable, pagination si saturé) ──
     var _sharedSynPos={};// hoisted: shared between drawSynthSlide and drawDetailedSynth
@@ -5539,14 +5501,27 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
             </label>
           </div>
 
+          {/* Mode de rendu cartographie */}
+          <div style={{background:T.bgAlt,borderRadius:8,padding:14}}>
+            <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>Mode de rendu cartographie</div>
+            {[
+              {v:"global",l:"Vue globale",d:"Toutes les applications sur un slide unifié"},
+              {v:"byDomain",l:"Par domaine fonctionnel",d:"Un slide par domaine · apps et flux contextualisés"},
+              {v:"byHub",l:"Par système drainant",d:"Slides centrés sur les hubs · app la plus connectée au centre"},
+            ].map(function(opt){
+              return <label key={opt.v} style={{display:"flex",alignItems:"flex-start",gap:10,cursor:"pointer",padding:"8px 10px",borderRadius:8,background:exportOpts.cartoMode===opt.v?T.bgHover:"transparent",border:exportOpts.cartoMode===opt.v?"1px solid #2979FF30":"1px solid transparent",marginBottom:4}}>
+                <input type="radio" name="cartoMode" value={opt.v} checked={exportOpts.cartoMode===opt.v} onChange={function(){setExportOpts(function(p){return Object.assign({},p,{cartoMode:opt.v});});}} style={{marginTop:2,accentColor:"#2979FF"}}/>
+                <div><div style={{fontSize:12,fontWeight:600,color:T.fg}}>{opt.l}</div><div style={{fontSize:10,color:T.fgMuted}}>{opt.d}</div></div>
+              </label>;
+            })}
+          </div>
+
           {/* Slides de synthèse */}
           <div style={{background:T.bgAlt,borderRadius:8,padding:14}}>
             <div style={{fontSize:12,fontWeight:600,color:T.fg,marginBottom:10}}>&#128202; Slides de synth&#232;se</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
               {[
                 {k:"inclDomainStatus",l:"Vue par domaine (Day 1 & Day 2)",d:"2 slides · applications colorées par statut"},
-                {k:"inclHeatmap",l:"Heatmap par domaine",d:"Nombre d'apps + risques mis en avant"},
-                {k:"inclReco",l:"Recommandations",d:"Actions prioritaires auto-générées"},
               ].map(function(item){
                 return <label key={item.k} style={{display:"flex",alignItems:"flex-start",gap:8,cursor:"pointer",padding:"6px 8px",borderRadius:4,background:exportOpts[item.k]?T.bgHover:"transparent"}}>
                   <input type="checkbox" checked={exportOpts[item.k]} onChange={function(e){var v=e.target.checked;setExportOpts(function(p){var n=Object.assign({},p);n[item.k]=v;return n;});}} style={{accentColor:"#2979FF",width:14,height:14,marginTop:2}}/>
@@ -5605,8 +5580,6 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
                 if(exportOpts.inclKPI)n+=2;
                 if(exportOpts.inclLegend)n++;
                 if(exportOpts.inclDomainStatus)n+=2;
-                if(exportOpts.inclHeatmap)n++;
-                if(exportOpts.inclReco)n++;
                 return n;
               })()
             } slides
