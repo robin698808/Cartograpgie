@@ -863,10 +863,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     pres.author="Cartographe";
     pres.title="Cartographie Applicative";
     const W=13.333, H=7.5;
-    // Wrapper : ajoute automatiquement le logo client en haut à droite de chaque slide
+    // Wrapper : trace tous les slides créés pour tamponner le logo EN DERNIER (au-dessus de tout)
+    var _allSlides=[];
     const _addSlide=function(){
       var sld=pres.addSlide();
-      if(_opts.clientLogo){sld.addImage({data:_opts.clientLogo,x:12.10,y:0.06,w:1.00,h:0.46,sizing:{type:"contain",w:1.00,h:0.46}});}
+      _allSlides.push(sld);
       return sld;
     };
     const mkSh=()=>({type:"outer",blur:4,offset:2,color:"000000",opacity:0.12,angle:135});
@@ -3702,6 +3703,12 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
     }// end inclLegend
 
+    // Tamponner le logo en dernier sur chaque slide (au-dessus de tout le contenu)
+    if(_opts.clientLogo){
+      _allSlides.forEach(function(sld){
+        sld.addImage({data:_opts.clientLogo,x:12.10,y:0.06,w:1.00,h:0.46,sizing:{type:"contain",w:1.00,h:0.46}});
+      });
+    }
     pres.writeFile({fileName:"Cartographie_Applicative.pptx"});
   };
 
