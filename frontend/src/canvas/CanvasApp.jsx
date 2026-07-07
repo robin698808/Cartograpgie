@@ -30,7 +30,7 @@ var THEMES={dark:{bg:"#08080F",bgAlt:"#0D0D1A",bgCard:"#13132A",bgInput:"#0D0D1A
 const ALLDOM_DEFAULT = Object.keys(DC_DEFAULT);
 const SI = {Maintien:"●",Arrêt:"◌","Standalone temporaire":"◐","Migrée":"◇","Remplacée":"◈"};
 const CC = {Haute:"#FF5252",Moyenne:"#EF6C00",Basse:"#00C853"};
-const SD1={"Transfert TSA":"#F59E0B","Abandon":"#EF4444","Maintien":"#10B981","Rebuild":"#F97316"};
+const SD1={"Transfert TSA":"#F59E0B","Abandon":"#EF4444","Maintien":"#10B981","Rebuild":"#6366F1"};
 const SD2={"Clone & Clean":"#3B82F6","Transfert":"#10B981","Abandon":"#EF4444","Rebuild":"#F97316"};
 const D1_OPTS=["","Transfert TSA","Maintien","Rebuild","Abandon"];
 const D2_OPTS=["","Clone & Clean","Transfert","Abandon","Rebuild"];
@@ -1095,7 +1095,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     const d1Stats2=[
       {l:"Transfert TSA",v:apps.filter(function(a){return a.statusD1==="Transfert TSA";}).length,c:"F59E0B"},
       {l:"Maintien",v:apps.filter(function(a){return a.statusD1==="Maintien";}).length,c:"10B981"},
-      {l:"Rebuild",v:apps.filter(function(a){return a.statusD1==="Rebuild";}).length,c:"F97316"},
+      {l:"Rebuild",v:apps.filter(function(a){return a.statusD1==="Rebuild";}).length,c:"6366F1"},
       {l:"Abandon",v:apps.filter(function(a){return a.statusD1==="Abandon";}).length,c:"EF4444"},
       {l:"Non défini",v:apps.filter(function(a){return !a.statusD1;}).length,c:"4A5568"},
     ];
@@ -1144,10 +1144,10 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
     // ─── Slides: Vue par domaine - Statut Day 1 & Day 2 ───
     if(_opts.inclDomainStatus){
-      const d1Colors={"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"F97316","Abandon":"EF4444","Non défini":"94A3B8"};
+      const d1Colors={"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"6366F1","Abandon":"EF4444","Non défini":"94A3B8"};
       const d2Colors={"Clone & Clean":"3B82F6","Transfert":"10B981","Rebuild":"8B5CF6","Abandon":"EF4444","Non défini":"94A3B8"};
       [
-        {label:"CARTOGRAPHIE PAR DOMAINE — STATUT DAY 1 (CLOSING)",field:"statusD1",colorMap:d1Colors,legend:[["Transfert TSA","F59E0B"],["Maintien","10B981"],["Rebuild","F97316"],["Abandon","EF4444"],["Non défini","94A3B8"]]},
+        {label:"CARTOGRAPHIE PAR DOMAINE — STATUT DAY 1 (CLOSING)",field:"statusD1",colorMap:d1Colors,legend:[["Transfert TSA","F59E0B"],["Maintien","10B981"],["Rebuild","6366F1"],["Abandon","EF4444"],["Non défini","94A3B8"]]},
         {label:"CARTOGRAPHIE PAR DOMAINE — STATUT DAY 2 (CIBLE)",field:"statusD2",colorMap:d2Colors,legend:[["Clone & Clean","3B82F6"],["Transfert","10B981"],["Rebuild","8B5CF6"],["Abandon","EF4444"],["Non défini","94A3B8"]]},
       ].forEach(function(cfg){
         const dsSlide=SS(_addSlide());
@@ -2518,7 +2518,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     // ── Tableau récapitulatif des flux (paginé) ──
     const drawRecapTableSlides=()=>{
       const ROWS_PER_SLIDE=18;
-      const SD1C={"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"F97316","Abandon":"EF4444"};
+      const SD1C={"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"6366F1","Abandon":"EF4444"};
       const SD2C={"Clone & Clean":"3B82F6","Transfert":"10B981","Abandon":"EF4444","Rebuild":"F97316"};
       // Aggregate flows by app pair
       const pairAgg={};
@@ -3620,7 +3620,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     if(_opts.inclRecapTable){
       (function drawAppRecapSlides(){
         const ROWS_PER_SLIDE=22;
-        const SD1C={"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"F97316","Abandon":"EF4444"};
+        const SD1C={"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"6366F1","Abandon":"EF4444"};
         const SD2C={"Clone & Clean":"3B82F6","Transfert":"10B981","Abandon":"EF4444","Rebuild":"F97316"};
         const sortedApps=[...apps].sort(function(a,b){
           if(a.domain!==b.domain)return a.domain.localeCompare(b.domain);
@@ -5880,7 +5880,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
         {id:"category",label:"Catégorie",sel:selCat,setSel:setSelCat,items:cats.map(c=>({v:c,label:c,color:"#D63384"}))},
         {id:"status",label:"Statut",sel:selStat,setSel:setSelStat,items:["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"].map(s=>({v:s,label:s==="Standalone temporaire"?"Standalone temp.":s,color:SC[s]||"#888"}))},
         {id:"criticality",label:"Criticité",sel:selCrit,setSel:setSelCrit,items:["Haute","Moyenne","Basse"].map(c=>({v:c,label:c,color:CC[c]||"#888"}))},
-        {id:"d1",label:"Day 1",sel:selD1?[selD1]:[],setSel:function(updater){var prev=selD1?[selD1]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD1(next.length?next[next.length-1]:"");},items:[{v:"Transfert TSA",label:"TSA",color:"#F59E0B"},{v:"Maintien",label:"Maintien",color:"#10B981"},{v:"Rebuild",label:"Rebuild",color:"#F97316"},{v:"Abandon",label:"Abandon",color:"#EF4444"}]},
+        {id:"d1",label:"Day 1",sel:selD1?[selD1]:[],setSel:function(updater){var prev=selD1?[selD1]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD1(next.length?next[next.length-1]:"");},items:[{v:"Transfert TSA",label:"TSA",color:"#F59E0B"},{v:"Maintien",label:"Maintien",color:"#10B981"},{v:"Rebuild",label:"Rebuild",color:"#6366F1"},{v:"Abandon",label:"Abandon",color:"#EF4444"}]},
         {id:"d2",label:"Day 2",sel:selD2?[selD2]:[],setSel:function(updater){var prev=selD2?[selD2]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD2(next.length?next[next.length-1]:"");},items:[{v:"Clone & Clean",label:"Clone",color:"#3B82F6"},{v:"Transfert",label:"Transfert",color:"#10B981"},{v:"Abandon",label:"Abandon",color:"#EF4444"},{v:"Rebuild",label:"Rebuild",color:"#F97316"}]}
       ].map(flt=>{
         const isOpen=openFilter===flt.id;
