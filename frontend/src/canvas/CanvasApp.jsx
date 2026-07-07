@@ -874,6 +874,148 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     });
 
     const cp=_opts.clientPrimary||"2979FF";
+    // ─── Slide 0: Synthèse & Messages clés (premier slide) ───
+    {
+    const sccp=cp;
+    const sSC=SS(pres.addSlide());
+    sSC.background={color:"F8F9FC"};
+    sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.60,fill:{color:sccp},line:{type:"none"}});
+    sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0.585,w:10,h:0.022,fill:{color:"FFFFFF",transparency:70},line:{type:"none"}});
+    if(_opts.clientLogo){sSC.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.52,sizing:{type:"contain",w:0.90,h:0.52}});}
+    sSC.addText("SYNTHÈSE & MESSAGES CLÉS",{x:0.35,y:0.08,w:8,h:0.46,fontSize:22,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
+    // Données
+    const scPairs={};
+    flows.forEach(function(f){
+      const fd=(apps.find(function(a){return a.id===f.from;})||{}).domain;
+      const td=(apps.find(function(a){return a.id===f.to;})||{}).domain;
+      if(fd&&td&&fd!==td){const k=fd+" → "+td;scPairs[k]=(scPairs[k]||0)+1;}
+    });
+    const scTopP=Object.entries(scPairs).sort(function(a,b){return b[1]-a[1]||(a[0]<b[0]?-1:1);}).slice(0,5);
+    const scTotI=Object.values(scPairs).reduce(function(acc,v){return acc+v;},0);
+    const scConn={};
+    apps.forEach(function(a){scConn[a.id]=0;});
+    flows.forEach(function(f){if(scConn[f.from]!==undefined)scConn[f.from]++;if(scConn[f.to]!==undefined)scConn[f.to]++;});
+    const scHubs=apps.filter(function(a){return scConn[a.id]>0;}).sort(function(a,b){return scConn[b.id]-scConn[a.id];}).slice(0,5);
+    // Domaines classés par volume de flux (total entrants + sortants)
+    const scDomFl={};
+    apps.forEach(function(a){scDomFl[a.domain]=0;});
+    flows.forEach(function(f){
+      const fd=(apps.find(function(a){return a.id===f.from;})||{}).domain;
+      const td=(apps.find(function(a){return a.id===f.to;})||{}).domain;
+      if(fd)scDomFl[fd]=(scDomFl[fd]||0)+1;
+      if(td)scDomFl[td]=(scDomFl[td]||0)+1;
+    });
+    const scDomFlE=Object.entries(scDomFl).sort(function(a,b){return b[1]-a[1];});
+    const scDomTop=scDomFlE[0]||null;
+    const scDomBot=scDomFlE.length>1?scDomFlE[scDomFlE.length-1]:null;
+    // 3 cartes messages
+    const scCW=3.02,scCH=3.52,scCGap=0.23,scCX0=0.25,scCY0=0.72;
+    const scCardDefs=[
+      {icon:"◎",title:"CONCENTRATION DES FLUX",accent:"6366F1",type:"pairs"},
+      {icon:"◈",title:"FLUX DOMAINE À DOMAINE",accent:"0EA5E9",type:"domflow"},
+      {icon:"◈",title:"HUBS DU SYSTÈME D'INFORMATION",accent:"F59E0B",type:"hubs"},
+    ];
+    scCardDefs.forEach(function(card,ci){
+      const cx=scCX0+ci*(scCW+scCGap);const cy=scCY0;
+      sSC.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy,w:scCW,h:scCH,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:4,offset:2,color:"000000",opacity:0.08,angle:135}});
+      sSC.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy,w:scCW,h:0.28,fill:{color:card.accent,transparency:88},line:{type:"none"}});
+      sSC.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy,w:0.06,h:scCH,fill:{color:card.accent},line:{type:"none"}});
+      sSC.addText(card.icon+" "+card.title,{x:cx+0.12,y:cy+0.06,w:scCW-0.20,h:0.20,fontSize:8,bold:true,color:card.accent,fontFace:"Calibri",charSpacing:0.5,margin:0,shrinkText:true});
+      sSC.addShape(pres.shapes.LINE,{x:cx+0.12,y:cy+0.30,w:scCW-0.24,h:0,line:{color:"E2E8F0",width:0.35}});
+      if(card.type==="pairs"){
+        if(scTopP.length===0){
+          sSC.addText("Aucun flux inter-domaine",{x:cx+0.12,y:cy+0.50,w:scCW-0.24,h:0.30,fontSize:9,color:"94A3B8",fontFace:"Calibri",margin:0});
+        } else {
+          const scMaxPv=scTopP[0][1];
+          scTopP.forEach(function(pe,pi){
+            const py=cy+0.44+pi*0.58;
+            const pct3=scTotI>0?Math.round(pe[1]/scTotI*100):0;
+            sSC.addText(String(pe[1]),{x:cx+0.12,y:py,w:0.45,h:0.30,fontSize:22,bold:true,color:card.accent,fontFace:"Trebuchet MS",margin:0});
+            sSC.addText("flux — "+pct3+"%",{x:cx+0.60,y:py+0.10,w:scCW-0.80,h:0.18,fontSize:7,color:"64748B",fontFace:"Calibri",margin:0});
+            sSC.addText(pe[0],{x:cx+0.12,y:py+0.28,w:scCW-0.24,h:0.18,fontSize:8,color:"334155",fontFace:"Calibri",margin:0,shrinkText:true});
+            const bw6=(pe[1]/scMaxPv)*(scCW-0.30);
+            sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:py+0.46,w:bw6,h:0.06,fill:{color:card.accent},line:{type:"none"}});
+          });
+        }
+      } else if(card.type==="domflow"){
+        if(!scDomTop||!scDomBot||scDomTop[0]===scDomBot[0]){
+          sSC.addText("Pas assez de données",{x:cx+0.12,y:cy+0.50,w:scCW-0.24,h:0.30,fontSize:9,color:"94A3B8",fontFace:"Calibri",margin:0});
+        } else {
+          const dfTopDC=(_pDC[scDomTop[0]]||_pDC.Autre).ac.replace("#","");
+          const dfBotDC=(_pDC[scDomBot[0]]||_pDC.Autre).ac.replace("#","");
+          const dfTopN=apps.filter(function(a){return a.domain===scDomTop[0];}).length;
+          const dfBotN=apps.filter(function(a){return a.domain===scDomBot[0];}).length;
+          // Flux directs entre les deux domaines
+          const dfTopOut=flows.filter(function(f){const fd=(apps.find(function(a){return a.id===f.from;})||{}).domain,td=(apps.find(function(a){return a.id===f.to;})||{}).domain;return fd===scDomTop[0]&&td===scDomBot[0];}).length;
+          const dfBotOut=flows.filter(function(f){const fd=(apps.find(function(a){return a.id===f.from;})||{}).domain,td=(apps.find(function(a){return a.id===f.to;})||{}).domain;return fd===scDomBot[0]&&td===scDomTop[0];}).length;
+          // Boîte domaine supérieur
+          const dfBoxH=0.78,dfY0=cy+0.38;
+          sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:dfY0,w:scCW-0.24,h:dfBoxH,fill:{color:dfTopDC,transparency:87},line:{color:dfTopDC,width:0.8}});
+          sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:dfY0,w:scCW-0.24,h:0.18,fill:{color:dfTopDC},line:{type:"none"}});
+          sSC.addText("DOMAINE LE PLUS ACTIF",{x:cx+0.15,y:dfY0+0.02,w:scCW-0.30,h:0.14,fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",charSpacing:0.3,margin:0});
+          sSC.addText(scDomTop[0],{x:cx+0.15,y:dfY0+0.21,w:scCW-0.30,h:0.30,fontSize:13,bold:true,color:"0F172A",fontFace:"Trebuchet MS",margin:0,shrinkText:true});
+          sSC.addText(dfTopN+" app"+(dfTopN!==1?"s":"")+" · "+scDomTop[1]+" flux impliqués",{x:cx+0.15,y:dfY0+0.54,w:scCW-0.30,h:0.18,fontSize:7,color:dfTopDC,fontFace:"Calibri",margin:0,shrinkText:true});
+          // Zone flèches
+          const dfArY=dfY0+dfBoxH+0.08;
+          const dfArH=0.72;
+          const dfMidX=cx+scCW/2;
+          if(dfTopOut>0||dfBotOut>0){
+            if(dfTopOut>0){
+              const ax1=dfMidX-(dfBotOut>0?0.16:0.001);
+              sSC.addShape(pres.shapes.LINE,{x:ax1,y:dfArY,w:0.001,h:dfArH,line:{color:dfTopDC,width:1.5,endArrowType:"triangle",endArrowSize:3}});
+              sSC.addText(String(dfTopOut),{x:ax1-0.38,y:dfArY+dfArH/2-0.12,w:0.30,h:0.20,fontSize:9,bold:true,color:dfTopDC,fontFace:"Calibri",align:"right",margin:0});
+            }
+            if(dfBotOut>0){
+              const ax2=dfMidX+(dfTopOut>0?0.16:0.001);
+              sSC.addShape(pres.shapes.LINE,{x:ax2,y:dfArY,w:0.001,h:dfArH,flipV:true,line:{color:dfBotDC,width:1.5,endArrowType:"triangle",endArrowSize:3}});
+              sSC.addText(String(dfBotOut),{x:ax2+0.08,y:dfArY+dfArH/2-0.12,w:0.30,h:0.20,fontSize:9,bold:true,color:dfBotDC,fontFace:"Calibri",margin:0});
+            }
+          } else {
+            sSC.addText("Aucun flux direct",{x:cx+0.12,y:dfArY+0.25,w:scCW-0.24,h:0.20,fontSize:7.5,color:"94A3B8",fontFace:"Calibri",align:"center",margin:0});
+          }
+          // Boîte domaine inférieur
+          const dfY1=dfArY+dfArH+0.08;
+          sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:dfY1,w:scCW-0.24,h:dfBoxH,fill:{color:dfBotDC,transparency:90},line:{color:dfBotDC,width:0.8}});
+          sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:dfY1,w:scCW-0.24,h:0.18,fill:{color:dfBotDC},line:{type:"none"}});
+          sSC.addText("DOMAINE LE MOINS ACTIF",{x:cx+0.15,y:dfY1+0.02,w:scCW-0.30,h:0.14,fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",charSpacing:0.3,margin:0});
+          sSC.addText(scDomBot[0],{x:cx+0.15,y:dfY1+0.21,w:scCW-0.30,h:0.30,fontSize:13,bold:true,color:"0F172A",fontFace:"Trebuchet MS",margin:0,shrinkText:true});
+          sSC.addText(dfBotN+" app"+(dfBotN!==1?"s":"")+" · "+scDomBot[1]+" flux impliqués",{x:cx+0.15,y:dfY1+0.54,w:scCW-0.30,h:0.18,fontSize:7,color:dfBotDC,fontFace:"Calibri",margin:0,shrinkText:true});
+        }
+      } else if(card.type==="hubs"){
+        if(scHubs.length===0){
+          sSC.addText("Aucun flux défini",{x:cx+0.12,y:cy+0.50,w:scCW-0.24,h:0.30,fontSize:9,color:"5577AA",fontFace:"Calibri",margin:0});
+        } else {
+          const scMaxConn=scConn[scHubs[0].id]||1;
+          scHubs.forEach(function(a,hi){
+            const hy=cy+0.44+hi*0.60;
+            const conn3=scConn[a.id]||0;
+            const bw7=(conn3/scMaxConn)*(scCW-0.70);
+            sSC.addText(a.name,{x:cx+0.12,y:hy,w:scCW-0.28,h:0.22,fontSize:9,bold:true,color:"0F172A",fontFace:"Calibri",margin:0,shrinkText:true});
+            sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:hy+0.26,w:bw7,h:0.14,fill:{color:card.accent},line:{type:"none"}});
+            sSC.addText(String(conn3)+" cx",{x:cx+0.18+bw7,y:hy+0.24,w:0.50,h:0.18,fontSize:8,bold:true,color:card.accent,fontFace:"Calibri",margin:0});
+            sSC.addText(a.domain,{x:cx+0.12,y:hy+0.42,w:scCW-0.24,h:0.14,fontSize:7,color:"64748B",fontFace:"Calibri",margin:0,shrinkText:true});
+          });
+        }
+      }
+    });
+    // Bandeau chiffres bas
+    const scInterDoms=new Set();
+    Object.keys(scPairs).forEach(function(k){scInterDoms.add(k.split(" → ")[0]);});
+    const scBsy=scCY0+scCH+0.16;
+    sSC.addShape(pres.shapes.RECTANGLE,{x:0.25,y:scBsy,w:9.50,h:0.76,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
+    const scBKpi=[
+      {l:"Total flux",v:flows.length,c:"6366F1"},
+      {l:"Flux inter-domaines",v:scTotI,c:"8B5CF6"},
+      {l:"Ratio flux / app",v:apps.length?+(flows.length/apps.length).toFixed(1):0,c:"22D3EE"},
+      {l:"Domaines avec flux sortants",v:scInterDoms.size,c:"F59E0B"},
+    ];
+    scBKpi.forEach(function(k,i){
+      const bkx2=0.60+i*2.30;
+      sSC.addShape(pres.shapes.RECTANGLE,{x:bkx2-0.08,y:scBsy+0.06,w:0.04,h:0.65,fill:{color:k.c},line:{type:"none"}});
+      sSC.addText(String(k.v),{x:bkx2+0.06,y:scBsy+0.06,w:1.80,h:0.40,fontSize:24,bold:true,color:k.c,fontFace:"Trebuchet MS",margin:0});
+      sSC.addText(k.l,{x:bkx2+0.06,y:scBsy+0.48,w:2.05,h:0.22,fontSize:7.5,color:"64748B",fontFace:"Calibri",margin:0});
+    });
+    }// end sSC block
     // ─── Slide 1: Title ───
     if(_opts.inclExecSlides){
     const s1=SS(pres.addSlide());
@@ -1075,109 +1217,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         });
       });
     }// end inclDomainStatus
-
-
-    // ─── Slide: Messages clés (layout KPI visuel) ───
-    if(_opts.inclExecSlides){
-      const mkSlide=SS(pres.addSlide());
-      mkSlide.background={color:"F8F9FC"};
-      mkSlide.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.50,fill:{color:cp},line:{type:"none"}});
-      if(_opts.clientLogo){mkSlide.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});}
-      mkSlide.addText("MESSAGES CLÉS",{x:0.30,y:0.08,w:8,h:0.35,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
-      // Metrics
-      var mkRisk=apps.filter(function(a){return a.statusD1==="Abandon"&&flows.some(function(f){return f.from===a.id||f.to===a.id;});});
-      var mkD1Def=apps.filter(function(a){return a.statusD1;}).length;
-      var mkD2Def=apps.filter(function(a){return a.statusD2;}).length;
-      var mkD1Pct=apps.length?Math.round(mkD1Def/apps.length*100):0;
-      var mkD2Pct=apps.length?Math.round(mkD2Def/apps.length*100):0;
-      var mkCrit=apps.filter(function(a){return a.criticality==="Haute";}).length;
-      var mkAbD1=apps.filter(function(a){return a.statusD1==="Abandon";}).length;
-      var mkTSA=apps.filter(function(a){return a.statusD1==="Transfert TSA";}).length;
-      var mkClone=apps.filter(function(a){return a.statusD2==="Clone & Clean";}).length;
-      var mkRebuild=apps.filter(function(a){return a.statusD2==="Rebuild";}).length;
-      // ── Row 1 : 3 KPI tiles ──
-      var mkKPIs=[
-        {icon:"◈",color:cp,val:String(apps.length),unit:"applications",sub:doms.length+" domaines · "+flows.length+" flux"},
-        {icon:"▲",color:mkCrit>0?"EF4444":"10B981",val:String(mkCrit),unit:"app"+(mkCrit!==1?"s":"")+" critiques",sub:mkCrit>0?"Attention particulière requise":"Criticité maîtrisée"},
-        {icon:"◎",color:"6366F1",val:String(apps.length-mkD2Def),unit:"sans stratégie D2",sub:mkD2Pct+"% de couverture D2 définie"},
-      ];
-      var tW=3.0,tH=1.0,tGap=0.125,tY=0.60;
-      mkKPIs.forEach(function(t,i){
-        var tx=0.25+i*(tW+tGap);
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:tx,y:tY,w:tW,h:tH,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:tx,y:tY,w:tW,h:0.07,fill:{color:t.color},line:{type:"none"}});
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:tx,y:tY,w:0.68,h:tH,fill:{color:t.color,transparency:90},line:{type:"none"}});
-        mkSlide.addText(t.icon,{x:tx+0.06,y:tY+0.28,w:0.56,h:0.38,fontSize:20,bold:true,color:"FFFFFF",fontFace:"Arial",margin:0,align:"center"});
-        mkSlide.addText(t.val,{x:tx+0.74,y:tY+0.08,w:tW-0.82,h:0.42,fontSize:26,bold:true,color:t.color,fontFace:"Trebuchet MS",margin:0,valign:"bottom"});
-        mkSlide.addText(t.unit,{x:tx+0.74,y:tY+0.50,w:tW-0.82,h:0.22,fontSize:9,bold:true,color:"0F172A",fontFace:"Calibri",margin:0});
-        mkSlide.addText(t.sub,{x:tx+0.74,y:tY+0.72,w:tW-0.82,h:0.22,fontSize:7.5,color:"64748B",fontFace:"Calibri",margin:0,shrinkText:true});
-      });
-      // ── Row 2 : Répartition AS-IS | Trajectoire D1 / D2 ──
-      var bY=1.72,bW=4.55,bH=1.30,bGap=0.20;
-      // Panel helper : draw one horizontal distribution row
-      var mkDistRow=function(sl,rx,ry,rw,label,count,total,color){
-        var pct=total?count/total:0;
-        var barW=Math.min(rw-1.10,Math.max(0.04,(rw-1.10)*pct));
-        sl.addShape(pres.shapes.RECTANGLE,{x:rx,y:ry+0.045,w:0.07,h:0.07,fill:{color:color},line:{type:"none"}});
-        sl.addText(label,{x:rx+0.12,y:ry,w:rw-1.20,h:0.16,fontSize:7.5,color:"334155",fontFace:"Calibri",margin:0,valign:"middle",shrinkText:true});
-        sl.addText(String(count),{x:rx+rw-0.50,y:ry,w:0.46,h:0.16,fontSize:7.5,bold:true,color:color,fontFace:"Calibri",align:"right",margin:0,valign:"middle"});
-        sl.addShape(pres.shapes.RECTANGLE,{x:rx+0.12,y:ry+0.18,w:rw-1.10,h:0.06,fill:{color:"F1F5F9"},line:{type:"none"}});
-        if(barW>0)sl.addShape(pres.shapes.RECTANGLE,{x:rx+0.12,y:ry+0.18,w:barW,h:0.06,fill:{color:color},line:{type:"none"}});
-      };
-      // ── Panel gauche : Répartition AS-IS ──
-      var bx0=0.25;
-      mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx0,y:bY,w:bW,h:bH,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
-      mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx0,y:bY,w:bW,h:0.07,fill:{color:"0B2545"},line:{type:"none"}});
-      mkSlide.addText("RÉPARTITION AS-IS — STATUT APPLICATIF",{x:bx0+0.12,y:bY+0.10,w:bW-0.24,h:0.18,fontSize:8,bold:true,color:"0B2545",fontFace:"Calibri",charSpacing:0.5,margin:0});
-      var mkStatRows=[
-        {l:"Maintien",c:"00C853",v:apps.filter(function(a){return a.status==="Maintien";}).length},
-        {l:"Arrêt",c:"FF5252",v:apps.filter(function(a){return a.status==="Arrêt";}).length},
-        {l:"Standalone temporaire",c:"EF6C00",v:apps.filter(function(a){return a.status==="Standalone temporaire";}).length},
-        {l:"Migrée",c:"2979FF",v:apps.filter(function(a){return a.status==="Migrée";}).length},
-        {l:"Remplacée",c:"7C4DFF",v:apps.filter(function(a){return a.status==="Remplacée";}).length},
-      ];
-      mkStatRows.forEach(function(r,ri){mkDistRow(mkSlide,bx0+0.12,bY+0.32+ri*0.20,bW-0.14,r.l,r.v,apps.length,r.c);});
-      // ── Panel droit : Trajectoire D1 / D2 ──
-      var bx1=bx0+bW+bGap;
-      mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx1,y:bY,w:bW,h:bH,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
-      mkSlide.addShape(pres.shapes.RECTANGLE,{x:bx1,y:bY,w:bW,h:0.07,fill:{color:"0B2545"},line:{type:"none"}});
-      mkSlide.addText("TRAJECTOIRE CARVE-OUT — DAY 1 & DAY 2",{x:bx1+0.12,y:bY+0.10,w:bW-0.24,h:0.18,fontSize:8,bold:true,color:"0B2545",fontFace:"Calibri",charSpacing:0.5,margin:0});
-      mkSlide.addText("DAY 1",{x:bx1+0.12,y:bY+0.32,w:0.60,h:0.13,fontSize:7,bold:true,color:"F59E0B",fontFace:"Calibri",margin:0});
-      var mkD1Rows=[
-        {l:"Transfert TSA",c:"F59E0B",v:mkTSA},
-        {l:"Abandon",c:"EF4444",v:mkAbD1},
-        {l:"Non défini",c:"CBD5E1",v:apps.length-mkD1Def},
-      ];
-      mkD1Rows.forEach(function(r,ri){mkDistRow(mkSlide,bx1+0.12,bY+0.46+ri*0.19,bW-0.14,r.l,r.v,apps.length,r.c);});
-      mkSlide.addShape(pres.shapes.LINE,{x:bx1+0.12,y:bY+0.47+mkD1Rows.length*0.19,w:bW-0.24,h:0,line:{color:"E2E8F0",width:0.3}});
-      mkSlide.addText("DAY 2",{x:bx1+0.12,y:bY+0.51+mkD1Rows.length*0.19,w:0.60,h:0.13,fontSize:7,bold:true,color:"6366F1",fontFace:"Calibri",margin:0});
-      var mkD2Rows=[
-        {l:"Clone & Clean",c:"3B82F6",v:mkClone},
-        {l:"Transfert",c:"10B981",v:apps.filter(function(a){return a.statusD2==="Transfert";}).length},
-        {l:"Rebuild",c:"F97316",v:mkRebuild},
-        {l:"Abandon",c:"EF4444",v:apps.filter(function(a){return a.statusD2==="Abandon";}).length},
-        {l:"Non défini",c:"CBD5E1",v:apps.length-mkD2Def},
-      ];
-      mkD2Rows.forEach(function(r,ri){mkDistRow(mkSlide,bx1+0.12,bY+0.66+mkD1Rows.length*0.19+ri*0.14,bW-0.14,r.l,r.v,apps.length,r.c);});
-      // ── Row 3 : 3 actions ──
-      var aY=3.14,aW=2.92,mkAH=1.12,aGap=0.37;
-      var mkActs=[
-        {num:"①",color:cp,title:"Qualifier les statuts",body:"Compléter les "+(apps.length-mkD1Def)+" applications sans statut Day 1 avant la prochaine revue de gouvernance"},
-        {num:"②",color:"6366F1",title:"Accélérer la couverture D2",body:"Définir la stratégie cible pour les "+(apps.length-mkD2Def)+" applications sans vision Day 2 — prioriser les apps critiques"},
-        {num:"③",color:"10B981",title:"Gouvernance & suivi",body:"Piloter l'avancement par domaine, désigner un responsable par application et planifier les revues de trajectoire"},
-      ];
-      mkActs.forEach(function(a,i){
-        var ax=0.25+i*(aW+aGap);
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:ax,y:aY,w:aW,h:mkAH,fill:{color:a.color,transparency:90},line:{color:a.color,width:0.75}});
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:ax,y:aY,w:aW,h:0.07,fill:{color:a.color},line:{type:"none"}});
-        mkSlide.addShape(pres.shapes.RECTANGLE,{x:ax,y:aY,w:0.58,h:mkAH,fill:{color:a.color,transparency:82},line:{type:"none"}});
-        mkSlide.addText(a.num,{x:ax+0.05,y:aY+0.30,w:0.48,h:0.50,fontSize:22,bold:true,color:a.color,fontFace:"Trebuchet MS",margin:0,align:"center"});
-        mkSlide.addText(a.title,{x:ax+0.64,y:aY+0.10,w:aW-0.72,h:0.28,fontSize:10,bold:true,color:"0F172A",fontFace:"Trebuchet MS",margin:0,valign:"middle"});
-        mkSlide.addText(a.body,{x:ax+0.64,y:aY+0.42,w:aW-0.72,h:0.62,fontSize:8,color:"475569",fontFace:"Calibri",margin:0,shrinkText:true,wrap:true});
-      });
-      // Footer
-      mkSlide.addText("Données issues de la cartographie applicative · Généré le "+new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}),{x:0.25,y:4.32,w:9.50,h:0.18,fontSize:7,color:"94A3B8",fontFace:"Calibri",margin:0,italic:true,align:"center"});
-    }// end messages clés
 
     }// end inclExecSlides
 
@@ -3397,117 +3436,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     sLeg.addText("Flux dense (3+)",{x:2.0,y:5.2,w:2,h:0.2,fontSize:11,color:"666666",fontFace:"Calibri",margin:0});
 
     }// end inclLegend
-        // --- Slide Synthese Consolidee ---
-    {
-    const sccp=_opts.clientPrimary||"2979FF";
-    const sSC=SS(pres.addSlide());
-    sSC.background={color:"F8F9FC"};
-    sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.60,fill:{color:sccp},line:{type:"none"}});
-    sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0.585,w:10,h:0.022,fill:{color:"FFFFFF",transparency:70},line:{type:"none"}});
-    if(_opts.clientLogo){sSC.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.52,sizing:{type:"contain",w:0.90,h:0.52}});}
-    sSC.addText("SYNTHÈSE & MESSAGES CLÉS",{x:0.35,y:0.08,w:8,h:0.46,fontSize:22,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
-    // Donnees
-    const scPairs={};
-    flows.forEach(function(f){
-      const fd=(apps.find(function(a){return a.id===f.from;})||{}).domain;
-      const td=(apps.find(function(a){return a.id===f.to;})||{}).domain;
-      if(fd&&td&&fd!==td){const k=fd+" → "+td;scPairs[k]=(scPairs[k]||0)+1;}
-    });
-    const scTopP=Object.entries(scPairs).sort(function(a,b){return b[1]-a[1]||(a[0]<b[0]?-1:1);}).slice(0,5);
-    const scTotI=Object.values(scPairs).reduce(function(acc,v){return acc+v;},0);
-    const scD2Missing=apps.filter(function(a){return !a.statusD2;});
-    const scConn={};
-    apps.forEach(function(a){scConn[a.id]=0;});
-    flows.forEach(function(f){if(scConn[f.from]!==undefined)scConn[f.from]++;if(scConn[f.to]!==undefined)scConn[f.to]++;});
-    const scHubs=apps.filter(function(a){return scConn[a.id]>0;}).sort(function(a,b){return scConn[b.id]-scConn[a.id];}).slice(0,5);
-    // 3 cartes messages
-    const scCW=3.02,scCH=3.52,scCGap=0.23,scCX0=0.25,scCY0=0.72;
-    const scCardDefs=[
-      {icon:"◎",title:"CONCENTRATION DES FLUX",accent:"6366F1",type:"pairs"},
-      {icon:"◎",title:"COUVERTURE STRATÉGIE D2",accent:"6366F1",type:"d2cov"},
-      {icon:"◈",title:"HUBS DU SYSTÈME D'INFORMATION",accent:"F59E0B",type:"hubs"},
-    ];
-    scCardDefs.forEach(function(card,ci){
-      const cx=scCX0+ci*(scCW+scCGap);const cy=scCY0;
-      sSC.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy,w:scCW,h:scCH,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:4,offset:2,color:"000000",opacity:0.08,angle:135}});
-      sSC.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy,w:scCW,h:0.28,fill:{color:card.accent,transparency:88},line:{type:"none"}});
-      sSC.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy,w:0.06,h:scCH,fill:{color:card.accent},line:{type:"none"}});
-      sSC.addText(card.icon+" "+card.title,{x:cx+0.12,y:cy+0.06,w:scCW-0.20,h:0.20,fontSize:8,bold:true,color:card.accent,fontFace:"Calibri",charSpacing:0.5,margin:0,shrinkText:true});
-      sSC.addShape(pres.shapes.LINE,{x:cx+0.12,y:cy+0.30,w:scCW-0.24,h:0,line:{color:"E2E8F0",width:0.35}});
-      if(card.type==="pairs"){
-        if(scTopP.length===0){
-          sSC.addText("Aucun flux inter-domaine",{x:cx+0.12,y:cy+0.50,w:scCW-0.24,h:0.30,fontSize:9,color:"94A3B8",fontFace:"Calibri",margin:0});
-        } else {
-          const scMaxPv=scTopP[0][1];
-          scTopP.forEach(function(pe,pi){
-            const py=cy+0.44+pi*0.58;
-            const pct3=scTotI>0?Math.round(pe[1]/scTotI*100):0;
-            sSC.addText(String(pe[1]),{x:cx+0.12,y:py,w:0.45,h:0.30,fontSize:22,bold:true,color:card.accent,fontFace:"Trebuchet MS",margin:0});
-            sSC.addText("flux — "+pct3+"%",{x:cx+0.60,y:py+0.10,w:scCW-0.80,h:0.18,fontSize:7,color:"64748B",fontFace:"Calibri",margin:0});
-            sSC.addText(pe[0],{x:cx+0.12,y:py+0.28,w:scCW-0.24,h:0.18,fontSize:8,color:"334155",fontFace:"Calibri",margin:0,shrinkText:true});
-            const bw6=(pe[1]/scMaxPv)*(scCW-0.30);
-            sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:py+0.46,w:bw6,h:0.06,fill:{color:card.accent},line:{type:"none"}});
-          });
-        }
-      } else if(card.type==="d2cov"){
-        const d2Rows=[
-          {l:"Clone & Clean",v:apps.filter(function(a){return a.statusD2==="Clone & Clean";}).length,c:"3B82F6"},
-          {l:"Transfert",v:apps.filter(function(a){return a.statusD2==="Transfert";}).length,c:"10B981"},
-          {l:"Rebuild",v:apps.filter(function(a){return a.statusD2==="Rebuild";}).length,c:"F97316"},
-          {l:"Abandon",v:apps.filter(function(a){return a.statusD2==="Abandon";}).length,c:"EF4444"},
-          {l:"Non défini",v:scD2Missing.length,c:"94A3B8"},
-        ];
-        const d2Tot=apps.length||1;
-        const d2Pct=Math.round((d2Tot-scD2Missing.length)/d2Tot*100);
-        sSC.addText(String(d2Pct)+"%",{x:cx+0.12,y:cy+0.38,w:1.20,h:0.60,fontSize:38,bold:true,color:"6366F1",fontFace:"Trebuchet MS",margin:0});
-        sSC.addText("couverture D2",{x:cx+1.36,y:cy+0.50,w:1.50,h:0.24,fontSize:9,bold:true,color:"6366F1",fontFace:"Calibri",margin:0});
-        sSC.addText((d2Tot-scD2Missing.length)+" / "+d2Tot+" apps qualifiées",{x:cx+1.36,y:cy+0.74,w:1.50,h:0.18,fontSize:8,color:"64748B",fontFace:"Calibri",margin:0,shrinkText:true});
-        // progress bar
-        const pbX=cx+0.12,pbY=cy+1.06,pbW=scCW-0.24;
-        sSC.addShape(pres.shapes.RECTANGLE,{x:pbX,y:pbY,w:pbW,h:0.18,fill:{color:"E2E8F0"},line:{type:"none"}});
-        if(d2Pct>0)sSC.addShape(pres.shapes.RECTANGLE,{x:pbX,y:pbY,w:Math.max(0.06,pbW*d2Pct/100),h:0.18,fill:{color:"6366F1"},line:{type:"none"}});
-        sSC.addShape(pres.shapes.LINE,{x:cx+0.12,y:cy+1.34,w:scCW-0.24,h:0,line:{color:"E2E8F0",width:0.35}});
-        d2Rows.filter(function(r){return r.v>0;}).forEach(function(r,ri){
-          const ry5=cy+1.44+ri*0.42;
-          sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:ry5+0.06,w:0.09,h:0.09,fill:{color:r.c},line:{type:"none"}});
-          sSC.addText(r.l,{x:cx+0.25,y:ry5,w:scCW-0.70,h:0.22,fontSize:8.5,color:"0F172A",fontFace:"Calibri",margin:0,shrinkText:true});
-          sSC.addText(String(r.v),{x:cx+scCW-0.42,y:ry5,w:0.30,h:0.22,fontSize:8.5,bold:true,color:r.c,fontFace:"Calibri",align:"right",margin:0});
-        });
-      } else if(card.type==="hubs"){
-        if(scHubs.length===0){
-          sSC.addText("Aucun flux défini",{x:cx+0.12,y:cy+0.50,w:scCW-0.24,h:0.30,fontSize:9,color:"5577AA",fontFace:"Calibri",margin:0});
-        } else {
-          const scMaxConn=scConn[scHubs[0].id]||1;
-          scHubs.forEach(function(a,hi){
-            const hy=cy+0.44+hi*0.60;
-            const conn3=scConn[a.id]||0;
-            const bw7=(conn3/scMaxConn)*(scCW-0.70);
-            sSC.addText(a.name,{x:cx+0.12,y:hy,w:scCW-0.28,h:0.22,fontSize:9,bold:true,color:"0F172A",fontFace:"Calibri",margin:0,shrinkText:true});
-            sSC.addShape(pres.shapes.RECTANGLE,{x:cx+0.12,y:hy+0.26,w:bw7,h:0.14,fill:{color:card.accent},line:{type:"none"}});
-            sSC.addText(String(conn3)+" cx",{x:cx+0.18+bw7,y:hy+0.24,w:0.50,h:0.18,fontSize:8,bold:true,color:card.accent,fontFace:"Calibri",margin:0});
-            sSC.addText(a.domain,{x:cx+0.12,y:hy+0.42,w:scCW-0.24,h:0.14,fontSize:7,color:"64748B",fontFace:"Calibri",margin:0,shrinkText:true});
-          });
-        }
-      }
-    });
-    // Bandeau chiffres bas
-    const scInterDoms=new Set();
-    Object.keys(scPairs).forEach(function(k){scInterDoms.add(k.split(" → ")[0]);});
-    const scBsy=scCY0+scCH+0.16;
-    sSC.addShape(pres.shapes.RECTANGLE,{x:0.25,y:scBsy,w:9.50,h:0.76,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
-    const scBKpi=[
-      {l:"Total flux",v:flows.length,c:"6366F1"},
-      {l:"Flux inter-domaines",v:scTotI,c:"8B5CF6"},
-      {l:"Ratio flux / app",v:apps.length?+(flows.length/apps.length).toFixed(1):0,c:"22D3EE"},
-      {l:"Domaines avec flux sortants",v:scInterDoms.size,c:"F59E0B"},
-    ];
-    scBKpi.forEach(function(k,i){
-      const bkx2=0.60+i*2.30;
-      sSC.addShape(pres.shapes.RECTANGLE,{x:bkx2-0.08,y:scBsy+0.06,w:0.04,h:0.65,fill:{color:k.c},line:{type:"none"}});
-      sSC.addText(String(k.v),{x:bkx2+0.06,y:scBsy+0.06,w:1.80,h:0.40,fontSize:24,bold:true,color:k.c,fontFace:"Trebuchet MS",margin:0});
-      sSC.addText(k.l,{x:bkx2+0.06,y:scBsy+0.48,w:2.05,h:0.22,fontSize:7.5,color:"64748B",fontFace:"Calibri",margin:0});
-    });
-    }// end sSC block
 
     pres.writeFile({fileName:"Cartographie_Applicative.pptx"});
   };
