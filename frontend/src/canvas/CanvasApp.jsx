@@ -863,6 +863,12 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     pres.author="Cartographe";
     pres.title="Cartographie Applicative";
     const W=13.333, H=7.5;
+    // Wrapper : ajoute automatiquement le logo client en haut à droite de chaque slide
+    const _addSlide=function(){
+      var sld=pres.addSlide();
+      if(_opts.clientLogo){sld.addImage({data:_opts.clientLogo,x:12.10,y:0.06,w:1.00,h:0.46,sizing:{type:"contain",w:1.00,h:0.46}});}
+      return sld;
+    };
     const mkSh=()=>({type:"outer",blur:4,offset:2,color:"000000",opacity:0.12,angle:135});
     // Slides hérités conçus pour 10×5.625 → proxy d'échelle uniforme vers 13.333×7.5 (même ratio 16:9)
     const K=W/10;
@@ -889,11 +895,10 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     // ─── Slide 0: Synthèse & Messages clés (premier slide) ───
     {
     const sccp=cp;
-    const sSC=SS(pres.addSlide());
+    const sSC=SS(_addSlide());
     sSC.background={color:"F8F9FC"};
     sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.60,fill:{color:sccp},line:{type:"none"}});
     sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0.585,w:10,h:0.022,fill:{color:"FFFFFF",transparency:70},line:{type:"none"}});
-    if(_opts.clientLogo){sSC.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.52,sizing:{type:"contain",w:0.90,h:0.52}});}
     sSC.addText("SYNTHÈSE & MESSAGES CLÉS",{x:0.35,y:0.08,w:8,h:0.46,fontSize:22,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
     // Données
     const scPairs={};
@@ -1009,7 +1014,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     }// end sSC block
     // ─── Slide 1: Title ───
     if(_opts.inclExecSlides){
-    const s1=SS(pres.addSlide());
+    const s1=SS(_addSlide());
     s1.background={color:"FFFFFF"};
     // Left accent panel
     s1.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:0.18,h:5.625,fill:{color:cp},line:{type:"none"}});
@@ -1038,12 +1043,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
     // --- Slide Synthese Executive ---
     {
-    const sSX=SS(pres.addSlide());
+    const sSX=SS(_addSlide());
     sSX.background={color:"F8F9FC"};
     // Bandeau header clair
     sSX.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.60,fill:{color:cp},line:{type:"none"}});
     sSX.addShape(pres.shapes.RECTANGLE,{x:0,y:0.585,w:10,h:0.022,fill:{color:"FFFFFF",transparency:70},line:{type:"none"}});
-    if(_opts.clientLogo){sSX.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.52,sizing:{type:"contain",w:0.90,h:0.52}});}
     sSX.addText("SYNTHÈSE EXÉCUTIVE",{x:0.35,y:0.08,w:7.5,h:0.46,fontSize:22,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
     sSX.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:7.5,y:0.18,w:2.2,h:0.25,fontSize:9,color:"FFFFFFAA",fontFace:"Calibri",align:"right",margin:0});
     // Calculs D1/D2/risques
@@ -1145,11 +1149,10 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         {label:"CARTOGRAPHIE PAR DOMAINE — STATUT DAY 1 (CLOSING)",field:"statusD1",colorMap:d1Colors,legend:[["Transfert TSA","F59E0B"],["Maintien","10B981"],["Rebuild","F97316"],["Abandon","EF4444"],["Non défini","94A3B8"]]},
         {label:"CARTOGRAPHIE PAR DOMAINE — STATUT DAY 2 (CIBLE)",field:"statusD2",colorMap:d2Colors,legend:[["Clone & Clean","3B82F6"],["Transfert","10B981"],["Rebuild","8B5CF6"],["Abandon","EF4444"],["Non défini","94A3B8"]]},
       ].forEach(function(cfg){
-        const dsSlide=SS(pres.addSlide());
+        const dsSlide=SS(_addSlide());
         dsSlide.background={color:"F8F9FC"};
         // Header
         dsSlide.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.50,fill:{color:cp},line:{type:"none"}});
-        if(_opts.clientLogo){dsSlide.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});}
         dsSlide.addText(cfg.label,{x:0.30,y:0.08,w:8.0,h:0.35,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
         // Legend
         var legX=0.30,legY=0.58;
@@ -1166,10 +1169,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         const domPad2=0.06,interDomGap2=0.05;
         const slideStartY=0.88,slideMaxY=5.55;
         function addDsSlideNew(){
-          const sl=SS(pres.addSlide());
+          const sl=SS(_addSlide());
           sl.background={color:"F8F9FC"};
           sl.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.50,fill:{color:cp},line:{type:"none"}});
-          if(_opts.clientLogo){sl.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});}
           sl.addText(cfg.label,{x:0.30,y:0.08,w:8.0,h:0.35,fontSize:13,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
           var legX2=0.30,legY2=0.58;
           cfg.legend.forEach(function(le){
@@ -1349,10 +1351,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     };
 
     const drawCartoSlide=(title,subset,subFlows,showFlows,showLabels=true,greyedIds=null)=>{
-      const sC=pres.addSlide();
+      const sC=_addSlide();
       sC.background={color:"FFFFFF"};
       const sW=13.333,sH=7.5;
-      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.10,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
 
       // Helper : line segment from (x1,y1) to (x2,y2) — always positive w/h with flipH/flipV
       // so OOXML extent is valid (negative cx/cy is silently dropped by PowerPoint).
@@ -1803,14 +1804,14 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
     // ── Hub radial slide : hub au centre, voisins en couronne ──
     const drawHubRadialSlide=(hub,subset,subFlows,totalFlowCount)=>{
-      const sC=pres.addSlide();
+      const sC=_addSlide();
       sC.background={color:"FFFFFF"};
       const sW=13.333,sH=7.5;
       // Header bar
       sC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:sW,h:0.58,fill:{color:cp||"0B2545"},line:{type:"none"}});
       sC.addText("HUB · "+hub.name.toUpperCase(),{x:0.3,y:0.10,w:sW-1.6,h:0.38,fontSize:16,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
       sC.addText((totalFlowCount||0)+" flux · "+hub.domain,{x:0.3,y:0.40,w:6,h:0.18,fontSize:8,color:"BFD7FF",fontFace:"Calibri",margin:0});
-      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.05,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
+
       const CX=0.3,CY=0.70,CW=sW-0.6,CH=sH-0.85;
       const cx=CX+CW/2,cy=CY+CH/2;
       const hubDomColor=(_pDC[hub.domain]||_pDC.Autre).ac.replace("#","");
@@ -1934,7 +1935,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     // ── Hub détaillé : panneau gauche = index · panneau droit = carto radiale ──
     const drawHubDetailSlide=(hub,subset,subFlows,totalFlowCount)=>{
       if(subFlows.length===0)return;
-      const sC=pres.addSlide();
+      const sC=_addSlide();
       sC.background={color:"FFFFFF"};
       const sW=13.333,sH=7.5;
 
@@ -1949,7 +1950,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       sC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:sW,h:HDR,fill:{color:cp||"0B2545"},line:{type:"none"}});
       sC.addText("DÉTAIL FLUX · "+hub.name.toUpperCase(),{x:0.20,y:0.08,w:RP_W,h:0.32,fontSize:15,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
       sC.addText(subFlows.length+" flux · "+hub.domain,{x:0.20,y:0.38,w:6,h:0.18,fontSize:8,color:"BFD7FF",fontFace:"Calibri",margin:0});
-      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.06,w:1.00,h:0.46,sizing:{type:"contain",w:1.00,h:0.46}});}
+
 
       // Séparateur vertical
       sC.addShape(pres.shapes.RECTANGLE,{x:SEP,y:HDR,w:0.015,h:sH-HDR,fill:{color:"E5E7EB"},line:{type:"none"}});
@@ -2162,13 +2163,13 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     // ── Consolidated A supprimé (vue secteurs) ──
     const drawConsolidatedSectorSlide=function(){return;// supprimé
       if(apps.length===0)return;
-      var sC=pres.addSlide();
+      var sC=_addSlide();
       sC.background={color:"F8F9FA"};
       var sW=13.333,sH=7.5;
       sC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:sW,h:0.58,fill:{color:cp||"0B2545"},line:{type:"none"}});
       sC.addText("CARTOGRAPHIE CONSOLIDÉE — VUE PAR SECTEURS",{x:0.3,y:0.08,w:sW-2.5,h:0.28,fontSize:14,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
       sC.addText(apps.length+" applications · "+[...new Set(apps.map(function(a){return a.domain;}))].length+" domaines · "+flows.length+" flux",{x:0.3,y:0.37,w:7,h:0.17,fontSize:8,color:"BFD7FF",fontFace:"Calibri",margin:0});
-      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.05,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
+
       var CX=0.20,CY=0.68,CW=sW-0.40,CH=sH-0.78;
       var cx=CX+CW/2,cy=CY+CH/2;
       // Hub = app with most flows
@@ -2332,13 +2333,13 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     // ── Consolidated — clusters par domaine (Options A+B : hub central si dominant, sinon intégré) ──
     const drawConsolidatedRingSlide=function(){
       if(apps.length===0)return;
-      var sC=pres.addSlide();
+      var sC=_addSlide();
       sC.background={color:"FFFFFF"};
       var sW=13.333,sH=7.5;
       sC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:sW,h:0.58,fill:{color:cp||"0B2545"},line:{type:"none"}});
       sC.addText("CARTOGRAPHIE CONSOLIDÉE — CLUSTERS PAR DOMAINE",{x:0.3,y:0.08,w:sW-2.5,h:0.28,fontSize:14,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
       sC.addText(apps.length+" applications · "+[...new Set(apps.map(function(a){return a.domain;}))].length+" domaines · "+flows.length+" flux",{x:0.3,y:0.37,w:7,h:0.17,fontSize:8,color:"BFD7FF",fontFace:"Calibri",margin:0});
-      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.05,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
+
       var CX=0.20,CY=0.68,CW=sW-0.40,CH=sH-0.78;
       var cx=CX+CW/2,cy=CY+CH/2;
       // Hub = app with most flows
@@ -2427,13 +2428,13 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     // ── Consolidated — vue domaine central (Option C) ──
     const drawDomainCentricSlide=function(){
       if(apps.length===0)return;
-      var sC=pres.addSlide();
+      var sC=_addSlide();
       sC.background={color:"FFFFFF"};
       var sW=13.333,sH=7.5;
       sC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:sW,h:0.58,fill:{color:cp||"0B2545"},line:{type:"none"}});
       sC.addText("CARTOGRAPHIE CONSOLIDÉE — VUE PAR DOMAINE PIVOT",{x:0.3,y:0.08,w:sW-2.5,h:0.28,fontSize:14,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
       sC.addText(apps.length+" applications · "+[...new Set(apps.map(function(a){return a.domain;}))].length+" domaines · "+flows.length+" flux",{x:0.3,y:0.37,w:7,h:0.17,fontSize:8,color:"BFD7FF",fontFace:"Calibri",margin:0});
-      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.05,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
+
       var CX=0.20,CY=0.68,CW=sW-0.40,CH=sH-0.78;
       var cx=CX+CW/2,cy=CY+CH/2;
       // Hub app (for visual highlight inside its cluster)
@@ -2536,12 +2537,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       if(rows.length===0)return;
       const totalPages=Math.ceil(rows.length/ROWS_PER_SLIDE);
       for(var page=0;page<totalPages;page++){
-        const sT=pres.addSlide();
+        const sT=_addSlide();
         sT.background={color:"FFFFFF"};
         const suffix=totalPages>1?" ("+(page+1)+"/"+totalPages+")":"";
         sT.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.333,h:0.55,fill:{color:cp||"0B2545"},line:{type:"none"}});
         sT.addText("RÉCAPITULATIF DES FLUX"+suffix,{x:0.3,y:0.10,w:12,h:0.35,fontSize:14,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
-        if(_opts.clientLogo){sT.addImage({data:_opts.clientLogo,x:12.10,y:0.10,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
         const pageRows=rows.slice(page*ROWS_PER_SLIDE,(page+1)*ROWS_PER_SLIDE);
         const hdrOpts=function(txt){return {text:txt,options:{bold:true,fill:{color:"1E293B"},color:"FFFFFF",fontSize:8,fontFace:"Calibri",valign:"middle"}};};
         const header=[[hdrOpts("Domaine"),hdrOpts("App. Source"),hdrOpts("App. Cible"),hdrOpts("Flux / Protocole"),hdrOpts("Statut Day 1"),hdrOpts("Statut Day 2")]];
@@ -2567,11 +2567,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
     // ── Vue agrégée domaine→domaine (diagramme circulaire d'interactions) ──
     const drawDomainFlowSlide=(title,subset,subFlows)=>{
-      const sC=pres.addSlide();
+      const sC=_addSlide();
       sC.background={color:"FFFFFF"};
       const sW=13.333,sH=7.5;
       sC.addText(title,{x:0.3,y:0.12,w:sW-0.6,h:0.5,fontSize:20,bold:true,color:"0B2545",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
-      if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.10,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
+
       const byDom={};
       subset.forEach(a=>{(byDom[a.domain]=byDom[a.domain]||[]).push(a);});
       const domList=Object.keys(byDom).sort((a,b)=>byDom[b].length-byDom[a].length);
@@ -2712,10 +2712,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     var drawSynthSlide=function(synApps,synFlows,titleSuffix){
       var _synSatS={v:1.0};
 
-      var synSl=pres.addSlide();// raw slide: synthesis computes directly in 13.333x7.5 wide space (no SS proxy)
+      var synSl=_addSlide();// raw slide: synthesis computes directly in 13.333x7.5 wide space (no SS proxy)
       synSl.background={color:"F5F6FA"};
       synSl.addText("SYNTH\u00C8SE \u2014 CARTOGRAPHIE & FLUX"+(titleSuffix||""),{x:0.3,y:0.05,w:6,h:0.35,fontSize:13,bold:true,color:"0B2545",fontFace:"Trebuchet MS",margin:0});
-      if(_opts.clientLogo){synSl.addImage({data:_opts.clientLogo,x:12.10,y:0.10,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
       _sharedSynPos={};// reset
       var synPos=_sharedSynPos;
       var synDoms=[...new Set(synApps.map(function(a){return a.domain;}))];
@@ -3298,7 +3297,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             var domIds=new Set(domApps.map(function(a){return a.id;}));
             var domFlows=synFlows2.filter(function(f){return domIds.has(f.from)&&domIds.has(f.to);});
             if(domFlows.length===0)return;
-            var dSlide=SS(pres.addSlide());
+            var dSlide=SS(_addSlide());
             dSlide.background={color:"F5F6FA"};
             var domCC=_pDC[dom]||_pDC.Autre;
             var hubCC=_pDC[_hubDom.domain]||_pDC.Autre;
@@ -3401,7 +3400,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           return;
         }
 
-        var detSlide=pres.addSlide();
+        var detSlide=_addSlide();
         detSlide.background={color:"F5F6FA"};
         detSlide.addText("SYNTH\u00C8SE D\u00C9TAILL\u00C9E \u2014 FLUX INDIVIDUELS"+(sfx2||""),{x:0.3,y:0.05,w:8,h:0.35,fontSize:13,bold:true,color:"0B2545",fontFace:"Trebuchet MS",margin:0});
         detSlide.addText(synApps2.length+" apps \u00B7 "+synFlows2.length+" flux \u00B7 "+[...new Set(synApps2.map(function(a){return a.domain;}))].length+" domaines",{x:8.5,y:0.08,w:4.5,h:0.25,fontSize:6,color:"888888",fontFace:"Calibri",align:"right",margin:0});
@@ -3586,10 +3585,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     }// end inclFocusDomain
     if(false){// Vue d'ensemble KPIs supprimée
     // ─── Slide 2: Vue d'ensemble KPIs ───
-    const s2=SS(pres.addSlide());
+    const s2=SS(_addSlide());
     s2.background={color:"F5F6FA"};
     s2.addText("Vue d'ensemble",{x:0.6,y:0.3,w:8,h:0.6,fontSize:28,bold:true,color:"0B2545",fontFace:"Trebuchet MS",margin:0});
-    if(_opts.clientLogo){s2.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});}
     const kpis=[{l:"Applications",v:apps.length,c:"548CA8"},{l:"Domaines",v:doms.length,c:"9D4EDD"},{l:"Interfaces",v:flows.length,c:"52B788"},{l:"Apps critiques",v:apps.filter(a=>a.criticality==="Haute").length,c:"E06C75"}];
     kpis.forEach((k,i)=>{
       const kx=0.5+i*2.35;
@@ -3607,10 +3605,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
     }// end inclKPI
     // ─── Final slide: Matrice des flux ───
-    const sf=SS(pres.addSlide());
+    const sf=SS(_addSlide());
     sf.background={color:"F5F6FA"};
     sf.addText("Matrice des interfaces inter-domaines",{x:0.6,y:0.3,w:8,h:0.6,fontSize:24,bold:true,color:"0B2545",fontFace:"Trebuchet MS",margin:0});
-    if(_opts.clientLogo){sf.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});}
     const mtx={};flows.forEach(f=>{const fd=apps.find(a=>a.id===f.from)?.domain,td=apps.find(a=>a.id===f.to)?.domain;if(fd&&td)mtx[fd+"→"+td]=(mtx[fd+"→"+td]||0)+1;});
     const mHdr=[{text:"",options:{fill:{color:"0B2545"},fontSize:8}},...doms.map(d=>({text:d,options:{fill:{color:"0B2545"},color:"FFFFFF",fontSize:10,bold:true,align:"center"}}))];
     const mRows=doms.map(fr=>[{text:fr,options:{fontSize:10,bold:true,color:(_pDC[fr]||_pDC.Autre).ac.replace("#","")}},...doms.map(to=>{const v=mtx[fr+"→"+to]||0;return {text:v?String(v):"—",options:{fontSize:10,align:"center",color:v?"1a1a1a":"CCCCCC",fill:v?{color:(_pDC[fr]||_pDC.Autre).ac.replace("#",""),transparency:85}:{color:"FFFFFF"}}};})]);
@@ -3631,12 +3628,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         if(sortedApps.length===0)return;
         const totalPages=Math.ceil(sortedApps.length/ROWS_PER_SLIDE);
         for(var page=0;page<totalPages;page++){
-          var sA=pres.addSlide();
+          var sA=_addSlide();
           sA.background={color:"FFFFFF"};
           var suffix=totalPages>1?" ("+(page+1)+"/"+totalPages+")":"";
           sA.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.333,h:0.55,fill:{color:cp||"0B2545"},line:{type:"none"}});
           sA.addText("RÉCAPITULATIF DES APPLICATIONS"+suffix,{x:0.3,y:0.10,w:12,h:0.35,fontSize:14,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
-          if(_opts.clientLogo){sA.addImage({data:_opts.clientLogo,x:12.10,y:0.10,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
           var pageApps=sortedApps.slice(page*ROWS_PER_SLIDE,(page+1)*ROWS_PER_SLIDE);
           var hdr=function(txt){return {text:txt,options:{bold:true,fill:{color:"1E293B"},color:"FFFFFF",fontSize:9,fontFace:"Calibri",valign:"middle"}};};
           var header=[[hdr("Domaine"),hdr("Application"),hdr("Statut Day 1"),hdr("Statut Day 2")]];
@@ -3661,10 +3657,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     }
     if(_opts.inclLegend){
     // ─── Slide Légende ───
-    const sLeg=SS(pres.addSlide());
+    const sLeg=SS(_addSlide());
     sLeg.background={color:"F5F6FA"};
     sLeg.addText("Légende",{x:0.6,y:0.3,w:4,h:0.5,fontSize:24,bold:true,color:"0B2545",fontFace:"Trebuchet MS",margin:0});
-    if(_opts.clientLogo){sLeg.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});}
 
     // Criticité
     sLeg.addText("CRITICITÉ",{x:0.6,y:1.0,w:3,h:0.3,fontSize:10,bold:true,color:"0B2545",fontFace:"Calibri",margin:0});
