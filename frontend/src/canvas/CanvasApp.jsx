@@ -1962,118 +1962,129 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       sC.addText(hub.domain+" · "+(deg[hub.id]||0)+" flux",{x:pos[hub.id].x+0.06,y:pos[hub.id].y+hubH*0.57,w:hubW-0.12,h:hubH*0.43,fontSize:7,color:"D0E8FF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
     };
 
-    // ── Consolidated C : hub au centre, anneau unique ordonné par domaine ──
+    // ── Consolidated C : hub au centre, clusters rectangulaires par domaine ──
     const drawConsolidatedRingSlide=function(){
       if(apps.length===0)return;
       var sC=pres.addSlide();
       sC.background={color:"FFFFFF"};
       var sW=13.333,sH=7.5;
       sC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:sW,h:0.58,fill:{color:cp||"0B2545"},line:{type:"none"}});
-      sC.addText("CARTOGRAPHIE CONSOLIDÉE — ANNEAU PAR DOMAINE",{x:0.3,y:0.08,w:sW-2.5,h:0.28,fontSize:14,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
+      sC.addText("CARTOGRAPHIE CONSOLIDÉE — CLUSTERS PAR DOMAINE",{x:0.3,y:0.08,w:sW-2.5,h:0.28,fontSize:14,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
       sC.addText(apps.length+" applications · "+[...new Set(apps.map(function(a){return a.domain;}))].length+" domaines · "+flows.length+" flux",{x:0.3,y:0.37,w:7,h:0.17,fontSize:8,color:"BFD7FF",fontFace:"Calibri",margin:0});
       if(_opts.clientLogo){sC.addImage({data:_opts.clientLogo,x:12.10,y:0.05,w:1.00,h:0.48,sizing:{type:"contain",w:1.00,h:0.48}});}
       var CX=0.20,CY=0.68,CW=sW-0.40,CH=sH-0.78;
       var cx=CX+CW/2,cy=CY+CH/2;
-      // Hub
-      var deg={};apps.forEach(function(a){deg[a.id]=0;});
-      flows.forEach(function(f){deg[f.from]=(deg[f.from]||0)+1;deg[f.to]=(deg[f.to]||0)+1;});
-      var hub=apps.reduce(function(best,a){return(deg[a.id]||0)>(deg[best.id]||0)?a:best;},apps[0]);
-      var hubW=1.70,hubH=0.72;
+      // Hub = app with most flows
+      var degMap={};apps.forEach(function(a){degMap[a.id]=0;});
+      flows.forEach(function(f){degMap[f.from]=(degMap[f.from]||0)+1;degMap[f.to]=(degMap[f.to]||0)+1;});
+      var hub=apps.reduce(function(best,a){return(degMap[a.id]||0)>(degMap[best.id]||0)?a:best;},apps[0]);
+      var hubW=1.60,hubH=0.70;
       var ring1Ids=new Set();
       flows.forEach(function(f){if(f.from===hub.id)ring1Ids.add(f.to);if(f.to===hub.id)ring1Ids.add(f.from);});
-      // Non-hub apps sorted by domain then name → single ring
-      var nonHubApps=[...apps.filter(function(a){return a.id!==hub.id;})].sort(function(a,b){return a.domain.localeCompare(b.domain)||a.name.localeCompare(b.name);});
-      var N=nonHubApps.length;
-      // Ellipse geometry
-      var rx=Math.min(CW/2-0.70,Math.max(2.0,N*0.31));
-      var ry=Math.min(CH/2-0.60,rx*0.72);
-      var aW=Math.min(1.20,Math.max(0.52,Math.PI*2*rx/Math.max(N,1)*0.66));
-      var aH=0.37;
-      var rLabelX=rx+0.52,rLabelY=ry+0.48;
-      // Position map
+      // Cluster grid constants (app boxes inside clusters)
+      var cAW=0.95,cAH=0.30,cGap=0.05,cHdr=0.22,cPad=0.08;
+      // Build domain cluster info
+      var domOrder=[...new Set(apps.filter(function(a){return a.id!==hub.id;}).map(function(a){return a.domain;}))].sort();
+      var NDoms=domOrder.length;
+      if(NDoms===0)return;
+      var domInfo={};
+      domOrder.forEach(function(d){
+        var dApps=apps.filter(function(a){return a.domain===d&&a.id!==hub.id;}).sort(function(a,b){return a.name.localeCompare(b.name);});
+        var k=dApps.length;
+        var cols=k<=1?1:k<=4?2:3;
+        var rows=Math.ceil(k/cols);
+        domInfo[d]={dApps:dApps,k:k,cols:cols,rows:rows,cW:cPad*2+cols*cAW+(cols-1)*cGap,cH:cPad*2+cHdr+rows*cAH+(rows-1)*cGap};
+      });
+      // Ellipse radii for cluster centers — adapt to cluster sizes
+      var maxCW=domOrder.reduce(function(m,d){return Math.max(m,domInfo[d].cW);},0);
+      var maxCH=domOrder.reduce(function(m,d){return Math.max(m,domInfo[d].cH);},0);
+      var rxEll=Math.min(CW/2-maxCW/2-0.10,Math.max(2.6,hubW/2+maxCW*0.55+NDoms*0.14));
+      var ryEll=Math.min(CH/2-maxCH/2-0.10,Math.max(1.9,hubH/2+maxCH*0.55+NDoms*0.10));
+      // Cluster center positions on ellipse
+      var domPos={};
+      domOrder.forEach(function(d,i){
+        var ang=-Math.PI/2+2*Math.PI*i/NDoms;
+        domPos[d]={ccx:cx+rxEll*Math.cos(ang),ccy:cy+ryEll*Math.sin(ang)};
+      });
+      // App positions within clusters (for per-app pos map)
       var pos={};
       pos[hub.id]={x:cx-hubW/2,y:cy-hubH/2,w:hubW,h:hubH,cx:cx,cy:cy};
-      nonHubApps.forEach(function(a,i){
-        var ang=-Math.PI/2+2*Math.PI*i/N;
-        var acx=cx+rx*Math.cos(ang),acy=cy+ry*Math.sin(ang);
-        pos[a.id]={x:acx-aW/2,y:acy-aH/2,w:aW,h:aH,cx:acx,cy:acy};
-      });
-      // Domain labels + separator ticks between groups
-      var domOrder=[...new Set(nonHubApps.map(function(a){return a.domain;}))];
       domOrder.forEach(function(d){
-        var firstIdx=nonHubApps.findIndex(function(a){return a.domain===d;});
-        var lastIdx=nonHubApps.map(function(a){return a.domain;}).lastIndexOf(d);
-        var midAng=-Math.PI/2+2*Math.PI*(firstIdx+lastIdx)/2/N;
-        var lx=cx+rLabelX*Math.cos(midAng),ly=cy+rLabelY*Math.sin(midAng);
-        var dc=(_pDC[d]||_pDC.Autre).ac.replace("#","");
-        var lw=1.0,lh=0.22;
-        sC.addShape(pres.shapes.RECTANGLE,{x:lx-lw/2,y:ly-lh/2,w:lw,h:lh,fill:{color:dc},line:{type:"none"}});
-        sC.addText(d,{x:lx-lw/2,y:ly-lh/2,w:lw,h:lh,fontSize:6.5,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
-        // Separator tick before first app of this domain
-        if(firstIdx>0){
-          var sepAng=-Math.PI/2+2*Math.PI*(firstIdx-0.5)/N;
-          var sx=cx+rx*Math.cos(sepAng),sy=cy+ry*Math.sin(sepAng);
-          var ex=cx+(rx+0.42)*Math.cos(sepAng),ey=cy+(ry+0.38)*Math.sin(sepAng);
-          var sw=Math.abs(ex-sx)||0.001,sh=Math.abs(ey-sy)||0.001;
-          var so={x:Math.min(sx,ex),y:Math.min(sy,ey),w:sw,h:sh,line:{color:dc,width:1.2,dashType:"solid"}};
-          if(ex<sx)so.flipH=true;if(ey<sy)so.flipV=true;
-          sC.addShape(pres.shapes.LINE,so);
-        }
+        var di=domInfo[d],dp=domPos[d];
+        var bx=dp.ccx-di.cW/2,by=dp.ccy-di.cH/2;
+        di.dApps.forEach(function(a,i){
+          var col=i%di.cols,row=Math.floor(i/di.cols);
+          var ax=bx+cPad+col*(cAW+cGap),ay=by+cPad+cHdr+row*(cAH+cGap);
+          pos[a.id]={x:ax,y:ay,w:cAW,h:cAH,cx:ax+cAW/2,cy:ay+cAH/2};
+        });
       });
+      // Cluster-level position map (used for inter-cluster arrows)
+      var clPos={"__hub__":{cx:cx,cy:cy,w:hubW,h:hubH}};
+      domOrder.forEach(function(d){var di=domInfo[d],dp=domPos[d];clPos[d]={cx:dp.ccx,cy:dp.ccy,w:di.cW,h:di.cH};});
       // Helpers
       var edgePt=function(p,tx,ty){var dx=tx-p.cx,dy=ty-p.cy;if(Math.abs(dx)<0.001&&Math.abs(dy)<0.001)return{x:p.cx,y:p.cy};var sx=(p.w/2)/Math.abs(dx||0.001),sy=(p.h/2)/Math.abs(dy||0.001),s=Math.min(sx,sy)*0.95;return{x:p.cx+dx*s,y:p.cy+dy*s};};
       var drawSeg=function(x1,y1,x2,y2,arrow,color,width){var w=Math.abs(x2-x1),h=Math.abs(y2-y1);if(w<0.003&&h<0.003)return;var o={x:Math.min(x1,x2),y:Math.min(y1,y2),w:w||0.001,h:h||0.001,line:{color:color,width:width,dashType:"solid"}};if(x2<x1)o.flipH=true;if(y2<y1)o.flipV=true;if(arrow){o.line.endArrowType="triangle";o.line.endArrowSize=5;}sC.addShape(pres.shapes.LINE,o);};
       var addBadge=function(x,y,val,col){var bw=val>=10?0.26:0.20,bh=0.14;sC.addShape(pres.shapes.RECTANGLE,{x:x-bw/2,y:y-bh/2,w:bw,h:bh,fill:{color:col},line:{type:"none"}});sC.addText(String(val),{x:x-bw/2,y:y-bh/2,w:bw,h:bh,fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});};
-      // Aggregate flows
-      var pAgg={};
+      // Aggregate flows at cluster level (one arrow per inter-cluster pair)
+      var getClKey=function(appId){return appId===hub.id?"__hub__":(apps.find(function(a){return a.id===appId;})||{domain:"__unk__"}).domain;};
+      var clAgg={};
       flows.forEach(function(f){
-        if(!pos[f.from]||!pos[f.to])return;
-        var ka=f.from<f.to?f.from:f.to,kb=f.from<f.to?f.to:f.from;
-        var k=ka+"|"+kb;
-        if(!pAgg[k])pAgg[k]={a:ka,b:kb,out:0,in:0};
-        if(f.from===ka)pAgg[k].out++;else pAgg[k].in++;
+        var sc=getClKey(f.from),tc=getClKey(f.to);
+        if(!sc||!tc||sc===tc)return;
+        var ka=sc<tc?sc:tc,kb=sc<tc?tc:sc;
+        var k=ka+"|||"+kb;
+        if(!clAgg[k])clAgg[k]={a:ka,b:kb,out:0,in:0};
+        if(sc===ka)clAgg[k].out++;else clAgg[k].in++;
       });
-      // Draw edges — hub + ring1↔ring1 only
       var flowCol=cp||"2979FF";
-      Object.values(pAgg).forEach(function(pa){
-        var pA=pos[pa.a],pB=pos[pa.b];if(!pA||!pB)return;
-        var isHubEdge=pa.a===hub.id||pa.b===hub.id;
-        var isR1R1=ring1Ids.has(pa.a)&&ring1Ids.has(pa.b);
-        if(!isHubEdge&&!isR1R1)return;
-        var total=pa.out+pa.in;
-        var lw=Math.min(2.5,0.8+total*0.18);
+      // Layer 1: cluster backgrounds + domain headers + app boxes
+      domOrder.forEach(function(d){
+        var di=domInfo[d],dp=domPos[d];
+        var dc=(_pDC[d]||_pDC.Autre).ac.replace("#","");
+        var bx=dp.ccx-di.cW/2,by=dp.ccy-di.cH/2;
+        // Cluster background
+        sC.addShape(pres.shapes.RECTANGLE,{x:bx,y:by,w:di.cW,h:di.cH,fill:{color:"EEF2FB"},line:{color:dc,width:1.2},shadow:{type:"outer",blur:4,offset:2,color:"000000",opacity:0.10,angle:135}});
+        // Domain header band
+        sC.addShape(pres.shapes.RECTANGLE,{x:bx,y:by,w:di.cW,h:cHdr,fill:{color:dc},line:{type:"none"}});
+        sC.addText(d,{x:bx+0.05,y:by,w:di.cW-0.10,h:cHdr,fontSize:7,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
+        // App boxes in grid
+        di.dApps.forEach(function(a,i){
+          var col=i%di.cols,row=Math.floor(i/di.cols);
+          var ax=bx+cPad+col*(cAW+cGap),ay=by+cPad+cHdr+row*(cAH+cGap);
+          var isArret=a.status==="Arrêt";
+          var isR1=ring1Ids.has(a.id);
+          sC.addShape(pres.shapes.RECTANGLE,{x:ax,y:ay,w:cAW,h:cAH,fill:{color:isArret?"FFEAEA":"FFFFFF"},line:{color:isArret?"E06C75":dc,width:isR1?0.9:0.6}});
+          if(isR1){sC.addShape(pres.shapes.RECTANGLE,{x:ax,y:ay,w:0.05,h:cAH,fill:{color:dc},line:{type:"none"}});}
+          sC.addText(a.name,{x:ax+(isR1?0.08:0.04),y:ay,w:cAW-(isR1?0.12:0.08),h:cAH,fontSize:isR1?6.5:6,bold:isR1,color:isArret?"990000":"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
+        });
+      });
+      // Layer 2: inter-cluster arrows (drawn on top so arrowheads visible at cluster edges)
+      Object.values(clAgg).forEach(function(ca){
+        var pA=clPos[ca.a],pB=clPos[ca.b];if(!pA||!pB)return;
+        var total=ca.out+ca.in;
+        var lw=Math.min(2.8,1.0+total*0.16);
         var p1=edgePt(pA,pB.cx,pB.cy),p2=edgePt(pB,pA.cx,pA.cy);
-        if(pa.out>0&&pa.in>0){
+        if(ca.out>0&&ca.in>0){
           var dx=p2.x-p1.x,dy=p2.y-p1.y,len=Math.hypot(dx,dy)||1;
-          var ox=-dy/len*0.05,oy=dx/len*0.05;
-          drawSeg(p1.x+ox,p1.y+oy,p2.x+ox,p2.y+oy,false,"FFFFFF",lw+1.6);
+          var ox=-dy/len*0.06,oy=dx/len*0.06;
+          drawSeg(p1.x+ox,p1.y+oy,p2.x+ox,p2.y+oy,false,"FFFFFF",lw+1.8);
           drawSeg(p1.x+ox,p1.y+oy,p2.x+ox,p2.y+oy,true,flowCol,lw);
-          addBadge((p1.x+ox+p2.x+ox)/2,(p1.y+oy+p2.y+oy)/2,pa.out,flowCol);
-          drawSeg(p2.x-ox,p2.y-oy,p1.x-ox,p1.y-oy,false,"FFFFFF",lw+1.6);
+          addBadge((p1.x+ox+p2.x+ox)/2,(p1.y+oy+p2.y+oy)/2,ca.out,flowCol);
+          drawSeg(p2.x-ox,p2.y-oy,p1.x-ox,p1.y-oy,false,"FFFFFF",lw+1.8);
           drawSeg(p2.x-ox,p2.y-oy,p1.x-ox,p1.y-oy,true,flowCol,lw);
-          addBadge((p2.x-ox+p1.x-ox)/2,(p2.y-oy+p1.y-oy)/2,pa.in,flowCol);
+          addBadge((p2.x-ox+p1.x-ox)/2,(p2.y-oy+p1.y-oy)/2,ca.in,flowCol);
         }else{
-          var from=pa.out>0?p1:p2,to=pa.out>0?p2:p1;
-          drawSeg(from.x,from.y,to.x,to.y,false,"FFFFFF",lw+1.6);
+          var from=ca.out>0?p1:p2,to=ca.out>0?p2:p1;
+          drawSeg(from.x,from.y,to.x,to.y,false,"FFFFFF",lw+1.8);
           drawSeg(from.x,from.y,to.x,to.y,true,flowCol,lw);
           addBadge((from.x+to.x)/2,(from.y+to.y)/2,total,flowCol);
         }
       });
-      // Draw app boxes (non-hub)
-      nonHubApps.forEach(function(a){
-        var p=pos[a.id];if(!p)return;
-        var dc=(_pDC[a.domain]||_pDC.Autre).ac.replace("#","");
-        var isArret=a.status==="Arrêt";
-        var isR1=ring1Ids.has(a.id);
-        sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:isArret?"FFEAEA":isR1?"FFFFFF":"F4F6FA"},line:{color:isArret?"E06C75":dc,width:isR1?1.0:0.6},shadow:isR1?{type:"outer",blur:2,offset:1,color:"000000",opacity:0.09,angle:135}:undefined});
-        sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:0.05,h:p.h,fill:{color:dc},line:{type:"none"}});
-        sC.addText(a.name,{x:p.x+0.08,y:p.y,w:p.w-0.12,h:p.h,fontSize:isR1?7:6.5,bold:isR1,color:isArret?"990000":"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
-      });
-      // Hub box (top layer)
+      // Layer 3: hub box (topmost)
       var hubDC=(_pDC[hub.domain]||_pDC.Autre).ac.replace("#","");
       sC.addShape(pres.shapes.RECTANGLE,{x:pos[hub.id].x,y:pos[hub.id].y,w:hubW,h:hubH,fill:{color:hubDC},line:{color:"FFFFFF",width:2.5},shadow:{type:"outer",blur:7,offset:2,color:"000000",opacity:0.20,angle:135}});
       sC.addText("★  "+hub.name,{x:pos[hub.id].x+0.06,y:pos[hub.id].y,w:hubW-0.12,h:hubH*0.60,fontSize:12,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",align:"center",valign:"middle",margin:0,shrinkText:true});
-      sC.addText(hub.domain+" · "+(deg[hub.id]||0)+" flux",{x:pos[hub.id].x+0.06,y:pos[hub.id].y+hubH*0.57,w:hubW-0.12,h:hubH*0.43,fontSize:7,color:"D0E8FF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
+      sC.addText(hub.domain+" · "+(degMap[hub.id]||0)+" flux",{x:pos[hub.id].x+0.06,y:pos[hub.id].y+hubH*0.57,w:hubW-0.12,h:hubH*0.43,fontSize:7,color:"D0E8FF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
     };
 
     // ── Tableau récapitulatif des flux (paginé) ──
