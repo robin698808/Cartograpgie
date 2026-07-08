@@ -421,6 +421,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     flowLineStyle:"solid",    // "solid" | "dash" | "dot"
     clientPrimary:"2979FF",
     clientLogo:null,
+    statusColorsD1:{"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"6366F1","Abandon":"EF4444","Non défini":"94A3B8"},
+    statusColorsD2:{"Clone & Clean":"3B82F6","Transfert":"10B981","Rebuild":"8B5CF6","Abandon":"EF4444","Non défini":"94A3B8"},
   });
   const [fontScale,setFontScale]=useState(1); // font size multiplier (independent of card size)
   const [renCat,setRenCat]=useState(null) // {old,new} for renaming category
@@ -1273,9 +1275,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     // Style : grandes zones Catégorie (tirets + fond teinté) > Domaines (boîtes) > Chips applicatifs
     [
       {title:"ENVIRONNEMENT APPLICATIF — DAY 1",subtitle:"STATUT DE CLOSING",field:"statusD1",
-       colorMap:{"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"6366F1","Abandon":"EF4444","Non défini":"94A3B8"}},
+       colorMap:_opts.statusColorsD1||{"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"6366F1","Abandon":"EF4444","Non défini":"94A3B8"}},
       {title:"ENVIRONNEMENT APPLICATIF — DAY 2",subtitle:"VISION CIBLE",field:"statusD2",
-       colorMap:{"Clone & Clean":"3B82F6","Transfert":"10B981","Rebuild":"8B5CF6","Abandon":"EF4444","Non défini":"94A3B8"}},
+       colorMap:_opts.statusColorsD2||{"Clone & Clean":"3B82F6","Transfert":"10B981","Rebuild":"8B5CF6","Abandon":"EF4444","Non défini":"94A3B8"}},
     ].forEach(function(cfg){
       if(!apps.length)return;
 
@@ -1421,15 +1423,15 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         var catY=cY+asgn.yOff;   // asgn.yOff est déjà mis à l'échelle par sf
         var ch=catTH(catName)*sf;
 
-        // Zone catégorie : fond teinté + bordure tiretée + nom en haut à droite
+        // Zone catégorie : fond gris clair + bordure grise + nom catégorie en bleu
         sl.addShape(pres.shapes.RECTANGLE,{x:catX,y:catY,w:catColW,h:ch,
-          fill:{color:catColor,transparency:95},
-          line:{color:catColor,width:0.7,dashType:"dash"}});
+          fill:{color:"F1F5F9"},
+          line:{color:"CBD5E1",width:0.7,dashType:"dash"}});
         if(hasCats){
           var catLblW=Math.min(3.6,catColW*0.55);
           sl.addText(catName,{x:catX+catColW-catLblW-0.06,y:catY+0.04,
             w:catLblW,h:Math.max(0.18,CPTY*sf*0.75),
-            fontSize:9.5,bold:true,color:catColor,fontFace:"Trebuchet MS",
+            fontSize:9.5,bold:true,color:"1D4ED8",fontFace:"Trebuchet MS",
             align:"right",margin:0,valign:"middle",shrinkText:true,italic:true});
         }
 
@@ -6591,6 +6593,43 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
             })()}
 
           </div>
+
+            {/* ── Couleurs des statuts Day 1 & Day 2 ── */}
+            {(function(){
+              var D1_KEYS=["Transfert TSA","Maintien","Rebuild","Abandon","Non défini"];
+              var D2_KEYS=["Clone & Clean","Transfert","Rebuild","Abandon","Non défini"];
+              var colD1=exportOpts.statusColorsD1||{};
+              var colD2=exportOpts.statusColorsD2||{};
+              var setColor=function(day,key,hex){
+                var field=day===1?"statusColorsD1":"statusColorsD2";
+                var prev=exportOpts[field]||{};
+                set(field,Object.assign({},prev,{[key]:hex.replace("#","")}));
+              };
+              var ColorRow=function(day,keys,colors){
+                return <div style={{flex:1}}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#1D4ED8",textTransform:"uppercase",letterSpacing:0.7,marginBottom:8}}>
+                    {day===1?"Day 1 — Statut de Closing":"Day 2 — Vision Cible"}
+                  </div>
+                  {keys.map(function(k){
+                    var hex="#"+(colors[k]||"94A3B8");
+                    return <div key={k} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                      <input type="color" value={hex}
+                        onChange={function(e){setColor(day,k,e.target.value);}}
+                        style={{width:28,height:22,border:"1px solid "+T.border,borderRadius:4,cursor:"pointer",padding:1,flexShrink:0}}/>
+                      <span style={{fontSize:10.5,color:T.fg,flex:1}}>{k}</span>
+                      <span style={{fontSize:9,fontFamily:"monospace",color:T.fgMuted}}>{hex}</span>
+                    </div>;
+                  })}
+                </div>;
+              };
+              return <div style={{background:T.bgAlt,borderRadius:10,padding:14}}>
+                <div style={{fontSize:11,fontWeight:700,color:T.fg,marginBottom:12}}>Couleurs des statuts applicatifs</div>
+                <div style={{display:"flex",gap:24,flexWrap:"wrap"}}>
+                  {ColorRow(1,D1_KEYS,colD1)}
+                  {ColorRow(2,D2_KEYS,colD2)}
+                </div>
+              </div>;
+            })()}
 
           {/* ── Pied de page ── */}
           <div style={{padding:"12px 22px",borderTop:"1px solid "+T.border,display:"flex",gap:10,justifyContent:"space-between",alignItems:"center",position:"sticky",bottom:0,background:T.bgCard,borderRadius:"0 0 14px 14px"}}>
