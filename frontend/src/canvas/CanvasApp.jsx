@@ -1469,9 +1469,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             var st=app[cfg.field]||"Non défini";
             var stc=cfg.colorMap[st]||"94A3B8";
             sl.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy2,w:CW,h:sCH,
-              fill:{color:stc,transparency:8},line:{color:stc,width:0.3}});
-            sl.addText(app.name,{x:cx+0.05,y:cy2,w:CW-0.08,h:sCH,
-              fontSize:5.5,bold:true,color:"FFFFFF",fontFace:"Calibri",
+              fill:{color:stc,transparency:82},line:{color:stc,width:0.4}});
+            sl.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy2,w:0.05,h:sCH,
+              fill:{color:stc},line:{type:"none"}});
+            sl.addText(app.name,{x:cx+0.09,y:cy2,w:CW-0.12,h:sCH,
+              fontSize:5.5,bold:true,color:"1E293B",fontFace:"Calibri",
               margin:0,shrinkText:true,valign:"middle"});
           });
 
