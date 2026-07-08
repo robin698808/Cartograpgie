@@ -2088,6 +2088,29 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           legendRows.push({num:flowNum,color:color,dir:isOut?"→":"←",neighName:a.name,label:txt,proto:protoLabel(f.protocol||"Autre")});
         });
       });
+      // ── Correction des croisements : décalage perpendiculaire ──
+      function segsCross(a1,a2,b1,b2){
+        var dx1=a2.x-a1.x,dy1=a2.y-a1.y;
+        var dx2=b2.x-b1.x,dy2=b2.y-b1.y;
+        var cross=dx1*dy2-dy1*dx2;
+        if(Math.abs(cross)<1e-10)return false;
+        var dx3=b1.x-a1.x,dy3=b1.y-a1.y;
+        var t=(dx3*dy2-dy3*dx2)/cross;
+        var u=(dx3*dy1-dy3*dx1)/cross;
+        return t>0.05&&t<0.95&&u>0.05&&u<0.95;
+      }
+      for(var _ci=0;_ci<_flowSegs.length;_ci++){
+        for(var _cj=_ci+1;_cj<_flowSegs.length;_cj++){
+          var _si=_flowSegs[_ci],_sj=_flowSegs[_cj];
+          if(segsCross(_si.fromPt,_si.toPt,_sj.fromPt,_sj.toPt)){
+            var _dx=_sj.toPt.x-_sj.fromPt.x,_dy=_sj.toPt.y-_sj.fromPt.y;
+            var _len=Math.sqrt(_dx*_dx+_dy*_dy)||1;
+            var _px=-_dy/_len*0.08,_py=_dx/_len*0.08;
+            _sj.fromPt={x:_sj.fromPt.x+_px,y:_sj.fromPt.y+_py};
+            _sj.toPt={x:_sj.toPt.x+_px,y:_sj.toPt.y+_py};
+          }
+        }
+      }
       // Passe 1 : tous les halos
       _flowSegs.forEach(function(s){
         seg(s.fromPt.x,s.fromPt.y,s.toPt.x,s.toPt.y,false,"FFFFFF",_FLOW_LW+1.6);
