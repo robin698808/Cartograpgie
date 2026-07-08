@@ -2153,43 +2153,27 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         var C0=0.26,C1=0.28,C2=1.34,C3=IDX_W-C0-C1-C2;
         var noB={type:"none"};
 
-        // ── Col 0 : en-tête dessiné à la main ──
-        sC.addShape(pres.shapes.RECTANGLE,{x:IDX_X,y:tblY,w:C0,h:dynRowH,fill:{color:"0B2545"},line:noB});
-        sC.addText("#",{x:IDX_X,y:tblY,w:C0,h:dynRowH,fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
-
-        // ── Col 0 : lignes de données dessinées à la main (fond alterné + ovale) ──
-        var ovalW=0.17,ovalH=0.14;
-        var ovalX=IDX_X+(C0-ovalW)/2;
-        visRows.forEach(function(r,ri){
-          var rowY=tblY+(ri+1)*dynRowH;// position exacte, même référence que le tableau
-          var even=ri%2===0;
-          // Fond alterné
-          sC.addShape(pres.shapes.RECTANGLE,{x:IDX_X,y:rowY,w:C0,h:dynRowH,fill:{color:even?"F1F5F9":"FFFFFF"},line:noB});
-          // Ovale coloré centré dans la cellule
-          var ovalY=rowY+(dynRowH-ovalH)/2;
-          sC.addShape(pres.shapes.OVAL,{x:ovalX,y:ovalY,w:ovalW,h:ovalH,fill:{color:r.color},line:noB});
-          sC.addText(String(r.num),{x:ovalX,y:ovalY,w:ovalW,h:ovalH,fontSize:5.5,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
-        });
-
-        // ── Tableau 3 colonnes (démarre après la col badge) ──
+        // ── Tableau 4 colonnes (# avec fond coloré | direction | app | flux) ──
         var hdrCells=[
-          {text:"Direction",      options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",fill:{color:"0B2545"},border:noB}},
-          {text:"Application",    options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",valign:"middle",fill:{color:"0B2545"},border:noB}},
+          {text:"#",               options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",fill:{color:"0B2545"},border:noB}},
+          {text:"Direction",       options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",fill:{color:"0B2545"},border:noB}},
+          {text:"Application",     options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",valign:"middle",fill:{color:"0B2545"},border:noB}},
           {text:"Flux / Protocole",options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",valign:"middle",fill:{color:"0B2545"},border:noB}},
         ];
         var dataRows=visRows.map(function(r,ri){
-          var fill={color:ri%2===0?"F1F5F9":"FFFFFF"};
+          var altFill={color:ri%2===0?"F1F5F9":"FFFFFF"};
           var dirColor=r.dir==="→"?"059669":"2563EB";
           var labelTxt=r.label&&r.label!==r.proto?r.label:r.proto;
           return [
-            {text:r.dir,      options:{fontSize:8,bold:true,color:dirColor,fontFace:"Calibri",align:"center",valign:"middle",fill:fill,border:noB}},
-            {text:r.neighName,options:{fontSize:6.5,bold:true,color:"111827",fontFace:"Calibri",valign:"middle",fill:fill,border:noB,shrinkText:true}},
-            {text:labelTxt,   options:{fontSize:6,italic:true,color:"6B7280",fontFace:"Calibri",valign:"middle",fill:fill,border:noB,shrinkText:true}},
+            {text:String(r.num),options:{fontSize:6.5,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",fill:{color:r.color},border:noB}},
+            {text:r.dir,        options:{fontSize:8,bold:true,color:dirColor,fontFace:"Calibri",align:"center",valign:"middle",fill:altFill,border:noB}},
+            {text:r.neighName,  options:{fontSize:6.5,bold:true,color:"111827",fontFace:"Calibri",valign:"middle",fill:altFill,border:noB,shrinkText:true}},
+            {text:labelTxt,     options:{fontSize:6,italic:true,color:"6B7280",fontFace:"Calibri",valign:"middle",fill:altFill,border:noB,shrinkText:true}},
           ];
         });
         sC.addTable([hdrCells].concat(dataRows),{
-          x:IDX_X+C0,y:tblY,w:IDX_W-C0,
-          colW:[C1,C2,C3],
+          x:IDX_X,y:tblY,w:IDX_W,
+          colW:[C0,C1,C2,C3],
           rowH:dynRowH,
           border:noB,
         });
