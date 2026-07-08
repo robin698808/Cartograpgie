@@ -31,7 +31,7 @@ const ALLDOM_DEFAULT = Object.keys(DC_DEFAULT);
 const SI = {Maintien:"●",Arrêt:"◌","Standalone temporaire":"◐","Migrée":"◇","Remplacée":"◈"};
 const CC = {Haute:"#FF5252",Moyenne:"#EF6C00",Basse:"#00C853"};
 const SD1={"Transfert TSA":"#F59E0B","Abandon":"#EF4444","Maintien":"#10B981","Rebuild":"#6366F1"};
-const SD2={"Clone & Clean":"#3B82F6","Transfert":"#10B981","Abandon":"#EF4444","Rebuild":"#F97316"};
+const SD2={"Clone & Clean":"#3B82F6","Transfert":"#10B981","Abandon":"#EF4444","Rebuild":"#8B5CF6"};
 const D1_OPTS=["","Transfert TSA","Maintien","Rebuild","Abandon"];
 const D2_OPTS=["","Clone & Clean","Transfert","Abandon","Rebuild"];
 const SC = {Maintien:"#00C853",Arrêt:"#FF5252","Standalone temporaire":"#EF6C00","Migrée":"#2979FF","Remplacée":"#7C4DFF"};
@@ -5792,8 +5792,8 @@ if(view==="urbanisme"){
 
   if(view==="decisions"){
     var doms_dec=[...new Set(apps.map(function(a){return a.domain;}))].sort();
-    var sd1c={"Transfert TSA":"#F59E0B","Abandon":"#EF4444"};
-    var sd2c={"Clone & Clean":"#3B82F6","Transfert":"#10B981","Abandon":"#EF4444","Rebuild":"#F97316"};
+    var sd1c={"Transfert TSA":"#F59E0B","Maintien":"#10B981","Rebuild":"#6366F1","Abandon":"#EF4444"};
+    var sd2c={"Clone & Clean":"#3B82F6","Transfert":"#10B981","Abandon":"#EF4444","Rebuild":"#8B5CF6"};
     function getDecState(id){return decisionStates[id]||0;}
     function cycleState(id){setDecisionStates(function(p){var cur=p[id]||0;return{...p,[id]:(cur+1)%3};});}
     function setAllState(n){var ns={};apps.forEach(function(a){ns[a.id]=n;});setDecisionStates(ns);}
@@ -5935,7 +5935,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
         {id:"status",label:"Statut",sel:selStat,setSel:setSelStat,items:["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"].map(s=>({v:s,label:s==="Standalone temporaire"?"Standalone temp.":s,color:SC[s]||"#888"}))},
         {id:"criticality",label:"Criticité",sel:selCrit,setSel:setSelCrit,items:["Haute","Moyenne","Basse"].map(c=>({v:c,label:c,color:CC[c]||"#888"}))},
         {id:"d1",label:"Day 1",sel:selD1?[selD1]:[],setSel:function(updater){var prev=selD1?[selD1]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD1(next.length?next[next.length-1]:"");},items:[{v:"Transfert TSA",label:"TSA",color:"#F59E0B"},{v:"Maintien",label:"Maintien",color:"#10B981"},{v:"Rebuild",label:"Rebuild",color:"#6366F1"},{v:"Abandon",label:"Abandon",color:"#EF4444"}]},
-        {id:"d2",label:"Day 2",sel:selD2?[selD2]:[],setSel:function(updater){var prev=selD2?[selD2]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD2(next.length?next[next.length-1]:"");},items:[{v:"Clone & Clean",label:"Clone",color:"#3B82F6"},{v:"Transfert",label:"Transfert",color:"#10B981"},{v:"Abandon",label:"Abandon",color:"#EF4444"},{v:"Rebuild",label:"Rebuild",color:"#F97316"}]}
+        {id:"d2",label:"Day 2",sel:selD2?[selD2]:[],setSel:function(updater){var prev=selD2?[selD2]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD2(next.length?next[next.length-1]:"");},items:[{v:"Clone & Clean",label:"Clone",color:"#3B82F6"},{v:"Transfert",label:"Transfert",color:"#10B981"},{v:"Abandon",label:"Abandon",color:"#EF4444"},{v:"Rebuild",label:"Rebuild",color:"#8B5CF6"}]}
       ].map(flt=>{
         const isOpen=openFilter===flt.id;
         const count=flt.sel.length;
