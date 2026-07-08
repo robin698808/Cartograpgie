@@ -2143,58 +2143,55 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           fontSize:6,color:"9CA3AF",fontFace:"Calibri",margin:0});
         sC.addShape(pres.shapes.RECTANGLE,{x:IDX_X,y:IDX_Y+0.33,w:IDX_W,h:0.012,fill:{color:"D1D5DB"},line:{type:"none"}});
 
-        // ── Dimensions du tableau ──
+        // ── Dimensions ──
         var tblY=IDX_Y+0.36;
         var tblAvailH=IDX_H-(tblY-IDX_Y)-0.06;
-        // Hauteur uniforme pour toutes les lignes (header inclus) → ovales alignés exactement
         var dynRowH=Math.min(0.155,Math.max(0.128,tblAvailH/(legendRows.length+1)));
         var visRows=legendRows.slice(0,Math.floor(tblAvailH/dynRowH)-1);
 
-        // Largeurs colonnes : badge | direction | nom app | label/protocole
+        // Largeurs colonnes : badge (manuel) | direction | nom app | label/protocole
         var C0=0.26,C1=0.28,C2=1.34,C3=IDX_W-C0-C1-C2;
+        var noB={type:"none"};
 
-        // ── En-tête du tableau ──
-        var hdrNoB={type:"none"};
-        var hdrCells=[
-          {text:"#",    options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",fill:{color:"0B2545"},border:hdrNoB}},
-          {text:"Dir",  options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",fill:{color:"0B2545"},border:hdrNoB}},
-          {text:"Application",options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",valign:"middle",fill:{color:"0B2545"},border:hdrNoB}},
-          {text:"Flux / Protocole",options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",valign:"middle",fill:{color:"0B2545"},border:hdrNoB}},
-        ];
+        // ── Col 0 : en-tête dessiné à la main ──
+        sC.addShape(pres.shapes.RECTANGLE,{x:IDX_X,y:tblY,w:C0,h:dynRowH,fill:{color:"0B2545"},line:noB});
+        sC.addText("#",{x:IDX_X,y:tblY,w:C0,h:dynRowH,fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
 
-        // ── Lignes de données ──
-        var dataRows=visRows.map(function(r,ri){
+        // ── Col 0 : lignes de données dessinées à la main (fond alterné + ovale) ──
+        var ovalW=0.17,ovalH=0.14;
+        var ovalX=IDX_X+(C0-ovalW)/2;
+        visRows.forEach(function(r,ri){
+          var rowY=tblY+(ri+1)*dynRowH;// position exacte, même référence que le tableau
           var even=ri%2===0;
-          var fill={color:even?"F1F5F9":"FFFFFF"};
-          var noB={type:"none"};
+          // Fond alterné
+          sC.addShape(pres.shapes.RECTANGLE,{x:IDX_X,y:rowY,w:C0,h:dynRowH,fill:{color:even?"F1F5F9":"FFFFFF"},line:noB});
+          // Ovale coloré centré dans la cellule
+          var ovalY=rowY+(dynRowH-ovalH)/2;
+          sC.addShape(pres.shapes.OVAL,{x:ovalX,y:ovalY,w:ovalW,h:ovalH,fill:{color:r.color},line:noB});
+          sC.addText(String(r.num),{x:ovalX,y:ovalY,w:ovalW,h:ovalH,fontSize:5.5,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
+        });
+
+        // ── Tableau 3 colonnes (démarre après la col badge) ──
+        var hdrCells=[
+          {text:"Direction",      options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",fill:{color:"0B2545"},border:noB}},
+          {text:"Application",    options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",valign:"middle",fill:{color:"0B2545"},border:noB}},
+          {text:"Flux / Protocole",options:{fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",valign:"middle",fill:{color:"0B2545"},border:noB}},
+        ];
+        var dataRows=visRows.map(function(r,ri){
+          var fill={color:ri%2===0?"F1F5F9":"FFFFFF"};
           var dirColor=r.dir==="→"?"059669":"2563EB";
           var labelTxt=r.label&&r.label!==r.proto?r.label:r.proto;
           return [
-            {text:"",    options:{fill:fill,border:noB}},// badge : ovale superposé
-            {text:r.dir, options:{fontSize:8,bold:true,color:dirColor,fontFace:"Calibri",align:"center",valign:"middle",fill:fill,border:noB}},
+            {text:r.dir,      options:{fontSize:8,bold:true,color:dirColor,fontFace:"Calibri",align:"center",valign:"middle",fill:fill,border:noB}},
             {text:r.neighName,options:{fontSize:6.5,bold:true,color:"111827",fontFace:"Calibri",valign:"middle",fill:fill,border:noB,shrinkText:true}},
             {text:labelTxt,   options:{fontSize:6,italic:true,color:"6B7280",fontFace:"Calibri",valign:"middle",fill:fill,border:noB,shrinkText:true}},
           ];
         });
-
-        // ── Dessin du tableau (rowH uniforme = alignement garanti) ──
-        var allRows=[hdrCells].concat(dataRows);
-        sC.addTable(allRows,{
-          x:IDX_X,y:tblY,w:IDX_W,
-          colW:[C0,C1,C2,C3],
-          rowH:dynRowH,// valeur unique → même hauteur header et data
-          border:{type:"none"},
-        });
-
-        // ── Ovales superposés sur la colonne badge (col 0) ──
-        // Ligne header = row 0 → data row ri commence à tblY + (ri+1)*dynRowH
-        var ovalW=0.17,ovalH=0.14;
-        var ovalX=IDX_X+(C0-ovalW)/2;
-        visRows.forEach(function(r,ri){
-          var ovalY=tblY+(ri+1)*dynRowH+(dynRowH-ovalH)/2;
-          sC.addShape(pres.shapes.OVAL,{x:ovalX,y:ovalY,w:ovalW,h:ovalH,fill:{color:r.color},line:{type:"none"}});
-          sC.addText(String(r.num),{x:ovalX,y:ovalY,w:ovalW,h:ovalH,
-            fontSize:5.5,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
+        sC.addTable([hdrCells].concat(dataRows),{
+          x:IDX_X+C0,y:tblY,w:IDX_W-C0,
+          colW:[C1,C2,C3],
+          rowH:dynRowH,
+          border:noB,
         });
 
         // Indicateur si lignes tronquées
