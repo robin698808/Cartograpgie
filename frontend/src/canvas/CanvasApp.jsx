@@ -2059,47 +2059,47 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       var legendRows=[];
       var flowNum=0;
 
-      // ── Dessin des flux individuels (avant les boîtes nœuds) ──
+      // ── Dessin des flux individuels — rendu en 2 passes ──
+      // Passe 1 : halos blancs (tous en premier pour ne masquer aucune flèche colorée)
+      // Passe 2 : flèches colorées + points de départ + badges
+      // Calcul des points d'ancrage une seule fois, stockés pour les deux passes
+      var _flowSegs=[];
       sorted.forEach(function(a){
         var np=neighPos[a.id];if(!np)return;
         var nFlows=flowsByNeigh[a.id]||[];
         var n=nFlows.length;if(n===0)return;
-
         var dxHN=np.cx-cx,dyHN=np.cy-cy;
         var adxHN=Math.abs(dxHN)||0.001,adyHN=Math.abs(dyHN)||0.001;
         var hubFaceHalf=(adxHN/adyHN>=1?hubH:hubW)/2;
         var nFaceHalf  =(adxHN/adyHN>=1?neighH:neighW)/2;
         var hubStep=n>1?Math.min(0.15,hubFaceHalf*0.55/((n-1)/2||1)):0;
         var nStep  =n>1?Math.min(0.13,nFaceHalf  *0.55/((n-1)/2||1)):0;
-
         nFlows.forEach(function(f,fi){
           flowNum++;
           var off=fi-(n-1)/2;
           var pHub  =facePt(cx,   cy,   hubW, hubH, dxHN, dyHN,  off*hubStep);
           var pNeigh=facePt(np.cx,np.cy,np.w, np.h,-dxHN,-dyHN,  off*nStep);
-
           var color=protoColor(f.protocol||"Autre");
           usedProtos.add(f.protocol||"Autre");
           var isOut=f.from===hub.id;
           var fromPt=isOut?pHub:pNeigh, toPt=isOut?pNeigh:pHub;
-
-          // Halo + flèche
-          seg(fromPt.x,fromPt.y,toPt.x,toPt.y,false,"FFFFFF",_FLOW_LW+1.6);
-          seg(fromPt.x,fromPt.y,toPt.x,toPt.y,true,color,_FLOW_LW);
-          // Point de départ
-          sC.addShape(pres.shapes.OVAL,{x:fromPt.x-0.05,y:fromPt.y-0.05,w:0.10,h:0.10,fill:{color:color},line:{color:"FFFFFF",width:0.7}});
-
-          // Badge numéro au milieu de la ligne (ovale coloré, petit)
-          var mx=(fromPt.x+toPt.x)/2, my=(fromPt.y+toPt.y)/2;
-          var numStr=String(flowNum);
-          var bw=flowNum>=10?0.22:0.17, bh=0.15;
-          sC.addShape(pres.shapes.OVAL,{x:mx-bw/2,y:my-bh/2,w:bw,h:bh,fill:{color:color},line:{color:"FFFFFF",width:0.8}});
-          sC.addText(numStr,{x:mx-bw/2,y:my-bh/2,w:bw,h:bh,fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
-
-          // Entrée légende
           var txt=(f.label&&f.label.trim())||protoLabel(f.protocol||"Autre");
+          _flowSegs.push({fromPt:fromPt,toPt:toPt,color:color,num:flowNum,isOut:isOut,neighName:a.name,label:txt,proto:protoLabel(f.protocol||"Autre")});
           legendRows.push({num:flowNum,color:color,dir:isOut?"→":"←",neighName:a.name,label:txt,proto:protoLabel(f.protocol||"Autre")});
         });
+      });
+      // Passe 1 : tous les halos
+      _flowSegs.forEach(function(s){
+        seg(s.fromPt.x,s.fromPt.y,s.toPt.x,s.toPt.y,false,"FFFFFF",_FLOW_LW+1.6);
+      });
+      // Passe 2 : flèches colorées + points de départ + badges
+      _flowSegs.forEach(function(s){
+        seg(s.fromPt.x,s.fromPt.y,s.toPt.x,s.toPt.y,true,s.color,_FLOW_LW);
+        sC.addShape(pres.shapes.OVAL,{x:s.fromPt.x-0.05,y:s.fromPt.y-0.05,w:0.10,h:0.10,fill:{color:s.color},line:{color:"FFFFFF",width:0.7}});
+        var mx=(s.fromPt.x+s.toPt.x)/2, my=(s.fromPt.y+s.toPt.y)/2;
+        var bw=s.num>=10?0.22:0.17, bh=0.15;
+        sC.addShape(pres.shapes.OVAL,{x:mx-bw/2,y:my-bh/2,w:bw,h:bh,fill:{color:s.color},line:{color:"FFFFFF",width:0.8}});
+        sC.addText(String(s.num),{x:mx-bw/2,y:my-bh/2,w:bw,h:bh,fontSize:6,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
       });
 
       // ── Boîtes voisins (par-dessus les flèches) ──
