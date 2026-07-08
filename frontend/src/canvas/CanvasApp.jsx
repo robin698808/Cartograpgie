@@ -1087,13 +1087,13 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       var dx=cx, dy=cy+(ch-dSide)/2;
       // Légende : à droite du donut
       var legX=dx+dSide+0.18, legW=cw-dSide-0.22, legY=cy, legH=ch;
-      var actSt=stats.filter(function(s){return s.v>0;});
-      if(actSt.length===0)return;
-      // Donut chart
-      _sXRaw.addChart("doughnut",[{name:"S",labels:actSt.map(function(s){return s.l;}),values:actSt.map(function(s){return s.v;})}],{
+      // Donut : uniquement les valeurs > 0 (segment 0 = invisible dans PowerPoint)
+      var chartSt=stats.filter(function(s){return s.v>0;});
+      if(chartSt.length===0)return;
+      _sXRaw.addChart("doughnut",[{name:"S",labels:chartSt.map(function(s){return s.l;}),values:chartSt.map(function(s){return s.v;})}],{
         x:dx,y:dy,w:dSide,h:dSide,
         holeSize:62,
-        chartColors:actSt.map(function(s){return s.c;}),
+        chartColors:chartSt.map(function(s){return s.c;}),
         showLegend:false,
         showValue:false,
         showPercent:false,
@@ -1105,15 +1105,19 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       var ctX=dx+dSide/2-0.52, ctY=dy+dSide/2-0.28;
       _sXRaw.addText(String(defCnt),{x:ctX,y:ctY,w:1.04,h:0.34,fontSize:18,bold:true,color:"1E293B",fontFace:"Trebuchet MS",align:"center",valign:"middle",margin:0});
       _sXRaw.addText(pctDef+"% définis",{x:ctX,y:ctY+0.32,w:1.04,h:0.20,fontSize:7,color:"94A3B8",fontFace:"Calibri",align:"center",valign:"top",margin:0});
-      // Légende : pastille colorée | nom | valeur+%
-      var rowH=Math.min(0.38,legH/Math.max(actSt.length,1));
-      var totLH=actSt.length*rowH;
+      // Légende : TOUS les statuts affichés (y compris ceux à 0) pour une légende exhaustive
+      var rowH=Math.min(0.38,legH/Math.max(stats.length,1));
+      var totLH=stats.length*rowH;
       var lY=legY+(legH-totLH)/2;
-      actSt.forEach(function(s){
+      stats.forEach(function(s){
         var pct=Math.round(s.v/tot*100);
-        _sXRaw.addShape(pres.shapes.OVAL,{x:legX,y:lY+(rowH-0.14)/2,w:0.14,h:0.14,fill:{color:s.c},line:{type:"none"}});
-        _sXRaw.addText(s.l,{x:legX+0.19,y:lY,w:legW-0.68,h:rowH,fontSize:7.5,color:"374151",fontFace:"Calibri",valign:"middle",margin:0,shrinkText:true});
-        _sXRaw.addText(s.v+" | "+pct+"%",{x:legX+legW-0.64,y:lY,w:0.64,h:rowH,fontSize:7,color:"94A3B8",fontFace:"Calibri",align:"right",valign:"middle",margin:0});
+        var isZero=s.v===0;
+        // Pastille colorée (grisée si 0)
+        _sXRaw.addShape(pres.shapes.OVAL,{x:legX,y:lY+(rowH-0.14)/2,w:0.14,h:0.14,fill:{color:isZero?"D1D5DB":s.c},line:{type:"none"}});
+        // Libellé (grisé si 0)
+        _sXRaw.addText(s.l,{x:legX+0.19,y:lY,w:legW-0.68,h:rowH,fontSize:7.5,color:isZero?"9CA3AF":"374151",fontFace:"Calibri",valign:"middle",margin:0,shrinkText:true,italic:isZero});
+        // Valeur + %
+        _sXRaw.addText(isZero?"—":s.v+" | "+pct+"%",{x:legX+legW-0.64,y:lY,w:0.64,h:rowH,fontSize:7,color:isZero?"CBD5E1":"94A3B8",fontFace:"Calibri",align:"right",valign:"middle",margin:0});
         lY+=rowH;
       });
     };
@@ -1123,7 +1127,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       {l:"Maintien",v:apps.filter(function(a){return a.statusD1==="Maintien";}).length,c:"10B981"},
       {l:"Rebuild",v:apps.filter(function(a){return a.statusD1==="Rebuild";}).length,c:"6366F1"},
       {l:"Abandon",v:apps.filter(function(a){return a.statusD1==="Abandon";}).length,c:"EF4444"},
-      {l:"Non défini",v:apps.filter(function(a){return !a.statusD1;}).length,c:"CBD5E1"},
+      {l:"Non défini",v:apps.filter(function(a){return !a.statusD1;}).length,c:"94A3B8"},
     ];
     const d1bx=0.25,d1by=1.80,d1bw=4.50,d1bh=2.30;
     sSX.addShape(pres.shapes.RECTANGLE,{x:d1bx,y:d1by,w:d1bw,h:d1bh,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
@@ -1137,7 +1141,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       {l:"Transfert",v:apps.filter(function(a){return a.statusD2==="Transfert";}).length,c:"10B981"},
       {l:"Rebuild",v:apps.filter(function(a){return a.statusD2==="Rebuild";}).length,c:"8B5CF6"},
       {l:"Abandon",v:apps.filter(function(a){return a.statusD2==="Abandon";}).length,c:"EF4444"},
-      {l:"Non défini",v:apps.filter(function(a){return !a.statusD2;}).length,c:"CBD5E1"},
+      {l:"Non défini",v:apps.filter(function(a){return !a.statusD2;}).length,c:"94A3B8"},
     ];
     const d2bx=5.00,d2by=1.80,d2bw=4.75,d2bh=2.30;
     sSX.addShape(pres.shapes.RECTANGLE,{x:d2bx,y:d2by,w:d2bw,h:d2bh,fill:{color:"FFFFFF"},line:{color:"E2E8F0",width:0.5},shadow:{type:"outer",blur:3,offset:1,color:"000000",opacity:0.06,angle:135}});
