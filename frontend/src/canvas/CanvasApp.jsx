@@ -574,43 +574,67 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     // Group by domain, sort by size
     const domGr={};na.forEach(a=>{if(!domGr[a.domain])domGr[a.domain]=[];domGr[a.domain].push(a);});
     const sortedDoms=Object.entries(domGr).sort((a,b)=>b[1].length-a[1].length);
-    
+
     // Compact card dimensions
     const cW=AW,cH=AH,cGx=6,cGy=4; // app card + gaps
     const perRow=Math.max(2,Math.min(5,Math.ceil(Math.sqrt(Math.max(...sortedDoms.map(d=>d[1].length)))))); // adaptive apps per row
     const domPad=28,domSide=10,domGap=18; // domain zone padding
+    const colW=perRow*(cW+cGx)+domSide*2; // uniform domain block width
 
-    // Layout: greedy column packing to minimize total height
-    // Target: fill viewport ~1600x900 worth of space
-    const targetW=1800;
-    // Compute domain block widths and heights
-    const domBlocks=sortedDoms.map(([d,dApps])=>{
-      const rows=Math.ceil(dApps.length/perRow);
-      const w=perRow*(cW+cGx)+domSide*2;
-      const h=rows*(cH+cGy)+domPad+12;
-      return {name:d,apps:dApps,w,h};
-    });
-    
-    // Greedy bin-pack into columns fitting targetW
-    const colW=domBlocks.length>0?domBlocks[0].w:300;
-    const nCols=Math.max(1,Math.min(Math.floor(targetW/(colW+domGap)),Math.ceil(domBlocks.length/2)));
-    const colTops=Array(nCols).fill(30);
-    const colXs=Array.from({length:nCols},(_,i)=>30+i*(colW+domGap));
-
-    domBlocks.forEach(db=>{
-      // Find shortest column
-      let best=0;
-      for(let c=1;c<nCols;c++) if(colTops[c]<colTops[best]) best=c;
-      const bx=colXs[best];
-      const by=colTops[best];
-      // Position apps
-      db.apps.forEach((app,ai)=>{
-        const col=ai%perRow,row=Math.floor(ai/perRow);
-        app.x=bx+domSide+col*(cW+cGx);
-        app.y=by+domPad+row*(cH+cGy);
+    const hasCatsImport=na.some(a=>a.category);
+    if(hasCatsImport){
+      // Layout groupé par catégorie : domaines d'une même catégorie sont placés ensemble
+      // → les boîtes catégorie du canvas sont propres et bien délimitées
+      const catDomMap={};
+      sortedDoms.forEach(([d,dApps])=>{
+        const catCounts={};
+        dApps.forEach(a=>{const c=a.category||"";if(c)catCounts[c]=(catCounts[c]||0)+1;});
+        const domCat=Object.keys(catCounts).sort((a,b)=>catCounts[b]-catCounts[a])[0]||"";
+        if(!catDomMap[domCat])catDomMap[domCat]=[];
+        catDomMap[domCat].push([d,dApps]);
       });
-      colTops[best]+=db.h+domGap;
-    });
+      const sortedCats=Object.entries(catDomMap).sort((a,b)=>{
+        const aT=a[1].reduce((s,[,ap])=>s+ap.length,0);
+        const bT=b[1].reduce((s,[,ap])=>s+ap.length,0);
+        return bT-aT;
+      });
+      const catExtraGap=60; // espacement supplémentaire entre catégories
+      let globalX=30;
+      sortedCats.forEach(([,catDoms])=>{
+        const catNcols=Math.max(1,Math.min(Math.ceil(catDoms.length/2),3));
+        const catColTops=Array(catNcols).fill(30);
+        const catColXs=Array.from({length:catNcols},(_,i)=>globalX+i*(colW+domGap));
+        catDoms.forEach(([,dApps])=>{
+          const h=Math.ceil(dApps.length/perRow)*(cH+cGy)+domPad+12;
+          let best=0;
+          for(let c=1;c<catNcols;c++) if(catColTops[c]<catColTops[best]) best=c;
+          const bx=catColXs[best], by=catColTops[best];
+          dApps.forEach((app,ai)=>{
+            app.x=bx+domSide+(ai%perRow)*(cW+cGx);
+            app.y=by+domPad+Math.floor(ai/perRow)*(cH+cGy);
+          });
+          catColTops[best]+=h+domGap;
+        });
+        globalX+=catNcols*(colW+domGap)+catExtraGap;
+      });
+    } else {
+      // Layout original sans catégories : bin-packing en colonnes
+      const targetW=1800;
+      const nCols=Math.max(1,Math.min(Math.floor(targetW/(colW+domGap)),Math.ceil(sortedDoms.length/2)));
+      const colTops=Array(nCols).fill(30);
+      const colXs=Array.from({length:nCols},(_,i)=>30+i*(colW+domGap));
+      sortedDoms.forEach(([,dApps])=>{
+        const h=Math.ceil(dApps.length/perRow)*(cH+cGy)+domPad+12;
+        let best=0;
+        for(let c=1;c<nCols;c++) if(colTops[c]<colTops[best]) best=c;
+        const bx=colXs[best], by=colTops[best];
+        dApps.forEach((app,ai)=>{
+          app.x=bx+domSide+(ai%perRow)*(cW+cGx);
+          app.y=by+domPad+Math.floor(ai/perRow)*(cH+cGy);
+        });
+        colTops[best]+=h+domGap;
+      });
+    }
 
     // Auto-fit zoom to show everything
     const maxX=Math.max(...na.map(a=>a.x+cW),100);
@@ -893,12 +917,40 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     });
 
     const cp=_opts.clientPrimary||"2979FF";
-    // ─── Slide 0: Synthèse & Messages clés (premier slide) ───
+    // ─── Slide 1: Title / cover ───
+    if(_opts.inclExecSlides){
+    const s1=SS(_addSlide());
+    s1.background={color:"FFFFFF"};
+    // Left accent panel
+    s1.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:0.18,h:5.625,fill:{color:cp},line:{type:"none"}});
+    // Bottom footer band
+    s1.addShape(pres.shapes.RECTANGLE,{x:0,y:4.80,w:10,h:0.825,fill:{color:"F1F5F9"},line:{type:"none"}});
+    s1.addShape(pres.shapes.RECTANGLE,{x:0,y:4.80,w:10,h:0.04,fill:{color:cp},line:{type:"none"}});
+    // Logo client (if provided)
+    if(_opts.clientLogo){
+      s1.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});
+    }
+    // Icon accent
+    s1.addShape(pres.shapes.RECTANGLE,{x:0.50,y:1.10,w:0.06,h:1.60,fill:{color:cp},line:{type:"none"}});
+    // Title
+    s1.addText("Cartographie Applicative",{x:0.72,y:1.10,w:6.60,h:0.90,fontSize:36,bold:true,color:"0F172A",fontFace:"Trebuchet MS",margin:0});
+    s1.addText("Analyse du Système d'Information",{x:0.72,y:2.05,w:6.60,h:0.40,fontSize:16,bold:false,color:"475569",fontFace:"Calibri",margin:0});
+    // Stats chips
+    var chips=[{l:String(apps.length)+" applications",c:cp},{l:String(doms.length)+" domaines",c:"475569"},{l:String(flows.length)+" interfaces",c:"475569"}];
+    var chipXt=0.72;
+    chips.forEach(function(ch){
+      s1.addShape(pres.shapes.RECTANGLE,{x:chipXt,y:2.62,w:2.10,h:0.36,fill:{color:ch.c,transparency:ch.c===cp?88:95},line:{color:ch.c,width:0.5}});
+      s1.addText(ch.l,{x:chipXt+0.10,y:2.62,w:1.90,h:0.36,fontSize:10.5,bold:true,color:ch.c,fontFace:"Calibri",margin:0,valign:"middle"});
+      chipXt+=2.24;
+    });
+    s1.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:0.50,y:4.87,w:5,h:0.30,fontSize:9,color:"94A3B8",fontFace:"Calibri",margin:0});
+    s1.addText("CONFIDENTIEL",{x:5.50,y:4.87,w:4.30,h:0.30,fontSize:9,bold:true,color:cp,fontFace:"Calibri",align:"right",margin:0,charSpacing:2});
+
+    // ─── Slide 2: Synthèse & Messages clés ───
     {
-    const sccp=cp;
     const sSC=SS(_addSlide());
     sSC.background={color:"F8F9FC"};
-    sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.60,fill:{color:sccp},line:{type:"none"}});
+    sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.60,fill:{color:cp},line:{type:"none"}});
     sSC.addShape(pres.shapes.RECTANGLE,{x:0,y:0.585,w:10,h:0.022,fill:{color:"FFFFFF",transparency:70},line:{type:"none"}});
     sSC.addText("SYNTHÈSE & MESSAGES CLÉS",{x:0.35,y:0.08,w:8,h:0.46,fontSize:22,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
     // Données
@@ -1013,34 +1065,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       sSC.addText(k.l,{x:bkx2+0.06,y:scBsy+0.48,w:2.05,h:0.22,fontSize:7.5,color:"64748B",fontFace:"Calibri",margin:0});
     });
     }// end sSC block
-    // ─── Slide 1: Title ───
-    if(_opts.inclExecSlides){
-    const s1=SS(_addSlide());
-    s1.background={color:"FFFFFF"};
-    // Left accent panel
-    s1.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:0.18,h:5.625,fill:{color:cp},line:{type:"none"}});
-    // Bottom footer band
-    s1.addShape(pres.shapes.RECTANGLE,{x:0,y:4.80,w:10,h:0.825,fill:{color:"F1F5F9"},line:{type:"none"}});
-    s1.addShape(pres.shapes.RECTANGLE,{x:0,y:4.80,w:10,h:0.04,fill:{color:cp},line:{type:"none"}});
-    // Logo client (if provided)
-    if(_opts.clientLogo){
-      s1.addImage({data:_opts.clientLogo,x:9.05,y:0.04,w:0.90,h:0.42,sizing:{type:"contain",w:0.90,h:0.42}});
-    }
-    // Icon accent
-    s1.addShape(pres.shapes.RECTANGLE,{x:0.50,y:1.10,w:0.06,h:1.60,fill:{color:cp},line:{type:"none"}});
-    // Title
-    s1.addText("Cartographie Applicative",{x:0.72,y:1.10,w:6.60,h:0.90,fontSize:36,bold:true,color:"0F172A",fontFace:"Trebuchet MS",margin:0});
-    s1.addText("Analyse du Système d'Information",{x:0.72,y:2.05,w:6.60,h:0.40,fontSize:16,bold:false,color:"475569",fontFace:"Calibri",margin:0});
-    // Stats chips
-    var chips=[{l:String(apps.length)+" applications",c:cp},{l:String(doms.length)+" domaines",c:"475569"},{l:String(flows.length)+" interfaces",c:"475569"}];
-    var chipXt=0.72;
-    chips.forEach(function(ch){
-      s1.addShape(pres.shapes.RECTANGLE,{x:chipXt,y:2.62,w:2.10,h:0.36,fill:{color:ch.c,transparency:ch.c===cp?88:95},line:{color:ch.c,width:0.5}});
-      s1.addText(ch.l,{x:chipXt+0.10,y:2.62,w:1.90,h:0.36,fontSize:10.5,bold:true,color:ch.c,fontFace:"Calibri",margin:0,valign:"middle"});
-      chipXt+=2.24;
-    });
-    s1.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:0.50,y:4.87,w:5,h:0.30,fontSize:9,color:"94A3B8",fontFace:"Calibri",margin:0});
-    s1.addText("CONFIDENTIEL",{x:5.50,y:4.87,w:4.30,h:0.30,fontSize:9,bold:true,color:cp,fontFace:"Calibri",align:"right",margin:0,charSpacing:2});
 
     // --- Slide Synthese Executive ---
     {
@@ -1244,6 +1268,187 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         });
       });
     }// end inclDomainStatus
+
+    // ─── Slides: Environnement applicatif Day 1 & Day 2 ───
+    [
+      {title:"ENVIRONNEMENT APPLICATIF — DAY 1",subtitle:"STATUT DE CLOSING",field:"statusD1",
+       colorMap:{"Transfert TSA":"F59E0B","Maintien":"10B981","Rebuild":"6366F1","Abandon":"EF4444","Non défini":"94A3B8"}},
+      {title:"ENVIRONNEMENT APPLICATIF — DAY 2",subtitle:"VISION CIBLE",field:"statusD2",
+       colorMap:{"Clone & Clean":"3B82F6","Transfert":"10B981","Rebuild":"8B5CF6","Abandon":"EF4444","Non défini":"94A3B8"}},
+    ].forEach(function(cfg){
+      if(!apps.length)return;
+      // Build domain list with dominant category
+      var envDoms=[...new Set(apps.map(function(a){return a.domain;}))]
+        .map(function(d){
+          var dc=_pDC[d]||_pDC.Autre;
+          var domApps=apps.filter(function(a){return a.domain===d;});
+          var catCounts={};
+          domApps.forEach(function(a){var c=a.category||"";if(c)catCounts[c]=(catCounts[c]||0)+1;});
+          var domCat=Object.keys(catCounts).sort(function(a,b){return catCounts[b]-catCounts[a];})[0]||"";
+          return{name:d,apps:domApps,ac:(dc.ac||"#78909C").replace("#",""),category:domCat};
+        })
+        .sort(function(a,b){return b.apps.length-a.apps.length;});
+      var hasCats=envDoms.some(function(d){return d.category;});
+      // Layout constants (raw 13.333"×7.5" — pas de proxy SS)
+      var marginX=0.35;
+      var hdrH=0.65, legStripH=0.44, statsH=0.72;
+      var contentY=hdrH+legStripH+0.14;
+      var contentH=H-contentY-statsH-0.12;
+      var contentW=W-2*marginX;
+      var panPad=0.13, domHdrH=0.42;
+      var chipW=1.10, chipH=0.22, chipGapH=0.06, chipGapV=0.04;
+      // Helper: hauteur d'un panneau domaine selon chips-par-ligne
+      function envPanelH(nApps,localCpr){
+        var rows=Math.ceil(nApps/localCpr)||1;
+        return domHdrH+panPad+rows*(chipH+chipGapV)-chipGapV+panPad;
+      }
+      // Helper: dessine un panneau domaine (carte) sur le slide sl
+      function drawEnvDomain(sl,px,py,domW,localCpr,dom){
+        sl.addShape(pres.shapes.RECTANGLE,{x:px,y:py,w:domW,h:envPanelH(dom.apps.length,localCpr),fill:{color:"FFFFFF"},line:{color:dom.ac,width:0.75},shadow:{type:"outer",blur:4,offset:1,color:"000000",opacity:0.07,angle:135}});
+        sl.addShape(pres.shapes.RECTANGLE,{x:px,y:py,w:domW,h:domHdrH,fill:{color:dom.ac,transparency:85},line:{type:"none"}});
+        var iconD=0.26, iconX=px+panPad, iconY=py+(domHdrH-iconD)/2;
+        sl.addShape(pres.shapes.OVAL,{x:iconX,y:iconY,w:iconD,h:iconD,fill:{color:dom.ac},line:{type:"none"}});
+        sl.addText(dom.name.charAt(0).toUpperCase(),{x:iconX,y:iconY,w:iconD,h:iconD,fontSize:10,bold:true,color:"FFFFFF",fontFace:"Calibri",align:"center",valign:"middle",margin:0});
+        var txtX=px+panPad+iconD+0.07, txtW=domW-panPad-iconD-0.20;
+        sl.addText(dom.name,{x:txtX,y:py+0.03,w:txtW,h:domHdrH*0.56,fontSize:7.5,bold:true,color:dom.ac,fontFace:"Calibri",margin:0,shrinkText:true,valign:"middle"});
+        sl.addText(dom.apps.length+" app"+(dom.apps.length>1?"s":""),{x:txtX,y:py+domHdrH*0.60,w:txtW,h:domHdrH*0.36,fontSize:5.5,color:"94A3B8",fontFace:"Calibri",margin:0});
+        dom.apps.forEach(function(app,ai){
+          var row=Math.floor(ai/localCpr), col=ai%localCpr;
+          var cx=px+panPad+col*(chipW+chipGapH);
+          var cy2=py+domHdrH+panPad+row*(chipH+chipGapV);
+          var st=app[cfg.field]||"Non défini";
+          var stc=cfg.colorMap[st]||"94A3B8";
+          sl.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy2,w:chipW,h:chipH,fill:{color:stc,transparency:82},line:{color:stc,width:0.4}});
+          sl.addShape(pres.shapes.RECTANGLE,{x:cx,y:cy2,w:0.05,h:chipH,fill:{color:stc},line:{type:"none"}});
+          sl.addText(app.name,{x:cx+0.09,y:cy2,w:chipW-0.12,h:chipH,fontSize:6,bold:true,color:"1E293B",fontFace:"Calibri",margin:0,shrinkText:true,valign:"middle"});
+        });
+      }
+      function envMakePage(){
+        var sl=_addSlide();
+        sl.background={color:"F8F9FC"};
+        sl.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:W,h:hdrH,fill:{color:cp},line:{type:"none"}});
+        sl.addShape(pres.shapes.RECTANGLE,{x:0,y:hdrH-0.03,w:W,h:0.03,fill:{color:"FFFFFF",transparency:75},line:{type:"none"}});
+        sl.addText(cfg.title,{x:marginX,y:0.09,w:9.5,h:0.36,fontSize:18,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
+        sl.addText(cfg.subtitle,{x:marginX,y:0.43,w:6.0,h:0.18,fontSize:8.5,color:"FFFFFFCC",fontFace:"Calibri",margin:0,charSpacing:2});
+        sl.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:W-3.0,y:0.14,w:2.7,h:0.20,fontSize:8,color:"FFFFFFAA",fontFace:"Calibri",align:"right",margin:0});
+        sl.addText(apps.length+" applications · "+envDoms.length+" domaines",{x:W-3.0,y:0.38,w:2.7,h:0.18,fontSize:7.5,color:"FFFFFFAA",fontFace:"Calibri",align:"right",margin:0});
+        var lx=marginX, lly=hdrH+0.10;
+        Object.entries(cfg.colorMap).forEach(function(le){
+          sl.addShape(pres.shapes.OVAL,{x:lx,y:lly+0.09,w:0.17,h:0.17,fill:{color:le[1]},line:{type:"none"}});
+          sl.addText(le[0],{x:lx+0.23,y:lly+0.06,w:1.85,h:0.22,fontSize:8.5,color:"374151",fontFace:"Calibri",margin:0,valign:"middle"});
+          lx+=2.10;
+        });
+        var stY=H-statsH+0.08; var barH2=0.28;
+        sl.addShape(pres.shapes.LINE,{x:marginX,y:stY-0.08,w:contentW,h:0,line:{color:"E2E8F0",width:0.75}});
+        var bsx=marginX;
+        Object.entries(cfg.colorMap).forEach(function(e){
+          var cnt=e[0]==="Non défini"?apps.filter(function(a){return !a[cfg.field];}).length:apps.filter(function(a){return a[cfg.field]===e[0];}).length;
+          if(!cnt)return;
+          var pct=cnt/apps.length, bw=contentW*pct;
+          if(bw<0.02)return;
+          sl.addShape(pres.shapes.RECTANGLE,{x:bsx,y:stY,w:bw,h:barH2,fill:{color:e[1]},line:{type:"none"}});
+          if(bw>0.55){
+            sl.addText(e[0],{x:bsx,y:stY+barH2+0.04,w:bw,h:0.16,fontSize:5.5,color:"64748B",fontFace:"Calibri",align:"center",margin:0,shrinkText:true});
+            sl.addText(String(cnt)+" ("+Math.round(pct*100)+"%)",{x:bsx,y:stY+barH2+0.20,w:bw,h:0.16,fontSize:7,bold:true,color:e[1],fontFace:"Calibri",align:"center",margin:0,shrinkText:true});
+          }
+          bsx+=bw;
+        });
+        return sl;
+      }
+
+      if(hasCats){
+        // ── Vue avec catégories (Catégorie → Domaine → Application) ──
+        var CAT_PAL=["548CA8","D4A017","E06C75","52B788","9D4EDD","D63384","7B78FF","40A578"];
+        var catPad=0.14, catHdrH=0.38, catGap=0.20;
+        var domGapInCat=0.14, domRowGap=0.12, maxDomsPerRow=4;
+        // Grouper les domaines par catégorie dominante
+        var catMap2={}, catOrderArr=[];
+        envDoms.forEach(function(dom){
+          var cat=dom.category||"Sans catégorie";
+          if(!catMap2[cat]){catMap2[cat]=[];catOrderArr.push(cat);}
+          catMap2[cat].push(dom);
+        });
+        // Trier les catégories par nb d'apps décroissant
+        catOrderArr.sort(function(a,b){
+          var aT=catMap2[a].reduce(function(s,d){return s+d.apps.length;},0);
+          var bT=catMap2[b].reduce(function(s,d){return s+d.apps.length;},0);
+          return bT-aT;
+        });
+        function catDomRows(catDoms){var rws=[];for(var i=0;i<catDoms.length;i+=maxDomsPerRow)rws.push(catDoms.slice(i,i+maxDomsPerRow));return rws;}
+        function rowDomW(nInRow){return (contentW-2*catPad-(nInRow-1)*domGapInCat)/nInRow;}
+        function rowCpr(dw){return Math.max(1,Math.floor((dw-2*panPad+chipGapH)/(chipW+chipGapH)));}
+        function catBlockH(catDoms){
+          var rws=catDomRows(catDoms); var h=catHdrH+catPad;
+          rws.forEach(function(row,ri){
+            var dw=rowDomW(row.length); var lc=rowCpr(dw);
+            var rh=Math.max.apply(null,row.map(function(d){return envPanelH(d.apps.length,lc);}));
+            h+=rh+(ri<rws.length-1?domRowGap:0);
+          });
+          return h+catPad;
+        }
+        // Scale-to-fit: mesure totale → facteur sf → redimensionner toutes les hauteurs
+        var _totalH=catOrderArr.reduce(function(s,c){return s+catBlockH(catMap2[c]);},0)+(catOrderArr.length>1?(catOrderArr.length-1)*catGap:0);
+        var sf=Math.min(1,contentH/_totalH);
+        catHdrH*=sf; catPad*=sf; catGap*=sf; domRowGap*=sf;
+        domHdrH*=sf; panPad*=sf; chipH*=sf; chipGapV*=sf;
+        var curEnvSl=envMakePage(), curY=contentY;
+        catOrderArr.forEach(function(catName,ci){
+          var catDoms=catMap2[catName];
+          var cbH=catBlockH(catDoms); // hauteurs mises à l'échelle
+          var catColor=CAT_PAL[ci%CAT_PAL.length];
+          var catTotApps=catDoms.reduce(function(s,d){return s+d.apps.length;},0);
+          var catX=marginX, catY=curY;
+          // Fond catégorie + barre d'accent gauche (dessinés en premier → derrière les cartes)
+          curEnvSl.addShape(pres.shapes.RECTANGLE,{x:catX,y:catY,w:contentW,h:cbH,fill:{color:catColor,transparency:94},line:{color:catColor,width:0.5}});
+          curEnvSl.addShape(pres.shapes.RECTANGLE,{x:catX,y:catY,w:0.07,h:cbH,fill:{color:catColor},line:{type:"none"}});
+          // Bandeau header catégorie
+          curEnvSl.addShape(pres.shapes.RECTANGLE,{x:catX,y:catY,w:contentW,h:catHdrH,fill:{color:catColor,transparency:82},line:{type:"none"}});
+          var cIconD=0.26, cIconX=catX+0.16, cIconY=catY+(catHdrH-cIconD)/2;
+          curEnvSl.addShape(pres.shapes.OVAL,{x:cIconX,y:cIconY,w:cIconD,h:cIconD,fill:{color:catColor},line:{type:"none"}});
+          curEnvSl.addText(catName.charAt(0).toUpperCase(),{x:cIconX,y:cIconY,w:cIconD,h:cIconD,fontSize:10,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",align:"center",valign:"middle",margin:0});
+          curEnvSl.addText(catName,{x:catX+0.50,y:catY+0.04,w:contentW-2.60,h:catHdrH-0.08,fontSize:9.5,bold:true,color:catColor,fontFace:"Trebuchet MS",margin:0,shrinkText:true,valign:"middle"});
+          curEnvSl.addText(catDoms.length+" domaine"+(catDoms.length>1?"s":"")+" · "+catTotApps+" applications",{x:catX+contentW-2.50,y:catY+0.04,w:2.40,h:catHdrH-0.08,fontSize:7,color:catColor,fontFace:"Calibri",align:"right",margin:0,valign:"middle"});
+          // Lignes de domaines
+          var rws=catDomRows(catDoms); var rowY=catY+catHdrH+catPad;
+          rws.forEach(function(row,ri){
+            var dw=rowDomW(row.length); var lc=rowCpr(dw);
+            var rh=Math.max.apply(null,row.map(function(d){return envPanelH(d.apps.length,lc);}));
+            row.forEach(function(dom,di){drawEnvDomain(curEnvSl,catX+catPad+di*(dw+domGapInCat),rowY,dw,lc,dom);});
+            rowY+=rh+(ri<rws.length-1?domRowGap:0);
+          });
+          curY+=cbH+catGap;
+        });
+      } else {
+        // ── Vue sans catégories (Domaine → Application en grille) ──
+        var nd=envDoms.length;
+        var ncols=nd<=2?nd:nd<=6?2:nd<=12?3:4;
+        if(ncols<1)ncols=1;
+        var panelGap=0.20;
+        var panelW=(contentW-(ncols-1)*panelGap)/ncols;
+        var cpr=Math.max(1,Math.floor((panelW-2*panPad+chipGapH)/(chipW+chipGapH)));
+        var colXArr=Array.from({length:ncols},function(_,i){return marginX+i*(panelW+panelGap);});
+        var colYArr=Array.from({length:ncols},function(){return contentY;});
+        // Scale-to-fit: simuler le remplissage des colonnes pour trouver totalH
+        var _simY=Array.from({length:ncols},function(){return 0;});
+        envDoms.forEach(function(dom){
+          var ph=envPanelH(dom.apps.length,cpr);
+          var bc=0;for(var _c=1;_c<ncols;_c++){if(_simY[_c]<_simY[bc])bc=_c;}
+          _simY[bc]+=ph+panelGap;
+        });
+        var _simH=Math.max(0.01,Math.max.apply(null,_simY)-panelGap);
+        var sfN=Math.min(1,contentH/_simH);
+        domHdrH*=sfN; panPad*=sfN; chipH*=sfN; chipGapV*=sfN; panelGap*=sfN;
+        colYArr=Array.from({length:ncols},function(){return contentY;});
+        var curEnvSl=envMakePage();
+        envDoms.forEach(function(dom){
+          var ph=envPanelH(dom.apps.length,cpr);
+          var bestCol=0;
+          for(var ci=1;ci<ncols;ci++){if(colYArr[ci]<colYArr[bestCol])bestCol=ci;}
+          drawEnvDomain(curEnvSl,colXArr[bestCol],colYArr[bestCol],panelW,cpr,dom);
+          colYArr[bestCol]+=ph+panelGap;
+        });
+      }
+    });
 
     }// end inclExecSlides
 
@@ -3906,18 +4111,21 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     return <>{catEntries.map(([cat,b],ci)=>{
       const cc=CAT_COLORS[ci%CAT_COLORS.length];
       const pad=50;
-      return <div key={cat} style={{position:"absolute",left:b.x1-pad,top:b.y1-pad-Math.round(32*fontScale),width:b.x2-b.x1+pad*2,height:b.y2-b.y1+pad*2+Math.round(32*fontScale),border:`2px solid ${cc}30`,borderRadius:14,background:`${cc}06`,pointerEvents:"none"}}>
+      const barH=Math.max(Math.round(28*fontScale),Math.round(30/zm));
+      const fz=Math.max(Math.round(11*fontScale),Math.round(12/zm));
+      const fzSub=Math.max(Math.round(9*fontScale),Math.round(10/zm));
+      return <div key={cat} style={{position:"absolute",left:b.x1-pad,top:b.y1-pad-barH,width:b.x2-b.x1+pad*2,height:b.y2-b.y1+pad*2+barH,border:`2px solid ${cc}50`,borderRadius:14,background:`${cc}06`,pointerEvents:"none"}}>
         {/* Category title bar */}
-        <div style={{position:"absolute",top:-1,left:-1,right:-1,height:Math.round(28*fontScale),background:`${cc}18`,borderRadius:"14px 14px 0 0",borderBottom:`1px solid ${cc}25`,display:"flex",alignItems:"center",padding:"0 14px",pointerEvents:"auto",cursor:"grab",userSelect:"none"}}
+        <div style={{position:"absolute",top:-1,left:-1,right:-1,height:barH,background:`${cc}DD`,borderRadius:"14px 14px 0 0",borderBottom:`1px solid ${cc}60`,display:"flex",alignItems:"center",padding:"0 14px",pointerEvents:"auto",cursor:"grab",userSelect:"none"}}
           data-app="1" onMouseDown={e=>{e.stopPropagation();setDrag({domain:"__cat__"+cat,appIds:b.ids,lastX:e.clientX,lastY:e.clientY});}}
           onContextMenu={e=>{e.preventDefault();e.stopPropagation();setCtxMenu({x:e.clientX,y:e.clientY,type:"category",target:cat});}}>
-          <span style={{fontSize:Math.round(11*fontScale),fontWeight:700,color:cc,letterSpacing:1.5,textTransform:"uppercase"}}>{cat}</span>
-          <span style={{fontSize:Math.round(9*fontScale),color:cc+"88",marginLeft:8}}>{b.domains.size} domaines · {b.ids.length} apps</span>
-          <span style={{fontSize:10,opacity:0.5,color:cc,marginLeft:6}}>⠿</span>
+          <span style={{fontSize:fz,fontWeight:700,color:"#fff",letterSpacing:1.5,textTransform:"uppercase"}}>{cat}</span>
+          <span style={{fontSize:fzSub,color:"rgba(255,255,255,0.75)",marginLeft:8}}>{b.domains.size} domaines · {b.ids.length} apps</span>
+          <span style={{fontSize:Math.max(10,Math.round(10/zm)),opacity:0.7,color:"#fff",marginLeft:6}}>⠿</span>
         </div>
         {/* Corner accent marks */}
-        <div style={{position:"absolute",top:Math.round(28*fontScale),left:0,width:20,height:2,background:cc,borderRadius:"0 2px 2px 0"}}/>
-        <div style={{position:"absolute",top:Math.round(28*fontScale),right:0,width:20,height:2,background:cc,borderRadius:"2px 0 0 2px"}}/>
+        <div style={{position:"absolute",top:barH,left:0,width:20,height:2,background:cc,borderRadius:"0 2px 2px 0"}}/>
+        <div style={{position:"absolute",top:barH,right:0,width:20,height:2,background:cc,borderRadius:"2px 0 0 2px"}}/>
         <div style={{position:"absolute",bottom:0,left:0,width:20,height:2,background:cc,borderRadius:"0 2px 2px 0"}}/>
         <div style={{position:"absolute",bottom:0,right:0,width:20,height:2,background:cc,borderRadius:"2px 0 0 2px"}}/>
       </div>;
