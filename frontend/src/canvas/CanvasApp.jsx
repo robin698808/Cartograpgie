@@ -4160,7 +4160,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   /* ── Components ── */
   const AW_BASE=130,AH_BASE=46;
   const fs=fontScale;
-  const AW=Math.round(AW_BASE*globalScale*Math.max(1,fs*0.6)),AH=Math.round(AH_BASE*globalScale*Math.max(1,fs*0.5));
+  const AW=Math.round(AW_BASE*globalScale*Math.max(0.7,fs)),AH=Math.round(AH_BASE*globalScale*Math.max(0.7,fs));
   const domSc=(d)=>(domScales[d]||1)*globalScale;
   const AppNode=({app})=>{const c=DC[app.domain]||DC.Autre;const sel=selApp?.id===app.id;
     const msel=multiSel.includes(app.id);
@@ -4171,7 +4171,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     const isNeg=app.statusD1==="Abandon"||(app.statusD2==="Abandon"&&!app.statusD1);
     const ds=domScales[app.domain]||1;
     const fsD=fs*ds;
-    const aw=Math.round(AW_BASE*globalScale*ds*Math.max(1,fs*0.6)),ah=Math.round(AH_BASE*globalScale*ds*Math.max(1,fs*0.5));
+    const aw=Math.round(AW_BASE*globalScale*ds*Math.max(0.7,fs)),ah=Math.round(AH_BASE*globalScale*ds*Math.max(0.7,fs));
     var isFocusTarget=!focusApp||focusApp===app.id||flows.some(function(f){return(f.from===focusApp&&f.to===app.id)||(f.to===focusApp&&f.from===app.id);});
     var dimmed=focusApp&&!isFocusTarget;
     var appOpacity=dimmed?0.18:isNeg?0.72:1;
