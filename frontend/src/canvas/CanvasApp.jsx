@@ -463,6 +463,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   const [showExportModal,setShowExportModal]=useState(false);
   const [exportOpts,setExportOpts]=useState({
     inclExecSlides:true,
+    inclPaysage:true,          // slide treemap paysage applicatif
     inclMatrices:true,        // tableau récap + vue agrégée domaines
     inclConsolidatedCarto:true,
     inclDomainStatus:false,   // vision Day 1 & Day 2
@@ -974,6 +975,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     var _rawOpts=opts||exportOpts;
     var _opts=Object.assign({},_rawOpts,{
       // mapper les nouveaux opts simplifiés vers les anciens flags internes
+      inclPaysage:_rawOpts.inclPaysage!==false,
       inclRecapTable:!!_rawOpts.inclMatrices,
       inclAggregated:!!_rawOpts.inclMatrices,
       inclDomainStatus:!!_rawOpts.inclDomainStatus,
@@ -1589,6 +1591,53 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     });
 
     }// end inclExecSlides
+
+    // ─── Slide Paysage applicatif (treemap) ───
+    if(_opts.inclPaysage&&apps.length>0){
+      var pvSl=_addSlide();
+      pvSl.background={color:"111827"};
+      // Header band
+      pvSl.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.333,h:0.52,fill:{color:"1E293B"},line:{type:"none"}});
+      pvSl.addText("PAYSAGE APPLICATIF",{x:0.25,y:0.11,w:9,h:0.30,fontSize:13,bold:true,color:"F1F5F9",fontFace:"Trebuchet MS",margin:0,charSpacing:2});
+      pvSl.addText(apps.length+" applications · "+[...new Set(apps.map(function(a){return a.domain;}))].length+" domaines · "+[...new Set(apps.map(function(a){return a.category;}).filter(Boolean))].length+" catégories",{x:0,y:0.13,w:13.1,h:0.26,fontSize:8,color:"94A3B8",fontFace:"Calibri",margin:0,align:"right"});
+      // Treemap coordinates: map 1600×900 viewBox → 13.333"×6.98" (below header)
+      var PVW=1600,PVH=900;
+      var pvHdrH=0.52;
+      var scX=W/PVW; // 0.008333
+      var scY=(H-pvHdrH)/PVH; // 0.007533
+      var pvL=pvBuildLayout(apps,PVW,PVH);
+      pvL.forEach(function(dom){
+        var dc=(_pDC[dom.domaine]||_pDC.Autre).ac.replace("#","");
+        var dr=dom.rect;
+        var dx=dr.x*scX,dy=pvHdrH+dr.y*scY,dw=dr.w*scX,dh=dr.h*scY;
+        // Domain background
+        pvSl.addShape(pres.shapes.RECTANGLE,{x:dx+0.01,y:dy+0.01,w:Math.max(0.01,dw-0.02),h:Math.max(0.01,dh-0.02),fill:{color:dc,transparency:91},line:{color:dc,width:1.0,transparency:35}});
+        // Domain header bar
+        var dhH=Math.max(0.12,Math.min(0.20,dh*0.13));
+        pvSl.addShape(pres.shapes.RECTANGLE,{x:dx+0.01,y:dy+0.01,w:Math.max(0.01,dw-0.02),h:dhH,fill:{color:dc,transparency:55},line:{type:"none"}});
+        if(dw>0.4){
+          pvSl.addText(dom.domaine+(dw>0.9?" ("+dom.nbApps+")":""),{x:dx+0.04,y:dy+0.01,w:Math.max(0.05,dw-0.08),h:dhH,fontSize:Math.max(5,Math.min(10,Math.round(dw*9))),bold:true,color:"FFFFFF",fontFace:"Calibri",margin:0,valign:"middle",fit:"shrink"});
+        }
+        // Categories
+        dom.quartiers.forEach(function(q){
+          var qr=q.rect;
+          var qx=qr.x*scX,qy=pvHdrH+qr.y*scY,qw=qr.w*scX,qh=qr.h*scY;
+          pvSl.addShape(pres.shapes.RECTANGLE,{x:qx+0.007,y:qy+0.007,w:Math.max(0.01,qw-0.014),h:Math.max(0.01,qh-0.014),fill:{color:"1E293B",transparency:20},line:{color:dc,width:0.5,transparency:55}});
+          if(qw>0.25&&qh>0.10){
+            pvSl.addText(q.quartier,{x:qx+0.025,y:qy+0.01,w:Math.max(0.05,qw-0.05),h:Math.min(0.13,qh*0.28),fontSize:Math.max(4,Math.min(7,Math.round(qw*8))),bold:true,color:dc,fontFace:"Calibri",margin:0,valign:"top",fit:"shrink"});
+          }
+          // Individual apps
+          q.apps.forEach(function(item){
+            var ar=item.rect;
+            var ax=ar.x*scX,ay=pvHdrH+ar.y*scY,aw=ar.w*scX,ah=ar.h*scY;
+            pvSl.addShape(pres.shapes.RECTANGLE,{x:ax+0.004,y:ay+0.004,w:Math.max(0.005,aw-0.008),h:Math.max(0.005,ah-0.008),fill:{color:dc,transparency:78},line:{color:dc,width:0.3,transparency:45}});
+            if(aw>0.22&&ah>0.09){
+              pvSl.addText(item.app.name,{x:ax+0.008,y:ay+0.006,w:Math.max(0.05,aw-0.016),h:Math.max(0.03,ah-0.012),fontSize:Math.max(4,Math.min(7,Math.round(aw*10))),color:"E2E8F0",fontFace:"Calibri",margin:0,valign:"middle",fit:"shrink"});
+            }
+          });
+        });
+      });
+    }// end inclPaysage
 
     // ═══════════════════════════════════════════════════════════════════
     // ─── Cartographie style URBANISATION SI (diagramme d'architecte) ───
@@ -6466,18 +6515,19 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
       var nCarto=Math.min(_hubConn.length,_hubLim)*2;
       var slideCount=1;// matrice flux (toujours présente)
       if(exportOpts.inclExecSlides)slideCount+=2;
+      if(exportOpts.inclPaysage!==false)slideCount+=1;
       if(exportOpts.inclMatrices)slideCount+=1+(Math.ceil(flows.length/18)||1);
       if(exportOpts.inclConsolidatedCarto)slideCount+=2;
       if(exportOpts.inclDomainStatus)slideCount+=2;
       slideCount+=nCarto;
       var set=function(k,v){setExportOpts(function(p){var n=Object.assign({},p);n[k]=v;return n;});};
       var applyPreset=function(p){
-        var base={inclExecSlides:false,inclMatrices:false,inclConsolidatedCarto:false,inclDomainStatus:false,cartoMode:"none"};
+        var base={inclExecSlides:false,inclPaysage:true,inclMatrices:false,inclConsolidatedCarto:false,inclDomainStatus:false,cartoMode:"none"};
         if(p==="cartographie")set("__preset__",Object.assign(base,{inclExecSlides:true,inclConsolidatedCarto:true,cartoMode:"byDomain"}));
         else if(p==="decision")set("__preset__",Object.assign(base,{inclExecSlides:true,inclMatrices:true,inclDomainStatus:true,cartoMode:"byDomain",inclConsolidatedCarto:true}));
         else if(val==="complet")set("__preset__",Object.assign(base,{inclExecSlides:true,inclMatrices:true,inclConsolidatedCarto:true,inclDomainStatus:true,cartoMode:"byDomain"}));
         setExportOpts(function(prev){
-          var base2={inclExecSlides:false,inclMatrices:false,inclConsolidatedCarto:false,inclDomainStatus:false,cartoMode:"none"};
+          var base2={inclExecSlides:false,inclPaysage:true,inclMatrices:false,inclConsolidatedCarto:false,inclDomainStatus:false,cartoMode:"none"};
           if(p==="cartographie")return Object.assign({},prev,base2,{inclExecSlides:true,inclConsolidatedCarto:true,cartoMode:"byDomain"});
           if(p==="decision")return Object.assign({},prev,base2,{inclExecSlides:true,inclMatrices:true,inclDomainStatus:true,cartoMode:"byDomain",inclConsolidatedCarto:true});
           return Object.assign({},prev,base2,{inclExecSlides:true,inclMatrices:true,inclConsolidatedCarto:true,inclDomainStatus:true,cartoMode:"byDomain"});
@@ -6563,6 +6613,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
             <div>
               <div style={{fontSize:11,fontWeight:700,color:T.fg,marginBottom:10}}>Contenu du livrable</div>
               {Chk("inclExecSlides","Slides exécutives","Page de titre + Synthèse & Messages clés",2)}
+              {Chk("inclPaysage","Paysage applicatif","Treemap hiérarchique domaines → catégories → applications",1)}
               {Chk("inclMatrices","Matrices de flux","Récap applications (Domaine / App / D1 / D2) + récap flux + vue agrégée par domaine",2+(Math.ceil(flows.length/18)||1)+(Math.ceil(apps.length/22)||1))}
               {Chk("inclConsolidatedCarto","Vues de cartographie consolidée","Clusters par domaine + vue domaine pivot",2)}
               {Chk("inclDomainStatus","Vision Day 1 & Day 2","Applications colorées par stratégie de closing et cible (Transfert TSA, Maintien, Rebuild, Abandon)",2)}
