@@ -4246,8 +4246,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           <span style={{fontSize:fz,fontWeight:700,color:"#fff",letterSpacing:1.5,textTransform:"uppercase",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat}</span>
           <span style={{fontSize:fzSub,color:"rgba(255,255,255,0.7)",flexShrink:0}}>{b.domains.size} dom · {b.ids.length} apps</span>
           <span title="Changer couleur" style={{fontSize:Math.max(10,Math.round(11/zm)),cursor:"pointer",flexShrink:0,opacity:0.85}}
-            onMouseDown={e=>{e.stopPropagation();e.preventDefault();}}
-            onClick={e=>{e.stopPropagation();setShowCatColorEdit(cat);}}>🎨</span>
+            onMouseDown={e=>{e.stopPropagation();e.preventDefault();setShowCatColorEdit(cat);}}>🎨</span>
         </div>
         {/* Accents coins */}
         <div style={{position:"absolute",top:barH,left:0,width:20,height:2,background:cc,borderRadius:"0 2px 2px 0"}}/>
@@ -4278,7 +4277,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         <div style={{padding:"5px 12px",fontSize:Math.round(10*fontScale),fontWeight:700,color:c.ac,letterSpacing:1.5,textTransform:"uppercase",pointerEvents:"auto",cursor:"grab",userSelect:"none",display:"inline-block",borderRadius:"6px 6px 0 0",background:`${c.ac}15`}}
           data-app="1" onMouseDown={e=>{e.stopPropagation();startDrag({domain:d,appIds:b.ids,lastX:e.clientX,lastY:e.clientY});}}
           onContextMenu={e=>{e.preventDefault();e.stopPropagation();setCtxMenu({x:e.clientX,y:e.clientY,type:"domain",target:d});}}>{d} <span style={{fontSize:Math.round(8*fontScale),opacity:0.6}}>⠿</span>
-          <span style={{marginLeft:6,cursor:"pointer",fontSize:Math.round(9*fontScale)}} onMouseDown={e=>{e.stopPropagation();e.preventDefault();}} onClick={e=>{e.stopPropagation();setShowDomEdit(d);}} title="Changer couleur">🎨</span></div>
+          <span style={{marginLeft:6,cursor:"pointer",fontSize:Math.round(9*fontScale)}} onMouseDown={e=>{e.stopPropagation();e.preventDefault();setShowDomEdit(d);}} title="Changer couleur">🎨</span></div>
         {/* Resize handle (coin) */}
         <div style={{position:"absolute",bottom:0,right:0,width:16,height:16,cursor:"nwse-resize",pointerEvents:"auto",display:"flex",alignItems:"center",justifyContent:"center"}}
           data-app="1" onMouseDown={e=>{e.stopPropagation();e.preventDefault();startDrag({resize:d,lx:e.clientX,ly:e.clientY});}}>
