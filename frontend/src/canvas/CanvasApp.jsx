@@ -28,13 +28,11 @@ const acToPalette=(ac)=>{
 };
 var THEMES={dark:{bg:"#08080F",bgAlt:"#0D0D1A",bgCard:"#13132A",bgInput:"#0D0D1A",bgHover:"#1C1C38",fg:"#F0F0FB",fgMuted:"#8080B0",fgDim:"#5A5A85",fgFaint:"#3A3A60",border:"#22224A",borderLight:"#1A1A3A",overlay:"#000000A8",grid:"#111128",shadow:"var(--shadow-md)",accent:"#6366F1",accentMuted:"#6366F118",pres:"#05050A"},light:{bg:"#F7F8FD",bgAlt:"#EEF0FA",bgCard:"#FFFFFF",bgInput:"#FFFFFF",bgHover:"#E8EAF8",fg:"#0F1030",fgMuted:"#3D3D70",fgDim:"#6868A0",fgFaint:"#9090C0",border:"#CDD0E8",borderLight:"#DDE0F0",overlay:"#00000030",grid:"#D8DAF0",shadow:"0 4px 24px #00000015",accent:"#6366F1",accentMuted:"#6366F115",pres:"#F0F2FC"}};
 const ALLDOM_DEFAULT = Object.keys(DC_DEFAULT);
-const SI = {Maintien:"●",Arrêt:"◌","Standalone temporaire":"◐","Migrée":"◇","Remplacée":"◈"};
 const CC = {Haute:"#FF5252",Moyenne:"#EF6C00",Basse:"#00C853"};
 const SD1={"Transfert TSA":"#F59E0B","Abandon":"#EF4444","Maintien":"#10B981","Rebuild":"#6366F1"};
 const SD2={"Clone & Clean":"#3B82F6","Transfert":"#10B981","Abandon":"#EF4444","Rebuild":"#8B5CF6"};
 const D1_OPTS=["","Transfert TSA","Maintien","Rebuild","Abandon"];
 const D2_OPTS=["","Clone & Clean","Transfert","Abandon","Rebuild"];
-const SC = {Maintien:"#00C853",Arrêt:"#FF5252","Standalone temporaire":"#EF6C00","Migrée":"#2979FF","Remplacée":"#7C4DFF"};
 const PROTOS = ["API","REST","SOAP","SFTP","ETL","JDBC","ODBC","Webhook","MQ","Batch","Manuel","Fichier","Autre"];
 const FREQS = ["","Temps réel","Horaire","Journalier","Hebdomadaire","Mensuel","À la demande"];
 const uid = () => Math.random().toString(36).slice(2,10);
@@ -42,7 +40,7 @@ const uid = () => Math.random().toString(36).slice(2,10);
 
 const FIELDS = [
   {key:"name",label:"Nom application",req:true},{key:"domain",label:"Domaine",req:true},{key:"category",label:"Catégorie (niveau 1)"},
-  {key:"description",label:"Description"},{key:"status",label:"Statut"},{key:"criticality",label:"Criticité"},
+  {key:"description",label:"Description"},{key:"criticality",label:"Criticité"},
   {key:"vendor",label:"Éditeur / Fournisseur"},{key:"version",label:"Version"},{key:"owner",label:"Responsable"},
   {key:"users",label:"Nb utilisateurs"},{key:"statusD1",label:"Statut Day 1"},{key:"statusD2",label:"Statut Day 2"},{key:"flowTo",label:"Flux vers (séparés par |)"},{key:"flowProtocol",label:"Protocole flux"},{key:"flowLabel",label:"Objet du flux (séparés par |)"},
 ];
@@ -60,18 +58,18 @@ const parseCSV = (text) => {
 const downloadTemplate = async () => {
   await ensureXLSX();
   const wb = XLSX.utils.book_new();
-  const hdr = ["Nom Application","Catégorie","Domaine","Description","Statut","Criticité","Éditeur / Fournisseur","Version","Responsable","Nb Utilisateurs","Statut Day 1","Statut Day 2","Flux vers (séparés par |)","Protocole flux","Objet du flux (séparés par |)","Commentaires"];
+  const hdr = ["Nom Application","Catégorie","Domaine","Description","Criticité","Éditeur / Fournisseur","Version","Responsable","Nb Utilisateurs","Statut Day 1","Statut Day 2","Flux vers (séparés par |)","Protocole flux","Objet du flux (séparés par |)","Commentaires"];
   const ex = [
-    ["SAP S/4HANA","Opérations Cœur","Finance","ERP central","Maintien","Haute","SAP SE","S/4HANA 2023","J. Dupont",250,"Transfert TSA","Clone & Clean","Salesforce|Power BI","API|API","Données clients|Reporting financier","Système central"],
-    ["Salesforce","Commercial","CRM","Maintien","Haute","Salesforce Inc.","Enterprise","M. Martin",120,"Transfert TSA","Transfert","SAP S/4HANA|Mailchimp","API|REST","Commandes|Contacts marketing",""],
-    ["Power BI","IT","Business Intelligence","Maintien","Moyenne","Microsoft","Pro","A. Bernard",80,"Transfert TSA","Clone & Clean","","","",""],
-    ["ADP","RH","Paie et gestion RH","Maintien","Haute","ADP","v12","L. Petit",15,"Abandon","Rebuild","SAP S/4HANA","SFTP","Écritures de paie",""],
-    ["Mailchimp","Marketing","Emailing marketing","Maintien","Basse","Intuit","Premium","S. Moreau",10,"Maintien","","","","",""],
-    ["Jira","IT","Gestion de projet IT","Maintien","Moyenne","Atlassian","Cloud","P. Durand",45,"Transfert TSA","Clone & Clean","Confluence","REST","Documentation technique",""],
-    ["WMS Reflex","Logistique","Gestion d'entrepôt","Maintien","Haute","Hardis Group","v6.2","C. Roux",35,"Rebuild","Rebuild","SAP S/4HANA","API","Mouvements de stock",""],
-    ["DocuSign","Juridique","Signature électronique","Maintien","Moyenne","DocuSign","Enterprise","N. Blanc",30,"Transfert TSA","Transfert","Salesforce","API","Contrats signés",""],
-    ["MES Wonderware","Production","Pilotage atelier","Maintien","Haute","AVEVA","2023","F. Garcia",40,"Abandon","Clone & Clean","SAP S/4HANA|WMS Reflex","API|MQ","Ordres de fabrication|Bons de sortie",""],
-    ["Workday","RH","Gestion des talents","Migrée","Moyenne","Workday","2024R1","L. Petit",0,"Transfert TSA","Transfert","ADP","API","Données collaborateurs","Déploiement S2 2025"],
+    ["SAP S/4HANA","Opérations Cœur","Finance","ERP central","Haute","SAP SE","S/4HANA 2023","J. Dupont",250,"Transfert TSA","Clone & Clean","Salesforce|Power BI","API|API","Données clients|Reporting financier","Système central"],
+    ["Salesforce","Commercial","CRM","Haute","Salesforce Inc.","Enterprise","M. Martin",120,"Transfert TSA","Transfert","SAP S/4HANA|Mailchimp","API|REST","Commandes|Contacts marketing",""],
+    ["Power BI","IT","Business Intelligence","Moyenne","Microsoft","Pro","A. Bernard",80,"Transfert TSA","Clone & Clean","","","",""],
+    ["ADP","RH","Paie et gestion RH","Haute","ADP","v12","L. Petit",15,"Abandon","Rebuild","SAP S/4HANA","SFTP","Écritures de paie",""],
+    ["Mailchimp","Marketing","Emailing marketing","Basse","Intuit","Premium","S. Moreau",10,"Maintien","","","","",""],
+    ["Jira","IT","Gestion de projet IT","Moyenne","Atlassian","Cloud","P. Durand",45,"Transfert TSA","Clone & Clean","Confluence","REST","Documentation technique",""],
+    ["WMS Reflex","Logistique","Gestion d'entrepôt","Haute","Hardis Group","v6.2","C. Roux",35,"Rebuild","Rebuild","SAP S/4HANA","API","Mouvements de stock",""],
+    ["DocuSign","Juridique","Signature électronique","Moyenne","DocuSign","Enterprise","N. Blanc",30,"Transfert TSA","Transfert","Salesforce","API","Contrats signés",""],
+    ["MES Wonderware","Production","Pilotage atelier","Haute","AVEVA","2023","F. Garcia",40,"Abandon","Clone & Clean","SAP S/4HANA|WMS Reflex","API|MQ","Ordres de fabrication|Bons de sortie",""],
+    ["Workday","RH","Gestion des talents","Moyenne","Workday","2024R1","L. Petit",0,"Transfert TSA","Transfert","ADP","API","Données collaborateurs","Déploiement S2 2025"],
   ];
   const ws1 = XLSX.utils.aoa_to_sheet([hdr,...ex]);
   ws1["!cols"]=[{wch:22},{wch:20},{wch:16},{wch:35},{wch:12},{wch:12},{wch:22},{wch:12},{wch:18},{wch:14},{wch:18},{wch:18},{wch:28},{wch:16},{wch:30},{wch:28}];
@@ -82,7 +80,7 @@ const downloadTemplate = async () => {
   XLSX.utils.book_append_sheet(wb,wsFlux,"Flux Métier");
   const ref=[["Domaine","Description","Couleur"],["Finance","Comptabilité, controlling","#52B788"],["RH","Paie, talents, formation","#9D4EDD"],["IT","Infra, dev, BI","#548CA8"],["Commercial","CRM, ventes","#E06C75"],["Production","MES, qualité","#D4A017"],["Logistique","WMS, supply chain","#40A578"],["Marketing","Emailing, CMS","#D63384"],["Juridique","Contrats, conformité","#57A0A0"],["Direction","Reporting, stratégie","#7B78FF"],["Autre","Non classifié","#9E9E9E"]];
   const ws2=XLSX.utils.aoa_to_sheet(ref); ws2["!cols"]=[{wch:16},{wch:40},{wch:12}]; XLSX.utils.book_append_sheet(wb,ws2,"Référentiel Domaines");
-  const ins=[["TEMPLATE CARTOGRAPHIE APPLICATIVE",""],["",""],["COLONNES OBLIGATOIRES",""],["Nom Application","Nom unique de l'application"],["Domaine","Finance, RH, IT, Commercial, Production, Logistique, Marketing, Juridique, Direction, Autre"],["",""],["COLONNES OPTIONNELLES",""],["Statut","Maintien / Arrêt / Standalone temporaire / Migrée / Remplacée"],["Criticité","Haute / Moyenne / Basse"],["Statut Day 1","Stratégie de closing : Transfert TSA / Maintien / Rebuild / Abandon"],["Statut Day 2","Stratégie cible : Clone & Clean / Transfert / Rebuild / Abandon"],["Flux vers","Noms des applications cibles séparés par |"],["Protocole","API, REST, SFTP, ETL… séparés par |"],["Objet du flux","Libellé de la donnée échangée. Séparés par | si multiples"],["",""],["CONSEILS",""],["1.","Les noms dans 'Flux vers' = noms exacts de la colonne A"],["2.","Day 1 = statut de closing (J1) · Day 2 = vision cible à terme"],["3.","Voir onglet 'Référentiel Domaines' pour les couleurs"]];
+  const ins=[["TEMPLATE CARTOGRAPHIE APPLICATIVE",""],["",""],["COLONNES OBLIGATOIRES",""],["Nom Application","Nom unique de l'application"],["Domaine","Finance, RH, IT, Commercial, Production, Logistique, Marketing, Juridique, Direction, Autre"],["",""],["COLONNES OPTIONNELLES",""],["Criticité","Haute / Moyenne / Basse"],["Statut Day 1","Stratégie de closing : Transfert TSA / Maintien / Rebuild / Abandon"],["Statut Day 2","Stratégie cible : Clone & Clean / Transfert / Rebuild / Abandon"],["Flux vers","Noms des applications cibles séparés par |"],["Protocole","API, REST, SFTP, ETL… séparés par |"],["Objet du flux","Libellé de la donnée échangée. Séparés par | si multiples"],["",""],["CONSEILS",""],["1.","Les noms dans 'Flux vers' = noms exacts de la colonne A"],["2.","Day 1 = statut de closing (J1) · Day 2 = vision cible à terme"],["3.","Voir onglet 'Référentiel Domaines' pour les couleurs"]];
   const ws3=XLSX.utils.aoa_to_sheet(ins); ws3["!cols"]=[{wch:30},{wch:70}]; XLSX.utils.book_append_sheet(wb,ws3,"Instructions");
   XLSX.writeFile(wb,"template_cartographie.xlsx");
 };
@@ -274,7 +272,6 @@ function App({ initialSnapshot, onSave, wsMessage, projectId, onThemeChange, top
     try{var s=localStorage.getItem(_stateKey);if(s){var d=JSON.parse(s);if(d.flows)return d.flows;}}catch(e){}return[];
   });
   const [selDom,setSelDom]=useState([]);
-  const [selStat,setSelStat]=useState([]);
   const [selCrit,setSelCrit]=useState([]);
   const [selCat,setSelCat]=useState([]);
   const [openFilter,setOpenFilter]=useState(null); // "domain"|"category"|"status"|"criticality"|null
@@ -522,14 +519,13 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   };
 
   const computeStats=(data, mapping)=>{
-    const domSet=new Set(); let flowCount=0; const statusCount={};const critCount={};
+    const domSet=new Set(); let flowCount=0; const critCount={};
     data.forEach(r=>{
       const dom=r[mapping.domain]||"Autre"; domSet.add(dom);
-      const st=r[mapping.status]||"Maintien"; statusCount[st]=(statusCount[st]||0)+1;
       const cr=r[mapping.criticality]||"Moyenne"; critCount[cr]=(critCount[cr]||0)+1;
       if(mapping.flowTo&&r[mapping.flowTo]) r[mapping.flowTo].split("|").forEach(t=>{if(t.trim())flowCount++;});
     });
-    return {apps:data.length, domains:domSet.size, domainList:[...domSet], flows:flowCount, statusCount, critCount, mappedFields:Object.keys(mapping).filter(k=>mapping[k]).length, totalFields:FIELDS.length};
+    return {apps:data.length, domains:domSet.size, domainList:[...domSet], flows:flowCount, critCount, mappedFields:Object.keys(mapping).filter(k=>mapping[k]).length, totalFields:FIELDS.length};
   };
 
   const loadSheet=useCallback((wb,nm)=>{
@@ -591,7 +587,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
   const processImport=()=>{
     if(!cMap.name||!cMap.domain){alert("Mappez au minimum: Nom et Domaine");return;}
-    const na=rawData.map((r,i)=>({id:uid(),name:r[cMap.name]||"App_"+i,domain:r[cMap.domain]||"Autre",category:r[cMap.category]||"",description:r[cMap.description]||"",status:r[cMap.status]||"Maintien",criticality:r[cMap.criticality]||"Moyenne",vendor:r[cMap.vendor]||"",version:r[cMap.version]||"",owner:r[cMap.owner]||"",users:parseInt(r[cMap.users])||0,statusD1:r[cMap.statusD1]||"",statusD2:r[cMap.statusD2]||"",x:0,y:0,_ft:r[cMap.flowTo]||"",_fp:r[cMap.flowProtocol]||"",_fl:r[cMap.flowLabel]||""}));
+    const na=rawData.map((r,i)=>({id:uid(),name:r[cMap.name]||"App_"+i,domain:r[cMap.domain]||"Autre",category:r[cMap.category]||"",description:r[cMap.description]||"",criticality:r[cMap.criticality]||"Moyenne",vendor:r[cMap.vendor]||"",version:r[cMap.version]||"",owner:r[cMap.owner]||"",users:parseInt(r[cMap.users])||0,statusD1:r[cMap.statusD1]||"",statusD2:r[cMap.statusD2]||"",x:0,y:0,_ft:r[cMap.flowTo]||"",_fp:r[cMap.flowProtocol]||"",_fl:r[cMap.flowLabel]||""}));
     const nf=[];
     if(rawFluxData&&rawFluxData.length>0){
       var nrm=function(s){return(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();};
@@ -690,6 +686,28 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     const vh=(window.innerHeight||800)-60; // minus toolbar
     const fitZm=Math.min(vw/(maxX+80),vh/(maxY+80),1.2);
 
+    // Compute catBounds directly from imported layout (reset old bounds to avoid stale positions)
+    const impDomBounds={};
+    na.forEach(a=>{
+      if(!impDomBounds[a.domain])impDomBounds[a.domain]={x1:Infinity,y1:Infinity,x2:-Infinity,y2:-Infinity};
+      impDomBounds[a.domain].x1=Math.min(impDomBounds[a.domain].x1,a.x);
+      impDomBounds[a.domain].y1=Math.min(impDomBounds[a.domain].y1,a.y);
+      impDomBounds[a.domain].x2=Math.max(impDomBounds[a.domain].x2,a.x+cW);
+      impDomBounds[a.domain].y2=Math.max(impDomBounds[a.domain].y2,a.y+cH);
+    });
+    const impCatBounds={};
+    na.forEach(a=>{
+      const cat=a.category;if(!cat)return;
+      if(!impCatBounds[cat])impCatBounds[cat]={x1:Infinity,y1:Infinity,x2:-Infinity,y2:-Infinity};
+      const db=impDomBounds[a.domain];if(!db)return;
+      impCatBounds[cat].x1=Math.min(impCatBounds[cat].x1,db.x1);
+      impCatBounds[cat].y1=Math.min(impCatBounds[cat].y1,db.y1);
+      impCatBounds[cat].x2=Math.max(impCatBounds[cat].x2,db.x2);
+      impCatBounds[cat].y2=Math.max(impCatBounds[cat].y2,db.y2);
+    });
+
+    setCatBounds(impCatBounds);
+    setDomPads({});
     setApps(na);setFlows(nf);setOff({x:10,y:10});setZm(Math.max(0.3,Math.min(fitZm,1)));setView("mapping");
   };
 
@@ -820,12 +838,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       var wb=XLSX.utils.book_new();
 
       // ── Onglet 1: Applications (format reimportable) ──
-      var ah=["Nom","Domaine","Categorie","Statut","Criticite","Editeur","Version","Responsable","Utilisateurs","Description","Day 1","Day 2","x","y"];
+      var ah=["Nom","Domaine","Categorie","Criticite","Editeur","Version","Responsable","Utilisateurs","Description","Day 1","Day 2","x","y"];
       var ar=apps.map(function(a){return[
         a.name,
         a.domain,
         a.category||"",
-        a.status,
         a.criticality,
         a.vendor||"",
         a.version||"",
@@ -838,7 +855,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         Math.round(a.y)||0
       ];});
       var ws1=XLSX.utils.aoa_to_sheet([ah].concat(ar));
-      ws1["!cols"]=[{wch:24},{wch:16},{wch:14},{wch:18},{wch:12},{wch:18},{wch:10},{wch:18},{wch:10},{wch:35},{wch:18},{wch:16},{wch:7},{wch:7}];
+      ws1["!cols"]=[{wch:24},{wch:16},{wch:14},{wch:12},{wch:18},{wch:10},{wch:18},{wch:10},{wch:35},{wch:18},{wch:16},{wch:7},{wch:7}];
       ws1["!freeze"]={xSplit:0,ySplit:1};
       XLSX.utils.book_append_sheet(wb,ws1,"Applications");
 
@@ -875,9 +892,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       dd.push(["Apps critiques",apps.filter(function(a){return a.criticality==="Haute";}).length]);
       dd.push(["Ratio flux/app",(totF/tot).toFixed(2)]);
       dd.push([""]);
-      dd.push(["STATUTS","Nb","%"]);
-      ["Maintien","Arret","Standalone temporaire","Migree","Remplacee"].forEach(function(s){var n=apps.filter(function(a){return a.status===s;}).length;dd.push([s,n,Math.round(n/tot*100)+"%"]);});
-      dd.push([""]);
       dd.push(["CRITICITE","Nb","%"]);
       ["Haute","Moyenne","Basse"].forEach(function(cr){var n=apps.filter(function(a){return a.criticality===cr;}).length;dd.push([cr,n,Math.round(n/tot*100)+"%"]);});
       dd.push([""]);
@@ -911,7 +925,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     }catch(err){alert("Erreur export XLSX: "+err.message);}
   };
 
-  const exportCSV=()=>{const h=["Nom","Domaine","Statut","Criticité","Éditeur","Version","Responsable","Utilisateurs","Description"];const rows=apps.map(a=>[a.name,a.domain,a.status,a.criticality,a.vendor,a.version,a.owner,a.users,a.description].map(v=>'"'+v+'"').join(";"));const blob=new Blob(["\uFEFF"+[h.join(";"),...rows].join("\n")],{type:"text/csv;charset=utf-8;"});const l=document.createElement("a");l.href=URL.createObjectURL(blob);l.download="cartographie.csv";l.click();};
+  const exportCSV=()=>{const h=["Nom","Domaine","Criticité","Éditeur","Version","Responsable","Utilisateurs","Description"];const rows=apps.map(a=>[a.name,a.domain,a.criticality,a.vendor,a.version,a.owner,a.users,a.description].map(v=>'"'+v+'"').join(";"));const blob=new Blob(["\uFEFF"+[h.join(";"),...rows].join("\n")],{type:"text/csv;charset=utf-8;"});const l=document.createElement("a");l.href=URL.createObjectURL(blob);l.download="cartographie.csv";l.click();};
 
   const saveJSON=()=>{
     const data={version:2,theme:themeKey,date:new Date().toISOString(),apps,flows,domColors,domScales,domPads,catColors,catPads,catBounds,globalScale,fontScale,zoom:zm,offset:off};
@@ -2138,16 +2152,15 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       Object.entries(positions).forEach(([id,p])=>{
         const app=subset.find(x=>x.id===id);if(!app)return;
         const box=domBoxes[app.domain];const ac=box?box.ac:"888888";
-        const isArret=app.status==="Arrêt";
         const isGreyed=greyedIds&&greyedIds.has(id);
         if(isGreyed){
           sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:"F0F2F5"},line:{color:"C8CDD6",width:0.5}});
           var fSizeG=Math.min(7,p.w*6);
           sC.addText(app.name,{x:p.x+0.04,y:p.y,w:p.w-0.08,h:p.h,fontSize:fSizeG,bold:false,color:"9CA3AF",fontFace:"Calibri",margin:0,valign:"middle",align:"center",shrinkText:true,wrap:true});
         }else{
-          sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:isArret?"FFEAEA":"FFFFFF"},line:{color:ac,width:1.0},shadow:{type:"outer",blur:2,offset:1,color:"000000",opacity:0.10,angle:135}});
+          sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:"FFFFFF"},line:{color:ac,width:1.0},shadow:{type:"outer",blur:2,offset:1,color:"000000",opacity:0.10,angle:135}});
           var fSize=Math.min(9,Math.max(7,p.w*7.5));
-          sC.addText(app.name,{x:p.x+0.05,y:p.y,w:p.w-0.1,h:p.h,fontSize:fSize,bold:true,color:isArret?"990000":"1A1A1A",fontFace:"Calibri",margin:0,valign:"middle",align:"center",shrinkText:true,wrap:true});
+          sC.addText(app.name,{x:p.x+0.05,y:p.y,w:p.w-0.1,h:p.h,fontSize:fSize,bold:true,color:"1A1A1A",fontFace:"Calibri",margin:0,valign:"middle",align:"center",shrinkText:true,wrap:true});
         }
       });
 
@@ -2259,11 +2272,10 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       sorted.forEach(function(a){
         var np=neighPos[a.id];
         var domColor=(_pDC[a.domain]||_pDC.Autre).ac.replace("#","");
-        var isArret=a.status==="Arrêt";
         // Domain color accent left strip
         sC.addShape(pres.shapes.RECTANGLE,{x:np.x,y:np.y,w:0.05,h:np.h,fill:{color:domColor},line:{type:"none"}});
-        sC.addShape(pres.shapes.RECTANGLE,{x:np.x,y:np.y,w:np.w,h:np.h,fill:{color:isArret?"FFF0F0":"FFFFFF"},line:{color:isArret?"E06C75":domColor,width:1.0},shadow:{type:"outer",blur:2,offset:1,color:"000000",opacity:0.08,angle:135}});
-        sC.addText(a.name,{x:np.x+0.08,y:np.y,w:np.w-0.12,h:np.h*0.62,fontSize:8,bold:true,color:isArret?"CC0000":"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
+        sC.addShape(pres.shapes.RECTANGLE,{x:np.x,y:np.y,w:np.w,h:np.h,fill:{color:"FFFFFF"},line:{color:domColor,width:1.0},shadow:{type:"outer",blur:2,offset:1,color:"000000",opacity:0.08,angle:135}});
+        sC.addText(a.name,{x:np.x+0.08,y:np.y,w:np.w-0.12,h:np.h*0.62,fontSize:8,bold:true,color:"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
         sC.addText(a.domain,{x:np.x+0.08,y:np.y+np.h*0.60,w:np.w-0.12,h:np.h*0.40,fontSize:6,color:"6B7280",fontFace:"Calibri",align:"center",valign:"top",margin:0,shrinkText:true});
       });
       // Hub box (on top)
@@ -2453,13 +2465,12 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       sorted.forEach(function(a){
         var np=neighPos[a.id];if(!np)return;
         var domColor=(_pDC[a.domain]||_pDC.Autre).ac.replace("#","");
-        var isArret=a.status==="Arrêt";
         sC.addShape(pres.shapes.RECTANGLE,{x:np.x,y:np.y,w:0.05,h:np.h,fill:{color:domColor},line:{type:"none"}});
         sC.addShape(pres.shapes.RECTANGLE,{x:np.x,y:np.y,w:np.w,h:np.h,
-          fill:{color:isArret?"FFF0F0":"FFFFFF"},line:{color:isArret?"E06C75":domColor,width:1.0},
+          fill:{color:"FFFFFF"},line:{color:domColor,width:1.0},
           shadow:{type:"outer",blur:2,offset:1,color:"000000",opacity:0.08,angle:135}});
         sC.addText(a.name,{x:np.x+0.08,y:np.y,w:np.w-0.12,h:np.h*0.62,
-          fontSize:8,bold:true,color:isArret?"CC0000":"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
+          fontSize:8,bold:true,color:"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
         sC.addText(a.domain,{x:np.x+0.08,y:np.y+np.h*0.60,w:np.w-0.12,h:np.h*0.40,
           fontSize:6,color:"6B7280",fontFace:"Calibri",align:"center",valign:"top",margin:0,shrinkText:true});
         // Pastille nb flux dans le coin supérieur droit de la boîte
@@ -2651,11 +2662,10 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       nonHubApps.forEach(function(a){
         var p=pos[a.id];if(!p)return;
         var dc=(_pDC[a.domain]||_pDC.Autre).ac.replace("#","");
-        var isArret=a.status==="Arrêt";
         var isR1=ring1Ids.has(a.id);
-        sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:isArret?"FFEAEA":isR1?"FFFFFF":"F0F2F7"},line:{color:isArret?"E06C75":dc,width:isR1?1.0:0.6},shadow:isR1?{type:"outer",blur:2,offset:1,color:"000000",opacity:0.09,angle:135}:undefined});
+        sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:p.w,h:p.h,fill:{color:isR1?"FFFFFF":"F0F2F7"},line:{color:dc,width:isR1?1.0:0.6},shadow:isR1?{type:"outer",blur:2,offset:1,color:"000000",opacity:0.09,angle:135}:undefined});
         sC.addShape(pres.shapes.RECTANGLE,{x:p.x,y:p.y,w:0.05,h:p.h,fill:{color:dc},line:{type:"none"}});
-        sC.addText(a.name,{x:p.x+0.08,y:p.y,w:p.w-0.12,h:p.h,fontSize:isR1?7:6.5,bold:isR1,color:isArret?"990000":"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
+        sC.addText(a.name,{x:p.x+0.08,y:p.y,w:p.w-0.12,h:p.h,fontSize:isR1?7:6.5,bold:isR1,color:"1A1A1A",fontFace:"Calibri",align:"center",valign:"middle",margin:0,shrinkText:true});
       });
       // Hub box (top layer)
       var hubDC=(_pDC[hub.domain]||_pDC.Autre).ac.replace("#","");
@@ -4042,12 +4052,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       sLeg.addText(l,{x:1.0,y:1.35+i*0.35,w:2,h:0.2,fontSize:10,color:"333333",fontFace:"Calibri",margin:0});
     });
 
-    // Statut
-    sLeg.addText("STATUT",{x:3.5,y:1.0,w:3,h:0.3,fontSize:10,bold:true,color:"0B2545",fontFace:"Calibri",margin:0});
-    [["Maintien","52B788","●"],["Arrêt","E06C75","\u25CC"],["Standalone temporaire","D4A017","\u25D0"],["Migrée","548CA8","\u25C7"],["Remplacée","9D4EDD","\u25C8"]].forEach(([l,c,ic],i)=>{
-      sLeg.addText(ic+" "+l,{x:3.5,y:1.35+i*0.35,w:2.5,h:0.2,fontSize:10,color:c,fontFace:"Calibri",margin:0});
-    });
-
     // Domaines
     sLeg.addText("DOMAINES",{x:6.5,y:1.0,w:3,h:0.3,fontSize:10,bold:true,color:"0B2545",fontFace:"Calibri",margin:0});
     Object.entries(_pDC).forEach(([d,c],i)=>{
@@ -4085,8 +4089,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     pres.writeFile({fileName:"Cartographie_Applicative.pptx"});
   };
 
-  const filtered=useMemo(()=>{let r=apps;if(selDom.length)r=r.filter(a=>selDom.includes(a.domain));if(selCat.length)r=r.filter(a=>selCat.includes(a.category||""));if(selStat.length)r=r.filter(a=>selStat.includes(a.status));if(selCrit.length)r=r.filter(a=>selCrit.includes(a.criticality));if(selD1)r=r.filter(a=>a.statusD1===selD1);if(selD2)r=r.filter(a=>a.statusD2===selD2);if(search){const s=search.toLowerCase();r=r.filter(a=>a.name.toLowerCase().includes(s)||a.domain.toLowerCase().includes(s)||(a.vendor||"").toLowerCase().includes(s));}return r;},[apps,selDom,selCat,selStat,selCrit,selD1,selD2,search]);
-  const activeFilters=(selDom.length+selCat.length+selStat.length+selCrit.length)>0;
+  const filtered=useMemo(()=>{let r=apps;if(selDom.length)r=r.filter(a=>selDom.includes(a.domain));if(selCat.length)r=r.filter(a=>selCat.includes(a.category||""));if(selCrit.length)r=r.filter(a=>selCrit.includes(a.criticality));if(selD1)r=r.filter(a=>a.statusD1===selD1);if(selD2)r=r.filter(a=>a.statusD2===selD2);if(search){const s=search.toLowerCase();r=r.filter(a=>a.name.toLowerCase().includes(s)||a.domain.toLowerCase().includes(s)||(a.vendor||"").toLowerCase().includes(s));}return r;},[apps,selDom,selCat,selCrit,selD1,selD2,search]);
+  const activeFilters=(selDom.length+selCat.length+selCrit.length)>0;
   const cats=[...new Set(apps.map(a=>a.category).filter(Boolean))];
   const doms=[...new Set(apps.map(a=>a.domain))];
 
@@ -4098,10 +4102,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   const AppNode=({app})=>{const c=DC[app.domain]||DC.Autre;const sel=selApp?.id===app.id;
     const msel=multiSel.includes(app.id);
     const crC=CC[app.criticality]||"#999";
-    const stC=SC[app.status]||"#888";
     // D1-driven color: if D1 is set, use D1 color for border/bandeau; else domain color
     const d1C=app.statusD1?(SD1[app.statusD1]||"#888"):null;
-    const cardColor=d1C||c.ac||stC; // D1 color > domain accent > status
+    const cardColor=d1C||c.ac; // D1 color > domain accent
     const isNeg=app.statusD1==="Abandon"||(app.statusD2==="Abandon"&&!app.statusD1);
     const ds=domScales[app.domain]||1;
     const fsD=fs*ds;
@@ -4303,12 +4306,11 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     const [chartTip,setChartTip]=useState(null); // {x,y,label,val,pct}
     const [quickFilter,setQuickFilter]=useState(""); // "" | "critiques"
     const [hovSlice,setHovSlice]=useState(null); // {id,idx}
-    const [statusFilter,setStatusFilter]=useState(""); // filter domain table by app status
     const clearTip=function(){setChartTip(null);};
     const hexToRgbCo=function(hex){var r=parseInt(hex.slice(1,3),16)||102,g=parseInt(hex.slice(3,5),16)||102,b=parseInt(hex.slice(5,7),16)||102;return r+","+g+","+b;};
     const toggleSection=(id)=>setHiddenSections(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
-    const ALL_WIDGETS=["chart_status","chart_apps","chart_flux","chart_owner","carveout","flowreg"];
-    const DEFAULT_SIZES={chart_status:"m",chart_apps:"m",chart_flux:"m",chart_owner:"m",carveout:"l",flowreg:"l"};
+    const ALL_WIDGETS=["chart_apps","chart_flux","chart_owner","carveout","flowreg"];
+    const DEFAULT_SIZES={chart_apps:"m",chart_flux:"m",chart_owner:"m",carveout:"l",flowreg:"l"};
     const [widgetSizes,setWidgetSizes]=useState(function(){try{var s=localStorage.getItem("dash_sizes_"+(projectId||"default"));if(s)return Object.assign({},DEFAULT_SIZES,JSON.parse(s));}catch(e){}return Object.assign({},DEFAULT_SIZES);});
     const saveWidgetSizes=(sz)=>{setWidgetSizes(sz);try{localStorage.setItem("dash_sizes_"+(projectId||"default"),JSON.stringify(sz));}catch(e){}};
     const [hovWid,setHovWid]=useState(null);
@@ -4395,7 +4397,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       };
     },[resizeInfo]);
     const [expandedWidget,setExpandedWidget]=useState(null);
-    const CHART_TYPES_DEF={chart_status:"donut",chart_apps:"bar",chart_flux:"bar",chart_owner:"donut"};
+    const CHART_TYPES_DEF={chart_apps:"bar",chart_flux:"bar",chart_owner:"donut"};
     const [chartTypes,setChartTypes]=useState(Object.assign({},CHART_TYPES_DEF));
     const setChartType=function(id,t){setChartTypes(function(p){return Object.assign({},p,{[id]:t});});};
     const dm=[...new Set(apps.map(a=>a.domain))];
@@ -4450,7 +4452,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         {opts.map(function(o){return <option key={o.k} value={o.k} style={{background:"#1A1A35",color:"#fff"}}>{o.label}</option>;})}
       </select>;
     };
-    var ALL_WIDGETS_LIST=["chart_status","chart_apps","chart_flux","chart_owner","carveout","flowreg"];
+    var ALL_WIDGETS_LIST=["chart_apps","chart_flux","chart_owner","carveout","flowreg"];
     var getDefaultPos=function(id){
       var idx=ALL_WIDGETS_LIST.indexOf(id);
       var col=idx%2; var row=Math.floor(idx/2);
@@ -4607,105 +4609,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       
       <div style={{position:"relative",width:"100%",minHeight:1800}}>
       {ALL_WIDGETS_LIST.filter(function(id){return!hiddenWidgets.includes(id);}).map(function(sid){
-        if(sid==="chart_status")return wrapWidget(sid,"#00C853","Répartition par statut",null,function(isExpanded,ww,wh){
-          var SC2={"Maintien":"#00C853","Arrêt":"#FF5252","Standalone temporaire":"#EF6C00","Migrée":"#2979FF","Remplacée":"#7C4DFF"};
-          var total2=apps.length||1;var slices=[];
-          ["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"].forEach(function(s){var n=apps.filter(function(a){return a.status===s;}).length;if(n>0)slices.push({name:s,value:n,pct:Math.round(n/total2*100),color:SC2[s]||"#888"});});
-          var ctype=chartTypes[sid]||"donut";
-          var isHovSt=hovSlice&&hovSlice.id==="status";
-          var cw=ww||500;var isNarrow=!isExpanded&&cw<420;
-          var donutSz=isExpanded?320:Math.min(140,Math.max(96,cw/2.6));
-          var donutR=Math.round(donutSz*0.434);var donutIr=Math.round(donutSz*0.276);
-          var donutCx=Math.round(donutSz/2);var donutCy=Math.round(donutSz/2);
-          var svgW=isExpanded?560:Math.max(160,cw-56);var svgH=isExpanded?320:150;
-          var renderCircle=function(useHole){
-            var arcs=buildArcs(slices,total2,donutCx,donutCy,donutR,useHole?donutIr:0);
-            return <div style={{display:"flex",flexDirection:isNarrow?"column":"row",gap:isExpanded?28:(isNarrow?6:12),alignItems:isNarrow?"flex-start":"center",flex:isExpanded?1:undefined,minHeight:0}}>
-              <svg width={donutSz} height={donutSz} viewBox={"0 0 "+(donutCx*2)+" "+(donutCy*2)} style={{flexShrink:0}} onMouseLeave={function(){setHovSlice(null);clearTip();}}>
-                {arcs.map(function(p){
-                  var h=isHovSt&&hovSlice.idx===p.idx;
-                  var tx=h?Math.cos(p.mid)*6:0;var ty=h?Math.sin(p.mid)*6:0;
-                  var op=isHovSt?(h?1:0.22):0.88;
-                  return <path key={p.idx} d={p.d} fill={p.color} opacity={op} stroke={T.bg} strokeWidth="2.5"
-                    transform={"translate("+tx.toFixed(1)+","+ty.toFixed(1)+")"}
-                    style={{cursor:"pointer",transition:"opacity 0.12s"}}
-                    onMouseMove={function(e){setHovSlice({id:"status",idx:p.idx});setChartTip({x:e.clientX,y:e.clientY,label:p.name,val:p.value+" apps",pct:p.pct});}}
-                    onMouseLeave={function(){setHovSlice(null);clearTip();}}
-                    onClick={function(){setStatusFilter(function(f){return f===p.name?"":p.name;})}}/>;
-                })}
-                {useHole&&<text x={donutCx} y={donutCy-3} textAnchor="middle" fill={T.fg} fontSize={isExpanded?34:Math.round(donutSz*0.17)} fontWeight="800">{apps.length}</text>}
-                {useHole&&<text x={donutCx} y={donutCy+Math.round(donutSz*0.1)} textAnchor="middle" fill={T.fgMuted} fontSize={isExpanded?11:Math.max(6,Math.round(donutSz*0.055))} letterSpacing="0.08em">APPS</text>}
-              </svg>
-              <div style={{flex:1,minWidth:0,overflowY:"auto",maxHeight:isExpanded?360:(isNarrow?110:undefined)}}>
-                {slices.map(function(sl){
-                  var act=statusFilter===sl.name;
-                  return <div key={sl.name} onClick={function(){setStatusFilter(function(f){return f===sl.name?"":sl.name;});}}
-                    style={{display:"flex",alignItems:"center",gap:5,marginBottom:isNarrow?3:6,padding:isNarrow?"3px 5px":"4px 7px",borderRadius:5,cursor:"pointer",background:act?sl.color+"18":"transparent",border:"1px solid "+(act?sl.color+"55":"transparent"),transition:"all 0.12s"}}>
-                    <div style={{width:7,height:7,borderRadius:"50%",background:sl.color,flexShrink:0}}/>
-                    <span style={{fontSize:isExpanded?13:(isNarrow?9:10),color:act?sl.color:T.fg,flex:1,fontWeight:act?700:400,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sl.name}</span>
-                    <span style={{fontSize:isExpanded?13:(isNarrow?10:11),fontWeight:700,color:sl.color,minWidth:16,textAlign:"right"}}>{sl.value}</span>
-                    <span style={{fontSize:isExpanded?10:(isNarrow?8:9),color:T.fgMuted,minWidth:24,textAlign:"right"}}>{sl.pct}%</span>
-                  </div>;
-                })}
-              </div>
-            </div>;
-          };
-          var renderBar=function(){
-            var sorted=[...slices].sort(function(a,b){return b.value-a.value;});
-            var W=svgW;var H=svgH;var pad=32;var maxV=Math.max.apply(null,sorted.map(function(s){return s.value;}))||1;
-            var barW=Math.floor((W-pad*2)/sorted.length*0.6);var gap=Math.floor((W-pad*2)/sorted.length);
-            return <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
-              <svg width={W} height={H} style={{overflow:"visible"}}>
-                {sorted.map(function(sl,i){
-                  var bh=Math.max(4,(sl.value/maxV)*(H-60));
-                  var x=pad+i*gap+gap/2-barW/2;var y=H-30-bh;
-                  var h=isHovSt&&hovSlice&&hovSlice.idx===i;
-                  return <g key={sl.name} style={{cursor:"pointer"}}
-                    onMouseMove={function(e){setHovSlice({id:"status",idx:i});setChartTip({x:e.clientX,y:e.clientY,label:sl.name,val:sl.value+" apps",pct:sl.pct});}}
-                    onMouseLeave={function(){setHovSlice(null);clearTip();}}
-                    onClick={function(){setStatusFilter(function(f){return f===sl.name?"":sl.name;});}}>
-                    <rect x={x} y={y} width={barW} height={bh} fill={sl.color} opacity={h?1:0.8} rx="3"/>
-                    <text x={x+barW/2} y={y-5} textAnchor="middle" fill={sl.color} fontSize="11" fontWeight="700">{sl.value}</text>
-                    <text x={x+barW/2} y={H-14} textAnchor="middle" fill={T.fgMuted} fontSize="9">{sl.name.length>8?sl.name.slice(0,7)+"…":sl.name}</text>
-                  </g>;
-                })}
-              </svg>
-            </div>;
-          };
-          var renderArea=function(){
-            var sorted=[...slices].sort(function(a,b){return b.value-a.value;});
-            var W=svgW;var H=svgH;var n=sorted.length;var maxV=Math.max.apply(null,sorted.map(function(s){return s.value;}))||1;
-            if(n<2)return renderBar();
-            var pts=sorted.map(function(sl,i){return{x:40+i*(W-80)/(n-1),y:(1-sl.value/maxV)*(H-60)+20,sl:sl};});
-            var areaD="M"+pts[0].x+" "+(H-30)+" L"+pts.map(function(p){return p.x+" "+p.y;}).join(" L ")+" L"+pts[pts.length-1].x+" "+(H-30)+" Z";
-            var lineD="M"+pts.map(function(p){return p.x+" "+p.y;}).join(" L ");
-            var gradId="stg_"+sid;
-            return <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
-              <svg width={W} height={H} style={{overflow:"visible"}}>
-                <defs><linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={slices[0]?slices[0].color:"#00C853"} stopOpacity="0.5"/><stop offset="100%" stopColor={slices[0]?slices[0].color:"#00C853"} stopOpacity="0.04"/></linearGradient></defs>
-                <path d={areaD} fill={"url(#"+gradId+")"} />
-                <path d={lineD} fill="none" stroke={slices[0]?slices[0].color:"#00C853"} strokeWidth="2"/>
-                {pts.map(function(p,i){return <g key={i}>
-                  <circle cx={p.x} cy={p.y} r="4" fill={p.sl.color} stroke={T.bg} strokeWidth="2"
-                    onMouseMove={function(e){setChartTip({x:e.clientX,y:e.clientY,label:p.sl.name,val:p.sl.value+" apps",pct:p.sl.pct});}}
-                    onMouseLeave={clearTip}/>
-                  <text x={p.x} y={p.y-10} textAnchor="middle" fill={p.sl.color} fontSize="10" fontWeight="700">{p.sl.value}</text>
-                  <text x={p.x} y={H-14} textAnchor="middle" fill={T.fgMuted} fontSize="9">{p.sl.name.length>7?p.sl.name.slice(0,6)+"…":p.sl.name}</text>
-                </g>;})}
-              </svg>
-            </div>;
-          };
-          return <div style={{background:T.bgCard,borderRadius:12,padding:18,boxShadow:"0 1px 4px rgba(0,0,0,0.14), 0 0 0 1px "+T.border,height:(isExpanded||wh)?"100%":undefined,display:(isExpanded||wh)?"flex":undefined,flexDirection:(isExpanded||wh)?"column":undefined}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
-              <div style={{width:3,height:15,borderRadius:2,background:"#00C853",flexShrink:0}}/>
-              <span style={{fontSize:12,fontWeight:700,color:T.fg}}>Répartition par statut</span>
-              {statusFilter&&<button onClick={function(e){e.stopPropagation();setStatusFilter("");}} style={{background:"#FF525218",color:"#FF5252",border:"1px solid #FF525440",borderRadius:4,padding:"1px 7px",fontSize:9,cursor:"pointer",fontWeight:700}}>✕ {statusFilter}</button>}
-            </div>
-            <div style={{flex:isExpanded?1:undefined,minHeight:0}}>
-              {ctype==="donut"?renderCircle(true):ctype==="pie"?renderCircle(false):ctype==="area"?renderArea():renderBar()}
-            </div>
-          </div>;
-        },mkChartSwitch(sid));
         if(sid==="chart_apps")return wrapWidget(sid,"#7C4DFF","Apps par domaine",null,function(isExpanded,ww,wh){
           var barData=[...st].sort(function(a,b){return b.count-a.count;});
           var mx2=Math.max.apply(null,barData.map(function(d){return d.count;}))||1;
@@ -5270,14 +5173,12 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         var ds=st.find(function(d){return d.domain===curDom;})||st[0];
         if(!ds) return null;
         var c=DC[ds.domain]||DC.Autre;
-        var flt=dbFilter[ds.domain]||{status:"",criticality:"",search:""};
+        var flt=dbFilter[ds.domain]||{criticality:"",search:""};
         var setFlt=function(k,v){setDbFilter(function(p){var next=Object.assign({},p);next[ds.domain]=Object.assign({},flt);next[ds.domain][k]=v;return next;});};
         var filtApps=ds.apps.filter(function(a){
-          if(flt.status&&a.status!==flt.status) return false;
           if(flt.criticality&&a.criticality!==flt.criticality) return false;
           if(flt.search&&!a.name.toLowerCase().includes(flt.search.toLowerCase())&&!(a.vendor||"").toLowerCase().includes(flt.search.toLowerCase())) return false;
           if(quickFilter==="critiques"&&a.criticality!=="Haute") return false;
-          if(statusFilter&&a.status!==statusFilter) return false;
           return true;
         });
         return <div>
@@ -5285,7 +5186,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             <h3 style={{fontSize:16,fontWeight:700,margin:0}}>Détail par domaine</h3>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {quickFilter&&<button onClick={function(){setQuickFilter("");}} style={{background:"#FF525215",color:"#FF5252",border:"1px solid #FF525240",borderRadius:5,padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>⚠ Critiques uniquement <span style={{opacity:0.6}}>✕</span></button>}
-              {statusFilter&&<button onClick={function(){setStatusFilter("");}} style={{background:"#2979FF15",color:"#2979FF",border:"1px solid #2979FF40",borderRadius:5,padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>◉ {statusFilter} <span style={{opacity:0.6}}>✕</span></button>}
             </div>
           </div>
           {/* Onglets */}
@@ -5310,22 +5210,17 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             {/* Filtres */}
             <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
               <input placeholder="Rechercher..." value={flt.search||""} onChange={function(e){setFlt("search",e.target.value);}} style={{...I,width:140,padding:"4px 8px",fontSize:11}}/>
-              <select value={flt.status||""} onChange={function(e){setFlt("status",e.target.value);}} style={{...I,width:130,padding:"4px 8px",fontSize:11}}>
-                <option value="">Tous statuts</option>
-                {["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"].map(function(s){return <option key={s} value={s}>{s}</option>;})}
-              </select>
               <select value={flt.criticality||""} onChange={function(e){setFlt("criticality",e.target.value);}} style={{...I,width:110,padding:"4px 8px",fontSize:11}}>
                 <option value="">Toutes criticités</option>
                 {["Haute","Moyenne","Basse"].map(function(cr){return <option key={cr} value={cr}>{cr}</option>;})}
               </select>
-              {(flt.status||flt.criticality||flt.search)&&<button onClick={function(){setFlt("status","");setFlt("criticality","");setFlt("search","");}} style={{...B,padding:"3px 8px",fontSize:9,background:"#E06C7520",color:"#E06C75",borderRadius:3}}>✕</button>}
+              {(flt.criticality||flt.search)&&<button onClick={function(){setFlt("criticality","");setFlt("search","");}} style={{...B,padding:"3px 8px",fontSize:9,background:"#E06C7520",color:"#E06C75",borderRadius:3}}>✕</button>}
               <span style={{fontSize:10,color:T.fgDim}}>{filtApps.length}/{ds.count}</span>
             </div>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-              <thead><tr style={{borderBottom:"1px solid "+T.border}}>{["Application","Statut","Criticité","Éditeur","Responsable","Flux sortants"].map(function(h){return <th key={h} style={{padding:"6px 8px",textAlign:"left",color:T.fgMuted,fontWeight:600}}>{h}</th>;})}</tr></thead>
+              <thead><tr style={{borderBottom:"1px solid "+T.border}}>{["Application","Criticité","Éditeur","Responsable","Flux sortants"].map(function(h){return <th key={h} style={{padding:"6px 8px",textAlign:"left",color:T.fgMuted,fontWeight:600}}>{h}</th>;})}</tr></thead>
               <tbody>{filtApps.map(function(app){var of2=flows.filter(function(f){return f.from===app.id;});return <tr key={app.id} style={{borderBottom:"1px solid "+T.borderLight}}>
                 <td style={{padding:"6px 8px",fontWeight:500}}>{app.name}</td>
-                <td style={{padding:"6px 8px",color:(SC[app.status]||"#888")}}>{app.status}</td>
                 <td style={{padding:"6px 8px",color:CC[app.criticality]}}>{app.criticality}</td>
                 <td style={{padding:"6px 8px",color:T.fgMuted}}>{app.vendor||"—"}</td>
                 <td style={{padding:"6px 8px",color:T.fgMuted}}>{app.owner||"—"}</td>
@@ -5684,7 +5579,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             <div style={{background:T.bgCard,border:"1px solid "+T.border,borderTop:"none",borderRadius:"0 0 "+Math.round(8*cz)+"px "+Math.round(8*cz)+"px",padding:Math.round(8*cz),display:"flex",flexWrap:"wrap",gap:Math.round(6*cz),alignContent:"flex-start",height:domH>0?Math.round((domH-38)*cz):"auto",overflowY:domH>0?"auto":"visible"}}>
               {domApps.map(function(app,ai){
                 var isAct=cardSelApp&&cardSelApp.id===app.id;
-                var stC=SC[app.status]||"#888";
                 var d1C=app.statusD1?(SD1[app.statusD1]||"#F59E0B"):null;
                 var d2C=app.statusD2?(SD2[app.statusD2]||"#F97316"):null;
                 var nOut=flows.filter(function(f){return f.from===app.id;}).length;
@@ -5724,12 +5618,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
                   {/* Vendor */}
                   {app.vendor&&<div style={{fontSize:Math.round(9*cz),color:T.fgMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:Math.round(1*cz),lineHeight:1.2}}>{app.vendor}</div>}
 
-                  {/* Status row */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:Math.round(4*cz)}}>
-                    <span style={{fontSize:Math.round(9*cz),color:stC,fontWeight:600,display:"flex",alignItems:"center",gap:2}}>
-                      <span style={{width:5,height:5,borderRadius:"50%",background:stC,display:"inline-block",flexShrink:0}}/>
-                      {app.status==="Standalone temporaire"?"Standalone":app.status}
-                    </span>
+                  {/* Criticality indicator */}
+                  <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",marginTop:Math.round(4*cz)}}>
                     <span style={{fontSize:Math.round(9*cz),color:CC[app.criticality]||"#888"}}>{app.criticality==="Haute"?"●":app.criticality==="Basse"?"○":"◐"}</span>
                   </div>
 
@@ -5767,7 +5657,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         </div>
         <div style={{display:"flex",gap:6,marginTop:12,flexWrap:"wrap"}}>
           <span style={{background:"rgba(255,255,255,0.18)",color:"#fff",padding:"2px 8px",borderRadius:12,fontSize:10,fontWeight:600}}>{cardSelApp.criticality||"—"}</span>
-          <span style={{background:"rgba(255,255,255,0.18)",color:"#fff",padding:"2px 8px",borderRadius:12,fontSize:10}}>{cardSelApp.status}</span>
           {cardSelApp.statusD1&&<span style={{background:"rgba(255,255,255,0.18)",color:"#fff",padding:"2px 8px",borderRadius:12,fontSize:10,fontWeight:700}}>D1: {cardSelApp.statusD1==="Transfert TSA"?"TSA":cardSelApp.statusD1}</span>}
           {cardSelApp.statusD2&&<span style={{background:"rgba(255,255,255,0.18)",color:"#fff",padding:"2px 8px",borderRadius:12,fontSize:10,fontWeight:700}}>D2: {cardSelApp.statusD2==="Clone & Clean"?"Clone":cardSelApp.statusD2}</span>}
         </div>
@@ -6052,14 +5941,13 @@ if(view==="urbanisme"){
                   <div style={{fontSize:11,fontWeight:700,color:zoneCC.ac,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>{cat} <span style={{color:T.fgMuted,fontWeight:400}}>({catApps.length})</span></div>
                   <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                     {catApps.map(function(app){
-                      var stC=SC[app.status]||"#888";
                       var nFlux=flows.filter(function(f){return f.from===app.id||f.to===app.id;}).length;
                       var isSelApp=urbSelApp&&urbSelApp.id===app.id;
-                      return <div key={app.id} title={app.name+" · "+app.status+(nFlux>0?" · "+nFlux+" flux":"")} onClick={function(){setUrbSelApp(isSelApp?null:app);setUrbFlowPair(null);}}
+                      return <div key={app.id} title={app.name+(nFlux>0?" · "+nFlux+" flux":"")} onClick={function(){setUrbSelApp(isSelApp?null:app);setUrbFlowPair(null);}}
                         style={{background:isSelApp?zoneCC.ac+"20":T.bgCard,border:"1.5px solid "+(isSelApp?zoneCC.ac:T.border),borderRadius:6,padding:"4px 7px",fontSize:11,color:T.fg,fontWeight:600,position:"relative",cursor:"pointer",transition:"transform 0.12s ease, box-shadow 0.12s ease",whiteSpace:"nowrap",userSelect:"none"}}
                         onMouseEnter={function(e){e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,0.2)";e.currentTarget.style.borderColor=zoneCC.ac;}}
                         onMouseLeave={function(e){e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";e.currentTarget.style.borderColor=isSelApp?zoneCC.ac:T.border;}}>
-                        <span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:stC,marginRight:4,verticalAlign:"middle"}}/>
+                        <span style={{display:"inline-block",width:6,height:6,borderRadius:"50%",background:zoneCC.ac,marginRight:4,verticalAlign:"middle"}}/>
                         {app.name.length>18?app.name.slice(0,17)+"…":app.name}
                         {nFlux>0&&<span style={{position:"absolute",top:-5,right:-5,width:14,height:14,background:zoneCC.ac,color:"#fff",borderRadius:"50%",fontSize:8,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",border:"1.5px solid "+T.bgCard}}>{nFlux}</span>}
                       </div>;
@@ -6273,7 +6161,6 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
       {[
         {id:"domain",label:"Domaine",sel:selDom,setSel:setSelDom,items:doms.map(d=>({v:d,label:d,color:(DC[d]||DC.Autre).ac}))},
         {id:"category",label:"Catégorie",sel:selCat,setSel:setSelCat,items:cats.map(c=>({v:c,label:c,color:"#D63384"}))},
-        {id:"status",label:"Statut",sel:selStat,setSel:setSelStat,items:["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"].map(s=>({v:s,label:s==="Standalone temporaire"?"Standalone temp.":s,color:SC[s]||"#888"}))},
         {id:"criticality",label:"Criticité",sel:selCrit,setSel:setSelCrit,items:["Haute","Moyenne","Basse"].map(c=>({v:c,label:c,color:CC[c]||"#888"}))},
         {id:"d1",label:"Day 1",sel:selD1?[selD1]:[],setSel:function(updater){var prev=selD1?[selD1]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD1(next.length?next[next.length-1]:"");},items:[{v:"Transfert TSA",label:"TSA",color:"#F59E0B"},{v:"Maintien",label:"Maintien",color:"#10B981"},{v:"Rebuild",label:"Rebuild",color:"#6366F1"},{v:"Abandon",label:"Abandon",color:"#EF4444"}]},
         {id:"d2",label:"Day 2",sel:selD2?[selD2]:[],setSel:function(updater){var prev=selD2?[selD2]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD2(next.length?next[next.length-1]:"");},items:[{v:"Clone & Clean",label:"Clone",color:"#3B82F6"},{v:"Transfert",label:"Transfert",color:"#10B981"},{v:"Abandon",label:"Abandon",color:"#EF4444"},{v:"Rebuild",label:"Rebuild",color:"#8B5CF6"}]}
@@ -6293,7 +6180,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
             </div>
             {flt.items.map(it=>{
               const on=flt.sel.includes(it.v);
-              const appCount=apps.filter(a=>flt.id==="domain"?a.domain===it.v:flt.id==="category"?a.category===it.v:flt.id==="status"?a.status===it.v:flt.id==="d1"?a.statusD1===it.v:flt.id==="d2"?a.statusD2===it.v:a.criticality===it.v).length;
+              const appCount=apps.filter(a=>flt.id==="domain"?a.domain===it.v:flt.id==="category"?a.category===it.v:flt.id==="d1"?a.statusD1===it.v:flt.id==="d2"?a.statusD2===it.v:a.criticality===it.v).length;
               return <div key={it.v} onMouseDown={e=>{e.stopPropagation();flt.setSel(p=>on?p.filter(x=>x!==it.v):[...p,it.v]);}} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 8px",borderRadius:4,cursor:"pointer",background:on?it.color+"18":"transparent",transition:"background 0.1s"}}
                 onMouseEnter={e=>{if(!on)e.currentTarget.style.background="#ffffff08";}} onMouseLeave={e=>{e.currentTarget.style.background=on?it.color+"18":"transparent";}}>
                 <div style={{width:14,height:14,borderRadius:4,border:`2px solid ${on?it.color:"#444"}`,background:on?it.color:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{on&&<span style={{color:"#fff",fontSize:9}}>✓</span>}</div>
@@ -6303,7 +6190,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
               </div>;})}
           </div>}
         </div>;})}
-      {activeFilters&&<button onMouseDown={e=>{e.stopPropagation();setSelDom([]);setSelCat([]);setSelStat([]);setSelCrit([]);}} style={{...B,padding:"4px 8px",fontSize:11,background:"#FF525220",color:"#FF5252",borderRadius:4}}>✕</button>}
+      {activeFilters&&<button onMouseDown={e=>{e.stopPropagation();setSelDom([]);setSelCat([]);setSelCrit([]);}} style={{...B,padding:"4px 8px",fontSize:11,background:"#FF525220",color:"#FF5252",borderRadius:4}}>✕</button>}
       <div style={{flex:1}}/>
       {/* ── Navigation menu (mouse icon) ── */}
       <div style={{position:"relative"}}>
@@ -6435,7 +6322,6 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
           <button onClick={()=>setSelApp(null)} style={{background:"none",border:"none",color:T.fgMuted,cursor:"pointer",fontSize:20,lineHeight:1,padding:"0 2px",marginTop:-2,flexShrink:0}}>×</button>
         </div>
         <div style={{display:"flex",gap:8,marginTop:8}}>
-          <span style={{fontSize:11,padding:"2px 8px",borderRadius:4,background:(SC[selApp.status]||"#888")+"25",color:SC[selApp.status]||"#888",border:"1px solid "+(SC[selApp.status]||"#888")+"40"}}>{selApp.status}</span>
           <span style={{fontSize:11,padding:"2px 8px",borderRadius:4,background:(CC[selApp.criticality]||"#888")+"25",color:CC[selApp.criticality]||"#888",border:"1px solid "+(CC[selApp.criticality]||"#888")+"40"}}>{selApp.criticality}</span>
         </div>
       </div>
@@ -6512,7 +6398,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
             <div><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>Domaine</label>
               <input type="text" value={eApp.domain||""} onChange={e=>setEApp(p=>({...p,domain:e.target.value}))} style={I} list="domlist" placeholder="Saisir ou choisir..."/>
               <datalist id="domlist">{ALLDOM.map(d=><option key={d} value={d}/>)}</datalist></div>
-            {[{k:"status",l:"Statut AS-IS",o:["Maintien","Arrêt","Standalone temporaire","Migrée","Remplacée"]},{k:"criticality",l:"Criticité",o:["Haute","Moyenne","Basse"]}].map(({k,l,o})=><div key={k}><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>{l}</label><select value={eApp[k]||""} onChange={e=>setEApp(p=>({...p,[k]:e.target.value}))} style={I}>{o.map(v=><option key={v} value={v}>{v}</option>)}</select></div>)}
+            {[{k:"criticality",l:"Criticité",o:["Haute","Moyenne","Basse"]}].map(({k,l,o})=><div key={k}><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>{l}</label><select value={eApp[k]||""} onChange={e=>setEApp(p=>({...p,[k]:e.target.value}))} style={I}>{o.map(v=><option key={v} value={v}>{v}</option>)}</select></div>)}
       <div style={{background:T.bgAlt,borderRadius:8,padding:10,marginTop:8}}><div style={{fontSize:10,fontWeight:700,color:T.fgMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Trajectoire Carve-Out</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>Day 1</label><select value={eApp.statusD1||""} onChange={e=>setEApp(p=>({...p,statusD1:e.target.value}))} style={I}>{D1_OPTS.map(v=><option key={v} value={v}>{v||"Non défini"}</option>)}</select></div><div><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>Day 2</label><select value={eApp.statusD2||""} onChange={e=>setEApp(p=>({...p,statusD2:e.target.value}))} style={I}>{D2_OPTS.map(v=><option key={v} value={v}>{v||"Non défini"}</option>)}</select></div></div></div>
       </div>
       <div style={{display:"flex",gap:8,marginTop:16,justifyContent:"flex-end"}}><button onClick={()=>setShowAM(false)} style={{...B,background:T.border}}>Annuler</button><button onClick={()=>{if(!eApp.name)return alert("Nom requis");
