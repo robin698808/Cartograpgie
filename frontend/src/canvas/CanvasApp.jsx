@@ -6371,7 +6371,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
         </div>;})}
       {activeFilters&&<button onMouseDown={e=>{e.stopPropagation();setSelDom([]);setSelCat([]);setSelCrit([]);}} style={{...B,padding:"4px 8px",fontSize:11,background:"#FF525220",color:"#FF5252",borderRadius:4}}>✕</button>}
       <div style={{flex:1}}/>
-      <button onMouseDown={e=>{e.stopPropagation();applyStarLayout();}} title="Disposition en étoile — hub au centre, domaines connectés rayonnent autour" style={{...B,padding:"4px 10px",fontSize:11,background:"#2979FF18",color:"#2979FF",border:"1px solid #2979FF40",borderRadius:6,display:"flex",alignItems:"center",gap:5,fontWeight:600}}>⭐ Étoile</button>
+      <button onMouseDown={e=>{e.stopPropagation();applyStarLayout();}} title="Réagencement automatique en étoile — hub au centre, domaines connectés rayonnent autour" style={{...B,padding:"4px 10px",fontSize:11,background:"#2979FF18",color:"#2979FF",border:"1px solid #2979FF40",borderRadius:6,display:"flex",alignItems:"center",gap:5,fontWeight:600}}>&#10227; Réagencement auto</button>
       {/* ── Navigation menu (mouse icon) ── */}
       <div style={{position:"relative"}}>
         <button onClick={function(){setOpenMenu(openMenu==="modes"?null:"modes");}} style={{...B,background:openMenu==="modes"?T.bgHover:(!selMode&&!cMode?"#2979FF22":selMode?"#00BFA522":"transparent"),border:"1px solid "+(!selMode&&!cMode?"#2979FF":selMode?"#00BFA5":"transparent"),padding:"4px 10px",fontSize:11,borderRadius:4,display:"flex",alignItems:"center",gap:5}} title="Mode navigation">
