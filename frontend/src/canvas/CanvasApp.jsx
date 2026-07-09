@@ -210,10 +210,10 @@ function pvSquarify(values,rect){
   }
   return results;
 }
-// Construit le layout à 2 niveaux à partir du tableau `apps` (clés domain/category
-// inchangées) : domaines découpant l'écran, catégories découpant chaque domaine.
+// Construit le layout à 3 niveaux : domaines → catégories → applications.
 function pvBuildLayout(apps,w,h){
-  var D_HEADER_H=26;
+  var D_HEADER_H=22;
+  var Q_HEADER_H=16;
   var domMap={};
   apps.forEach(function(a){var d=a.domain||"Autre";(domMap[d]=domMap[d]||[]).push(a);});
   var domsInfo=Object.keys(domMap)
@@ -226,14 +226,22 @@ function pvBuildLayout(apps,w,h){
     var catMap={};
     d.apps.forEach(function(a){var c=a.category||"—";(catMap[c]=catMap[c]||[]).push(a);});
     var cats=Object.keys(catMap)
-      .map(function(c){return{quartier:c,nbApps:catMap[c].length};})
+      .map(function(c){return{quartier:c,apps:catMap[c],nbApps:catMap[c].length};})
       .filter(function(x){return x.nbApps>0;})
       .sort(function(a,b){return b.nbApps-a.nbApps;});
-    var inner={x:r.x+4,y:r.y+D_HEADER_H+4,w:Math.max(0,r.w-8),h:Math.max(0,r.h-D_HEADER_H-8)};
+    var inner={x:r.x+3,y:r.y+D_HEADER_H+3,w:Math.max(0,r.w-6),h:Math.max(0,r.h-D_HEADER_H-6)};
     var qRects=pvSquarify(cats.map(function(x){return x.nbApps;}),inner);
     return{
       domaine:d.domaine,nbApps:d.nbApps,rect:r,
-      quartiers:cats.map(function(x,j){return{quartier:x.quartier,nbApps:x.nbApps,rect:qRects[j]};}),
+      quartiers:cats.map(function(x,j){
+        var qr=qRects[j];
+        var appInner={x:qr.x+2,y:qr.y+Q_HEADER_H+2,w:Math.max(0,qr.w-4),h:Math.max(0,qr.h-Q_HEADER_H-4)};
+        var appRects=pvSquarify(x.apps.map(function(){return 1;}),appInner);
+        return{
+          quartier:x.quartier,nbApps:x.nbApps,rect:qr,
+          apps:x.apps.map(function(a,k){return{app:a,rect:appRects[k]};})
+        };
+      }),
     };
   });
 }
@@ -5460,20 +5468,42 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
               var isDomHover=pvHover==="d::"+dom.domaine;
               return <g key={"d-"+dom.domaine}>
                 {/* Fond domaine */}
-                <rect x={dom.rect.x+2} y={dom.rect.y+2} width={Math.max(0,dom.rect.w-4)} height={Math.max(0,dom.rect.h-4)} fill={color} fillOpacity={0.06} stroke={color} strokeOpacity={isDomHover?0.85:0.55} strokeWidth={1.5} rx={3}/>
-                {/* Header domaine cliquable */}
+                <rect x={dom.rect.x+2} y={dom.rect.y+2} width={Math.max(0,dom.rect.w-4)} height={Math.max(0,dom.rect.h-4)} fill={color} fillOpacity={0.05} stroke={color} strokeOpacity={isDomHover?0.85:0.5} strokeWidth={1.5} rx={3}/>
+                {/* Header domaine */}
                 <g onMouseEnter={function(){setPvHover("d::"+dom.domaine);}} onMouseLeave={function(){setPvHover("");}} onClick={function(){pvDrill(dom.domaine);}} style={{cursor:"pointer"}}>
-                  <rect x={dom.rect.x+2} y={dom.rect.y+2} width={Math.max(0,dom.rect.w-4)} height={26} fill={color} fillOpacity={isDomHover?0.3:0.18} rx={3}/>
-                  {dom.rect.w>60&&<text x={dom.rect.x+10} y={dom.rect.y+18} style={{fontSize:14,fontWeight:700,fill:color,pointerEvents:"none"}}>{pvFitText(dom.domaine,dom.rect.w-46,9)}</text>}
-                  {dom.rect.w>60&&<text x={dom.rect.x+dom.rect.w-10} y={dom.rect.y+18} textAnchor="end" style={{fontSize:12,fontWeight:600,fill:T.fg,pointerEvents:"none"}}>{dom.nbApps}</text>}
+                  <rect x={dom.rect.x+2} y={dom.rect.y+2} width={Math.max(0,dom.rect.w-4)} height={22} fill={color} fillOpacity={isDomHover?0.35:0.22} rx={3}/>
+                  {dom.rect.w>60&&<text x={dom.rect.x+8} y={dom.rect.y+15} style={{fontSize:11,fontWeight:700,fill:color,pointerEvents:"none"}}>{pvFitText(dom.domaine,dom.rect.w-40,7)}</text>}
+                  {dom.rect.w>60&&<text x={dom.rect.x+dom.rect.w-8} y={dom.rect.y+15} textAnchor="end" style={{fontSize:10,fontWeight:600,fill:T.fg,pointerEvents:"none"}}>{dom.nbApps}</text>}
                 </g>
-                {/* Catégories (quartiers) */}
+                {/* Catégories */}
                 {dom.quartiers.map(function(q){
                   var isQHover=pvHover==="q::"+dom.domaine+"::"+q.quartier;
-                  return <g key={"q-"+q.quartier} onMouseEnter={function(){setPvHover("q::"+dom.domaine+"::"+q.quartier);}} onMouseLeave={function(){setPvHover("");}} onClick={function(e){e.stopPropagation();pvDrill(dom.domaine);}} style={{cursor:"pointer"}}>
-                    <rect x={q.rect.x+1} y={q.rect.y+1} width={Math.max(0,q.rect.w-2)} height={Math.max(0,q.rect.h-2)} fill={isQHover?color:T.bg} fillOpacity={isQHover?0.18:1} stroke={color} strokeOpacity={isQHover?0.9:0.4} strokeWidth={isQHover?1.2:0.8} rx={2}/>
-                    {q.rect.w>50&&q.rect.h>24&&<text x={q.rect.x+8} y={q.rect.y+16} style={{fontSize:11,fontWeight:600,fill:T.fg,pointerEvents:"none"}}>{pvFitText(q.quartier,q.rect.w-16,6.3)}</text>}
-                    {q.rect.w>50&&q.rect.h>36&&<text x={q.rect.x+8} y={q.rect.y+30} style={{fontSize:9,fontWeight:500,fill:T.fgDim,pointerEvents:"none",letterSpacing:"0.06em"}}>{q.nbApps} app{q.nbApps>1?"s":""}</text>}
+                  return <g key={"q-"+q.quartier}>
+                    <rect x={q.rect.x+1} y={q.rect.y+1} width={Math.max(0,q.rect.w-2)} height={Math.max(0,q.rect.h-2)} fill={T.bgCard} fillOpacity={1} stroke={color} strokeOpacity={isQHover?0.8:0.3} strokeWidth={isQHover?1:0.7} rx={2}/>
+                    {q.rect.w>40&&q.rect.h>14&&<text x={q.rect.x+5} y={q.rect.y+12} style={{fontSize:9,fontWeight:600,fill:color,pointerEvents:"none"}}>{pvFitText(q.quartier,q.rect.w-10,5.5)}</text>}
+                    {/* Applications individuelles */}
+                    {q.apps.map(function(item){
+                      var ar=item.rect;
+                      var isAHover=pvHover==="a::"+item.app.id;
+                      var showName=ar.w>28&&ar.h>14;
+                      return <g key={"a-"+item.app.id}
+                        onMouseEnter={function(){setPvHover("a::"+item.app.id);}}
+                        onMouseLeave={function(){setPvHover("");}}
+                        onClick={function(e){e.stopPropagation();pvDrill(dom.domaine);}}
+                        style={{cursor:"pointer"}}>
+                        <rect x={ar.x+1} y={ar.y+1} width={Math.max(0,ar.w-2)} height={Math.max(0,ar.h-2)}
+                          fill={color} fillOpacity={isAHover?0.28:0.1}
+                          stroke={color} strokeOpacity={isAHover?0.9:0.35} strokeWidth={0.7} rx={1.5}/>
+                        {showName&&<text x={ar.x+4} y={ar.y+ar.h/2+3.5} style={{fontSize:8,fontWeight:500,fill:isAHover?color:T.fg,pointerEvents:"none"}}>{pvFitText(item.app.name,ar.w-8,5)}</text>}
+                      </g>;
+                    })}
+                    {/* Overlay hover catégorie */}
+                    <rect x={q.rect.x+1} y={q.rect.y+1} width={Math.max(0,q.rect.w-2)} height={Math.max(0,q.rect.h-2)}
+                      fill="transparent" stroke="transparent"
+                      onMouseEnter={function(){setPvHover("q::"+dom.domaine+"::"+q.quartier);}}
+                      onMouseLeave={function(){setPvHover("");}}
+                      onClick={function(e){e.stopPropagation();pvDrill(dom.domaine);}}
+                      style={{cursor:"pointer"}}/>
                   </g>;
                 })}
               </g>;
