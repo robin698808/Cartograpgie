@@ -1051,7 +1051,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       s1.addText(ch.l,{x:chipXt+0.10,y:2.62,w:1.90,h:0.36,fontSize:10.5,bold:true,color:ch.c,fontFace:"Calibri",margin:0,valign:"middle"});
       chipXt+=2.24;
     });
-    s1.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:0.50,y:4.87,w:5,h:0.30,fontSize:9,color:"94A3B8",fontFace:"Calibri",margin:0});
     s1.addText("CONFIDENTIEL",{x:5.50,y:4.87,w:4.30,h:0.30,fontSize:9,bold:true,color:cp,fontFace:"Calibri",align:"right",margin:0,charSpacing:2});
 
     // ─── Slide 2: Synthèse & Messages clés ───
@@ -1183,7 +1182,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     sSX.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:10,h:0.60,fill:{color:cp},line:{type:"none"}});
     sSX.addShape(pres.shapes.RECTANGLE,{x:0,y:0.585,w:10,h:0.022,fill:{color:"FFFFFF",transparency:70},line:{type:"none"}});
     sSX.addText("SYNTHÈSE EXÉCUTIVE",{x:0.35,y:0.08,w:7.5,h:0.46,fontSize:22,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
-    sSX.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:7.5,y:0.18,w:2.2,h:0.25,fontSize:9,color:"FFFFFFAA",fontFace:"Calibri",align:"right",margin:0});
     // Calculs D1/D2/risques
     const sxD1Def=apps.filter(function(a){return a.statusD1;}).length;
     const sxD2Def=apps.filter(function(a){return a.statusD2;}).length;
@@ -1492,7 +1490,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       sl.addShape(pres.shapes.RECTANGLE,{x:0,y:hdrH-0.025,w:W,h:0.025,fill:{color:"FFFFFF",transparency:75},line:{type:"none"}});
       sl.addText(cfg.title,{x:mX,y:0.08,w:9.5,h:0.32,fontSize:15,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0,charSpacing:0.5});
       sl.addText(cfg.subtitle,{x:mX,y:0.38,w:6.0,h:0.15,fontSize:7.5,color:"FFFFFFCC",fontFace:"Calibri",margin:0,charSpacing:2});
-      sl.addText("Généré le "+new Date().toLocaleDateString("fr-FR"),{x:W-3.0,y:0.10,w:2.75,h:0.18,fontSize:7.5,color:"FFFFFFAA",fontFace:"Calibri",align:"right",margin:0});
       sl.addText(apps.length+" applications · "+envDoms.length+" domaines",{x:W-3.0,y:0.33,w:2.75,h:0.16,fontSize:7,color:"FFFFFFAA",fontFace:"Calibri",align:"right",margin:0});
       // Légende
       var lx=mX,lly=hdrH+0.07;
@@ -1644,7 +1641,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         });
       });
       // Footer
-      pvSl.addText("Généré le "+new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}),{x:0.25,y:7.30,w:12.83,h:0.18,fontSize:7,color:"94A3B8",fontFace:"Calibri",margin:0,italic:true,align:"center"});
     }// end inclPaysage
 
     // ═══════════════════════════════════════════════════════════════════
@@ -3012,7 +3008,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           ];
         });
         sT.addTable([...header,...tblRows],{x:0.25,y:0.65,w:12.83,colW:[2.0,2.60,2.60,3.00,1.30,1.33],border:{pt:0.4,color:"E2E8F0"},rowH:0.35});
-        sT.addText("Données : "+rows.length+" paires d'applications · "+flows.length+" flux total · Généré le "+new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}),{x:0.25,y:7.30,w:12.83,h:0.18,fontSize:7,color:"94A3B8",fontFace:"Calibri",margin:0,italic:true,align:"center"});
+        sT.addText("Données : "+rows.length+" paires d'applications · "+flows.length+" flux total",{x:0.25,y:7.30,w:12.83,h:0.18,fontSize:7,color:"94A3B8",fontFace:"Calibri",margin:0,italic:true,align:"center"});
       }
     };
 
@@ -4101,7 +4097,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             ];
           });
           sA.addTable([...header,...tblRows],{x:0.25,y:0.65,w:12.83,colW:[2.80,6.10,1.97,1.96],border:{pt:0.4,color:"E2E8F0"},rowH:0.32});
-          sA.addText(sortedApps.length+" applications · "+doms.length+" domaines · Généré le "+new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}),{x:0.25,y:7.30,w:12.83,h:0.18,fontSize:7,color:"94A3B8",fontFace:"Calibri",margin:0,italic:true,align:"center"});
+          sA.addText(sortedApps.length+" applications · "+doms.length+" domaines",{x:0.25,y:7.30,w:12.83,h:0.18,fontSize:7,color:"94A3B8",fontFace:"Calibri",margin:0,italic:true,align:"center"});
         }
       })();
       drawRecapTableSlides();
