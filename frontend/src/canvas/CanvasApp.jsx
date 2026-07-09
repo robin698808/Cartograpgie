@@ -355,7 +355,10 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   var DC_DARK=domColors;
   const ALLDOM=[...new Set([...ALLDOM_DEFAULT,...Object.keys(domColors)])];
   const [showDomEdit,setShowDomEdit]=useState(null); // domain name being edited
+  const [showCatColorEdit,setShowCatColorEdit]=useState(null); // category name being color-edited
   const [showCatModal,setShowCatModal]=useState(false);
+  const [catColors,setCatColors]=useState({}); // per-category custom color overrides
+  const [catPads,setCatPads]=useState({}); // per-category extra padding {cat:{w,h}}
   const [catEditName,setCatEditName]=useState("");
   const [catEditDomains,setCatEditDomains]=useState([]);
   const [globalScale,setGlobalScale]=useState(1); // global size multiplier
@@ -604,7 +607,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       let globalX=30;
       sortedCats.forEach(([,catDoms])=>{
         const catNcols=Math.max(1,Math.min(Math.ceil(catDoms.length/2),3));
-        const catColTops=Array(catNcols).fill(30);
+        const catTitleOffset=90; // espace pour le bandeau titre de la catégorie
+        const catColTops=Array(catNcols).fill(30+catTitleOffset);
         const catColXs=Array.from({length:catNcols},(_,i)=>globalX+i*(colW+domGap));
         catDoms.forEach(([,dApps])=>{
           const h=Math.ceil(dApps.length/perRow)*(cH+cGy)+domPad+12;
@@ -665,6 +669,12 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   const onCM=e=>{
     if(pan)setOff({x:e.clientX-pRef.current.x,y:e.clientY-pRef.current.y});
     if(drag){
+      if(drag.resizeCat){
+        const dx=(e.clientX-drag.lx)/zm,dy=(e.clientY-drag.ly)/zm;
+        drag.lx=e.clientX;drag.ly=e.clientY;
+        setCatPads(p=>{const cur=p[drag.resizeCat]||{w:0,h:0};return{...p,[drag.resizeCat]:{w:Math.max(0,cur.w+dx),h:Math.max(0,cur.h+dy)}};});
+        return;
+      }
       if(drag.resize){
         const dx=(e.clientX-drag.lx)/zm,dy=(e.clientY-drag.ly)/zm;
         drag.lx=e.clientX;drag.ly=e.clientY;
@@ -837,7 +847,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   const exportCSV=()=>{const h=["Nom","Domaine","Statut","Criticité","Éditeur","Version","Responsable","Utilisateurs","Description"];const rows=apps.map(a=>[a.name,a.domain,a.status,a.criticality,a.vendor,a.version,a.owner,a.users,a.description].map(v=>'"'+v+'"').join(";"));const blob=new Blob(["\uFEFF"+[h.join(";"),...rows].join("\n")],{type:"text/csv;charset=utf-8;"});const l=document.createElement("a");l.href=URL.createObjectURL(blob);l.download="cartographie.csv";l.click();};
 
   const saveJSON=()=>{
-    const data={version:2,theme:themeKey,date:new Date().toISOString(),apps,flows,domColors,domScales,domPads,globalScale,fontScale,zoom:zm,offset:off};
+    const data={version:2,theme:themeKey,date:new Date().toISOString(),apps,flows,domColors,domScales,domPads,catColors,catPads,globalScale,fontScale,zoom:zm,offset:off};
     const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
     const l=document.createElement("a");l.href=URL.createObjectURL(blob);
     l.download="cartographie_"+new Date().toISOString().slice(0,10)+".json";l.click();
@@ -853,6 +863,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           if(data.domColors) setDomColors(p=>({...p,...data.domColors}));
           if(data.domScales) setDomScales(data.domScales);
           if(data.domPads) setDomPads(data.domPads);
+          if(data.catColors) setCatColors(data.catColors);
+          if(data.catPads) setCatPads(data.catPads);
           if(data.globalScale) setGlobalScale(data.globalScale);
           if(data.fontScale) setFontScale(data.fontScale);
           if(data.zoom) setZm(data.zoom);
@@ -4143,25 +4155,44 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     const catEntries=Object.entries(cats);
     if(catEntries.length===0) return null;
     return <>{catEntries.map(([cat,b],ci)=>{
-      const cc=CAT_COLORS[ci%CAT_COLORS.length];
-      const pad=50;
+      const cc=catColors[cat]||CAT_COLORS[ci%CAT_COLORS.length];
+      const cp2=catPads[cat]||{w:0,h:0};
+      // Appliquer le padding catégorie aux bornes
+      const bx1=b.x1-cp2.w/2, bx2=b.x2+cp2.w/2, by1=b.y1, by2=b.y2+cp2.h;
+      const sidePad=50, bottomPad=50;
       const barH=Math.max(Math.round(28*fontScale),Math.round(30/zm));
+      // topPad doit laisser de la place pour le label de domaine (30+22px) + marge
+      const domLabelSpace=30+Math.round(22*fontScale)+20;
+      const topPad=Math.max(sidePad,domLabelSpace);
       const fz=Math.max(Math.round(11*fontScale),Math.round(12/zm));
       const fzSub=Math.max(Math.round(9*fontScale),Math.round(10/zm));
-      return <div key={cat} style={{position:"absolute",left:b.x1-pad,top:b.y1-pad-barH,width:b.x2-b.x1+pad*2,height:b.y2-b.y1+pad*2+barH,border:`2px solid ${cc}50`,borderRadius:14,background:`${cc}06`,pointerEvents:"none"}}>
-        {/* Category title bar */}
-        <div style={{position:"absolute",top:-1,left:-1,right:-1,height:barH,background:`${cc}DD`,borderRadius:"14px 14px 0 0",borderBottom:`1px solid ${cc}60`,display:"flex",alignItems:"center",padding:"0 14px",pointerEvents:"auto",cursor:"grab",userSelect:"none"}}
+      const rzSz=Math.max(20,Math.round(20/zm)); // taille handle resize
+      return <div key={cat} style={{position:"absolute",left:bx1-sidePad,top:by1-topPad-barH,width:bx2-bx1+sidePad*2,height:by2-by1+topPad+bottomPad+barH,border:`2px solid ${cc}50`,borderRadius:14,background:`${cc}06`,pointerEvents:"none"}}>
+        {/* Bandeau titre — draggable */}
+        <div style={{position:"absolute",top:-1,left:-1,right:-1,height:barH,background:`${cc}DD`,borderRadius:"14px 14px 0 0",borderBottom:`1px solid ${cc}60`,display:"flex",alignItems:"center",padding:"0 12px",gap:6,pointerEvents:"auto",cursor:"grab",userSelect:"none"}}
           data-app="1" onMouseDown={e=>{e.stopPropagation();setDrag({domain:"__cat__"+cat,appIds:b.ids,lastX:e.clientX,lastY:e.clientY});}}
           onContextMenu={e=>{e.preventDefault();e.stopPropagation();setCtxMenu({x:e.clientX,y:e.clientY,type:"category",target:cat});}}>
-          <span style={{fontSize:fz,fontWeight:700,color:"#fff",letterSpacing:1.5,textTransform:"uppercase"}}>{cat}</span>
-          <span style={{fontSize:fzSub,color:"rgba(255,255,255,0.75)",marginLeft:8}}>{b.domains.size} domaines · {b.ids.length} apps</span>
-          <span style={{fontSize:Math.max(10,Math.round(10/zm)),opacity:0.7,color:"#fff",marginLeft:6}}>⠿</span>
+          <span style={{fontSize:fz,fontWeight:700,color:"#fff",letterSpacing:1.5,textTransform:"uppercase",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat}</span>
+          <span style={{fontSize:fzSub,color:"rgba(255,255,255,0.7)",flexShrink:0}}>{b.domains.size} dom · {b.ids.length} apps</span>
+          {/* Bouton couleur */}
+          <span title="Changer couleur" style={{fontSize:Math.max(10,Math.round(11/zm)),cursor:"pointer",flexShrink:0,opacity:0.85}}
+            onMouseDown={e=>{e.stopPropagation();e.preventDefault();}}
+            onClick={e=>{e.stopPropagation();setShowCatColorEdit(cat);}}>🎨</span>
+          <span style={{fontSize:Math.max(10,Math.round(10/zm)),opacity:0.6,color:"#fff",flexShrink:0}}>⠿</span>
         </div>
-        {/* Corner accent marks */}
+        {/* Accents coins */}
         <div style={{position:"absolute",top:barH,left:0,width:20,height:2,background:cc,borderRadius:"0 2px 2px 0"}}/>
         <div style={{position:"absolute",top:barH,right:0,width:20,height:2,background:cc,borderRadius:"2px 0 0 2px"}}/>
         <div style={{position:"absolute",bottom:0,left:0,width:20,height:2,background:cc,borderRadius:"0 2px 2px 0"}}/>
         <div style={{position:"absolute",bottom:0,right:0,width:20,height:2,background:cc,borderRadius:"2px 0 0 2px"}}/>
+        {/* Handle resize — coin bas-droite */}
+        <div style={{position:"absolute",bottom:0,right:0,width:rzSz,height:rzSz,cursor:"nwse-resize",pointerEvents:"auto",display:"flex",alignItems:"center",justifyContent:"center"}}
+          data-app="1" onMouseDown={e=>{e.stopPropagation();e.preventDefault();setDrag({resizeCat:cat,lx:e.clientX,ly:e.clientY});}}>
+          <svg width={Math.max(10,Math.round(10/zm))} height={Math.max(10,Math.round(10/zm))} style={{opacity:0.5}}>
+            <path d="M10 0L10 10L0 10" fill="none" stroke={cc} strokeWidth="1.5"/>
+            <path d="M10 4L10 10L4 10" fill="none" stroke={cc} strokeWidth="1.5"/>
+          </svg>
+        </div>
       </div>;
     })}</>;
   };
