@@ -304,6 +304,8 @@ function App({ initialSnapshot, onSave, wsMessage, projectId, onThemeChange, top
   });
   const [pan,setPan]=useState(false);
   const pRef=useRef({x:0,y:0});
+  const zmRef=useRef(1); // always-current zoom for document-level handlers
+  const catDocDragRef=useRef(null); // {cat, appIds, lastX, lastY} for category drag via document events
   const [fFrom,setFFrom]=useState(null);
   const [cMode,setCMode]=useState(false);
 const [multiSel,setMultiSel]=useState([]);
@@ -389,6 +391,41 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     setToolbarH(Math.ceil(toolbarRef.current.getBoundingClientRect().height));
     return()=>obs.disconnect();
   },[]);
+
+  // Keep zmRef always current for document-level handlers
+  useEffect(()=>{zmRef.current=zm;},[zm]);
+
+  // Initialize catBounds for newly-seen categories (only expand, never shrink)
+  useEffect(()=>{
+    if(apps.length===0)return;
+    // Compute domain bounds
+    const db={};
+    apps.forEach(a=>{
+      if(!db[a.domain])db[a.domain]={x1:Infinity,y1:Infinity,x2:-Infinity,y2:-Infinity};
+      const ds=domScales[a.domain]||1;
+      db[a.domain].x1=Math.min(db[a.domain].x1,a.x);
+      db[a.domain].y1=Math.min(db[a.domain].y1,a.y);
+      db[a.domain].x2=Math.max(db[a.domain].x2,a.x+Math.round(AW_BASE*(globalScale||1)*ds));
+      db[a.domain].y2=Math.max(db[a.domain].y2,a.y+Math.round(AH_BASE*(globalScale||1)*ds));
+    });
+    // Compute natural category bounds
+    const nb={};
+    apps.forEach(a=>{
+      const cat=a.category;if(!cat)return;
+      if(!nb[cat])nb[cat]={x1:Infinity,y1:Infinity,x2:-Infinity,y2:-Infinity};
+      const b=db[a.domain];if(!b)return;
+      nb[cat].x1=Math.min(nb[cat].x1,b.x1);nb[cat].y1=Math.min(nb[cat].y1,b.y1);
+      nb[cat].x2=Math.max(nb[cat].x2,b.x2);nb[cat].y2=Math.max(nb[cat].y2,b.y2);
+    });
+    setCatBounds(prev=>{
+      const next={...prev};
+      let changed=false;
+      Object.entries(nb).forEach(([cat,b])=>{
+        if(!prev[cat]){next[cat]={...b};changed=true;}
+      });
+      return changed?next:prev;
+    });
+  },[apps.map(a=>a.id+a.category).join(',')]); // only when app list / categories change
 
   const [ctxMenu,setCtxMenu]=useState(null); // {x,y,type,target} for right-click menus
   const [presMode,setPresMode]=useState(false);
@@ -655,6 +692,27 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
     setApps(na);setFlows(nf);setOff({x:10,y:10});setZm(Math.max(0.3,Math.min(fitZm,1)));setView("mapping");
   };
+
+  // ── Category drag via document-level events (bypasses React event batching issues) ──
+  const _catDocMove=useCallback((e)=>{
+    const dr=catDocDragRef.current;if(!dr)return;
+    const dx=(e.clientX-dr.lastX)/zmRef.current;
+    const dy=(e.clientY-dr.lastY)/zmRef.current;
+    dr.lastX=e.clientX;dr.lastY=e.clientY;
+    setApps(p=>p.map(a=>dr.appIds.includes(a.id)?{...a,x:a.x+dx,y:a.y+dy}:a));
+    setCatBounds(p=>{const b=p[dr.cat];if(!b)return p;return{...p,[dr.cat]:{x1:b.x1+dx,y1:b.y1+dy,x2:b.x2+dx,y2:b.y2+dy}};});
+  },[]);
+  const _catDocUp=useCallback(()=>{
+    catDocDragRef.current=null;
+    document.removeEventListener('mousemove',_catDocMove);
+    document.removeEventListener('mouseup',_catDocUp);
+  },[_catDocMove]);
+  const startCatDrag=useCallback((e,cat,appIds)=>{
+    e.preventDefault();e.stopPropagation();
+    catDocDragRef.current={cat,appIds,lastX:e.clientX,lastY:e.clientY};
+    document.addEventListener('mousemove',_catDocMove);
+    document.addEventListener('mouseup',_catDocUp);
+  },[_catDocMove,_catDocUp]);
 
   const onCD=e=>{
     setOpenFilter(null); // close any open dropdown
@@ -4162,10 +4220,6 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     });
     const catEntries=Object.entries(cats);
     if(catEntries.length===0) return null;
-    // Enregistrer les bornes naturelles si pas encore fixées (première fois)
-    const toFix={};
-    catEntries.forEach(([cat,b])=>{if(!catBounds[cat])toFix[cat]={x1:b.x1,y1:b.y1,x2:b.x2,y2:b.y2};});
-    if(Object.keys(toFix).length>0) setTimeout(()=>setCatBounds(p=>({...p,...toFix})),0);
     return <>{catEntries.map(([cat,b],ci)=>{
       const cc=catColors[cat]||CAT_COLORS[ci%CAT_COLORS.length];
       const cp2=catPads[cat]||{w:0,h:0};
@@ -4181,24 +4235,24 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       const bx1=ub.x1-cp2.w/2, bx2=ub.x2+cp2.w/2, by1=ub.y1, by2=ub.y2+cp2.h;
       const sidePad=50, bottomPad=50;
       const barH=Math.max(Math.round(28*fontScale),Math.round(30/zm));
-      // topPad doit laisser de la place pour le label de domaine (30+22px) + marge
       const domLabelSpace=30+Math.round(22*fontScale)+20;
       const topPad=Math.max(sidePad,domLabelSpace);
       const fz=Math.max(Math.round(11*fontScale),Math.round(12/zm));
       const fzSub=Math.max(Math.round(9*fontScale),Math.round(10/zm));
-      const rzSz=Math.max(20,Math.round(20/zm)); // taille handle resize
+      const rzSz=Math.max(20,Math.round(20/zm));
       return <div key={cat} style={{position:"absolute",left:bx1-sidePad,top:by1-topPad-barH,width:bx2-bx1+sidePad*2,height:by2-by1+topPad+bottomPad+barH,border:`2px solid ${cc}50`,borderRadius:14,background:`${cc}06`,pointerEvents:"none"}}>
-        {/* Bandeau titre — draggable */}
-        <div style={{position:"absolute",top:-1,left:-1,right:-1,height:barH,background:`${cc}DD`,borderRadius:"14px 14px 0 0",borderBottom:`1px solid ${cc}60`,display:"flex",alignItems:"center",padding:"0 12px",gap:6,pointerEvents:"auto",cursor:"grab",userSelect:"none"}}
-          data-app="1" onMouseDown={e=>{e.stopPropagation();startDrag({domain:"__cat__"+cat,appIds:b.ids,lastX:e.clientX,lastY:e.clientY});}}
+        {/* Bandeau titre */}
+        <div style={{position:"absolute",top:-1,left:-1,right:-1,height:barH,background:`${cc}DD`,borderRadius:"14px 14px 0 0",borderBottom:`1px solid ${cc}60`,display:"flex",alignItems:"center",padding:"0 8px",gap:4,pointerEvents:"auto",userSelect:"none"}}
           onContextMenu={e=>{e.preventDefault();e.stopPropagation();setCtxMenu({x:e.clientX,y:e.clientY,type:"category",target:cat});}}>
+          {/* Bouton déplacer (document-level drag) */}
+          <span title="Déplacer la catégorie" data-app="1"
+            style={{fontSize:Math.max(12,Math.round(14/zm)),cursor:"grab",color:"#fff",opacity:0.9,flexShrink:0,lineHeight:1,padding:"0 2px"}}
+            onMouseDown={e=>startCatDrag(e,cat,b.ids)}>✥</span>
           <span style={{fontSize:fz,fontWeight:700,color:"#fff",letterSpacing:1.5,textTransform:"uppercase",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat}</span>
           <span style={{fontSize:fzSub,color:"rgba(255,255,255,0.7)",flexShrink:0}}>{b.domains.size} dom · {b.ids.length} apps</span>
-          {/* Bouton couleur */}
           <span title="Changer couleur" style={{fontSize:Math.max(10,Math.round(11/zm)),cursor:"pointer",flexShrink:0,opacity:0.85}}
             onMouseDown={e=>{e.stopPropagation();e.preventDefault();}}
             onClick={e=>{e.stopPropagation();setShowCatColorEdit(cat);}}>🎨</span>
-          <span style={{fontSize:Math.max(10,Math.round(10/zm)),opacity:0.6,color:"#fff",flexShrink:0}}>⠿</span>
         </div>
         {/* Accents coins */}
         <div style={{position:"absolute",top:barH,left:0,width:20,height:2,background:cc,borderRadius:"0 2px 2px 0"}}/>
