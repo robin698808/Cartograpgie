@@ -229,7 +229,7 @@ function pvBuildLayout(apps,w,h,fontSc){
       .map(function(c){return{quartier:c,apps:catMap[c],nbApps:catMap[c].length};})
       .filter(function(x){return x.nbApps>0;})
       .sort(function(a,b){return b.nbApps-a.nbApps;});
-    var inner={x:r.x+3,y:r.y+D_HEADER_H+3,w:Math.max(0,r.w-6),h:Math.max(0,r.h-D_HEADER_H-6)};
+    var inner={x:r.x+4,y:r.y+D_HEADER_H+10,w:Math.max(0,r.w-8),h:Math.max(0,r.h-D_HEADER_H-14)};
     var qRects=pvSquarify(cats.map(function(x){return x.nbApps;}),inner);
     return{
       domaine:d.domaine,nbApps:d.nbApps,rect:r,
