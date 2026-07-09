@@ -95,7 +95,6 @@ function Sidebar(){
   var NAV=[
     {id:"mapping",icon:"Map",label:"Cartographie",color:"#6366F1"},
     {id:"urbanisme",icon:"Grid",label:"Urbanisme",color:"#F59E0B"},
-    {id:"cards",icon:"Layers",label:"Cartes",color:"#10B981"},
     {id:"paysage",icon:"Boxes",label:"Paysage",color:"#0EA5E9"},
     {id:"dashboard",icon:"BarChart",label:"Dashboard",color:"#8B5CF6"},
     {id:"decisions",icon:"Target",label:"Decisions D1/D2",color:"#EF4444"},
@@ -211,9 +210,10 @@ function pvSquarify(values,rect){
   return results;
 }
 // Construit le layout à 3 niveaux : domaines → catégories → applications.
-function pvBuildLayout(apps,w,h){
-  var D_HEADER_H=22;
-  var Q_HEADER_H=16;
+function pvBuildLayout(apps,w,h,fontSc){
+  var fs=fontSc||1;
+  var D_HEADER_H=Math.round(22*fs);
+  var Q_HEADER_H=Math.round(16*fs);
   var domMap={};
   apps.forEach(function(a){var d=a.domain||"Autre";(domMap[d]=domMap[d]||[]).push(a);});
   var domsInfo=Object.keys(domMap)
@@ -5442,7 +5442,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   // ═══ PAYSAGE VIEW (treemap urbanistique) ═══
   if(view==="paysage"){
     var PV_W=1600,PV_H=900;
-    var pvLayout=pvBuildLayout(apps,PV_W,PV_H);
+    var pvLayout=pvBuildLayout(apps,PV_W,PV_H,pvFontSc);
     var pvDoms=[...new Set(apps.map(function(a){return a.domain;}))];
     // Drill-down : réutilise la vue Cartes filtrée sur le domaine cliqué.
     var pvDrill=function(dom){setActiveDomFilter(dom);setView("cards");};
@@ -5489,20 +5489,20 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
                 {/* Header domaine */}
                 <g onMouseEnter={function(){setPvHover("d::"+dom.domaine);}} onMouseLeave={function(){setPvHover("");}} onClick={function(){pvDrill(dom.domaine);}} style={{cursor:"pointer"}}>
                   <rect x={dom.rect.x+2} y={dom.rect.y+2} width={Math.max(0,dom.rect.w-4)} height={22} fill={color} fillOpacity={isDomHover?0.35:0.22} rx={3}/>
-                  {dom.rect.w>60&&<text x={dom.rect.x+8} y={dom.rect.y+15} style={{fontSize:11*pvFontSc,fontWeight:700,fill:color,pointerEvents:"none"}}>{pvFitText(dom.domaine,dom.rect.w-40,7*pvFontSc)}</text>}
-                  {dom.rect.w>60&&<text x={dom.rect.x+dom.rect.w-8} y={dom.rect.y+15} textAnchor="end" style={{fontSize:10*pvFontSc,fontWeight:600,fill:T.fg,pointerEvents:"none"}}>{dom.nbApps}</text>}
+                  {dom.rect.w>60*pvFontSc&&<text x={dom.rect.x+8} y={dom.rect.y+15*pvFontSc} style={{fontSize:11*pvFontSc,fontWeight:700,fill:color,pointerEvents:"none"}}>{pvFitText(dom.domaine,dom.rect.w-40,7*pvFontSc)}</text>}
+                  {dom.rect.w>60*pvFontSc&&<text x={dom.rect.x+dom.rect.w-8} y={dom.rect.y+15*pvFontSc} textAnchor="end" style={{fontSize:10*pvFontSc,fontWeight:600,fill:T.fg,pointerEvents:"none"}}>{dom.nbApps}</text>}
                 </g>
                 {/* Catégories */}
                 {dom.quartiers.map(function(q){
                   var isQHover=pvHover==="q::"+dom.domaine+"::"+q.quartier;
                   return <g key={"q-"+q.quartier}>
                     <rect x={q.rect.x+1} y={q.rect.y+1} width={Math.max(0,q.rect.w-2)} height={Math.max(0,q.rect.h-2)} fill={T.bgCard} fillOpacity={1} stroke={color} strokeOpacity={isQHover?0.8:0.3} strokeWidth={isQHover?1:0.7} rx={2}/>
-                    {q.rect.w>40&&q.rect.h>14&&<text x={q.rect.x+5} y={q.rect.y+12} style={{fontSize:9*pvFontSc,fontWeight:600,fill:color,pointerEvents:"none"}}>{pvFitText(q.quartier,q.rect.w-10,5.5*pvFontSc)}</text>}
+                    {q.rect.w>40*pvFontSc&&q.rect.h>14*pvFontSc&&<text x={q.rect.x+5} y={q.rect.y+12*pvFontSc} style={{fontSize:9*pvFontSc,fontWeight:600,fill:color,pointerEvents:"none"}}>{pvFitText(q.quartier,q.rect.w-10,5.5*pvFontSc)}</text>}
                     {/* Applications individuelles */}
                     {q.apps.map(function(item){
                       var ar=item.rect;
                       var isAHover=pvHover==="a::"+item.app.id;
-                      var showName=ar.w>28&&ar.h>14;
+                      var showName=ar.w>28*pvFontSc&&ar.h>14*pvFontSc;
                       return <g key={"a-"+item.app.id}
                         onMouseEnter={function(){setPvHover("a::"+item.app.id);}}
                         onMouseLeave={function(){setPvHover("");}}
@@ -5511,7 +5511,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
                         <rect x={ar.x+1} y={ar.y+1} width={Math.max(0,ar.w-2)} height={Math.max(0,ar.h-2)}
                           fill={color} fillOpacity={isAHover?0.28:0.1}
                           stroke={color} strokeOpacity={isAHover?0.9:0.35} strokeWidth={0.7} rx={1.5}/>
-                        {showName&&<text x={ar.x+4} y={ar.y+ar.h/2+3.5} style={{fontSize:8*pvFontSc,fontWeight:500,fill:isAHover?color:T.fg,pointerEvents:"none"}}>{pvFitText(item.app.name,ar.w-8,5*pvFontSc)}</text>}
+                        {showName&&<text x={ar.x+4} y={ar.y+ar.h/2+3.5*pvFontSc} style={{fontSize:8*pvFontSc,fontWeight:500,fill:isAHover?color:T.fg,pointerEvents:"none"}}>{pvFitText(item.app.name,ar.w-8,5*pvFontSc)}</text>}
                       </g>;
                     })}
                     {/* Overlay hover catégorie */}
