@@ -1595,48 +1595,56 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     // ─── Slide Paysage applicatif (treemap) ───
     if(_opts.inclPaysage&&apps.length>0){
       var pvSl=_addSlide();
-      pvSl.background={color:"111827"};
-      // Header band
-      pvSl.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.333,h:0.52,fill:{color:"1E293B"},line:{type:"none"}});
-      pvSl.addText("PAYSAGE APPLICATIF",{x:0.25,y:0.11,w:9,h:0.30,fontSize:13,bold:true,color:"F1F5F9",fontFace:"Trebuchet MS",margin:0,charSpacing:2});
-      pvSl.addText(apps.length+" applications · "+[...new Set(apps.map(function(a){return a.domain;}))].length+" domaines · "+[...new Set(apps.map(function(a){return a.category;}).filter(Boolean))].length+" catégories",{x:0,y:0.13,w:13.1,h:0.26,fontSize:8,color:"94A3B8",fontFace:"Calibri",margin:0,align:"right"});
-      // Treemap coordinates: map 1600×900 viewBox → 13.333"×6.98" (below header)
+      pvSl.background={color:"F8FAFC"};
+      // Header — même style que les autres slides
+      pvSl.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.333,h:0.55,fill:{color:cp||"0B2545"},line:{type:"none"}});
+      pvSl.addText("PAYSAGE APPLICATIF",{x:0.3,y:0.10,w:9,h:0.35,fontSize:14,bold:true,color:"FFFFFF",fontFace:"Trebuchet MS",margin:0});
+      pvSl.addText(apps.length+" applications · "+[...new Set(apps.map(function(a){return a.domain;}))].length+" domaines",{x:0,y:0.12,w:13.1,h:0.30,fontSize:9,color:"CBD5E1",fontFace:"Calibri",margin:0,align:"right"});
+      // Palette sobre gris-bleu — une couleur par domaine, identique pour catégories et apps
+      var PV_PAL=["2563EB","475569","0891B2","4F46E5","0E7490","64748B","1D4ED8","0369A1","334155","6366F1","1E40AF","0F766E"];
+      // Attribution couleur par domaine (ordre d'apparition dans pvBuildLayout)
       var PVW=1600,PVH=900;
-      var pvHdrH=0.52;
-      var scX=W/PVW; // 0.008333
-      var scY=(H-pvHdrH)/PVH; // 0.007533
+      var pvHdrH=0.60; // header + petit espace
+      var pvMargin=0.15;
+      var pvAreaW=W-pvMargin*2;
+      var pvAreaH=H-pvHdrH-pvMargin;
+      var scX=pvAreaW/PVW;
+      var scY=pvAreaH/PVH;
       var pvL=pvBuildLayout(apps,PVW,PVH);
-      pvL.forEach(function(dom){
-        var dc=(_pDC[dom.domaine]||_pDC.Autre).ac.replace("#","");
+      pvL.forEach(function(dom,di){
+        var dc=PV_PAL[di%PV_PAL.length];
         var dr=dom.rect;
-        var dx=dr.x*scX,dy=pvHdrH+dr.y*scY,dw=dr.w*scX,dh=dr.h*scY;
-        // Domain background
-        pvSl.addShape(pres.shapes.RECTANGLE,{x:dx+0.01,y:dy+0.01,w:Math.max(0.01,dw-0.02),h:Math.max(0.01,dh-0.02),fill:{color:dc,transparency:91},line:{color:dc,width:1.0,transparency:35}});
-        // Domain header bar
-        var dhH=Math.max(0.12,Math.min(0.20,dh*0.13));
-        pvSl.addShape(pres.shapes.RECTANGLE,{x:dx+0.01,y:dy+0.01,w:Math.max(0.01,dw-0.02),h:dhH,fill:{color:dc,transparency:55},line:{type:"none"}});
-        if(dw>0.4){
-          pvSl.addText(dom.domaine+(dw>0.9?" ("+dom.nbApps+")":""),{x:dx+0.04,y:dy+0.01,w:Math.max(0.05,dw-0.08),h:dhH,fontSize:Math.max(5,Math.min(10,Math.round(dw*9))),bold:true,color:"FFFFFF",fontFace:"Calibri",margin:0,valign:"middle",fit:"shrink"});
+        var dx=pvMargin+dr.x*scX,dy=pvHdrH+dr.y*scY,dw=dr.w*scX,dh=dr.h*scY;
+        // Fond domaine — léger
+        pvSl.addShape(pres.shapes.RECTANGLE,{x:dx+0.01,y:dy+0.01,w:Math.max(0.01,dw-0.02),h:Math.max(0.01,dh-0.02),fill:{color:dc,transparency:92},line:{color:dc,width:1.2,transparency:20}});
+        // Header domaine
+        var dhH=Math.max(0.14,Math.min(0.22,dh*0.15));
+        pvSl.addShape(pres.shapes.RECTANGLE,{x:dx+0.01,y:dy+0.01,w:Math.max(0.01,dw-0.02),h:dhH,fill:{color:dc,transparency:0},line:{type:"none"}});
+        if(dw>0.35){
+          pvSl.addText(dom.domaine+(dw>1.0?" · "+dom.nbApps:""),{x:dx+0.04,y:dy+0.01,w:Math.max(0.05,dw-0.08),h:dhH,fontSize:Math.max(5,Math.min(9,Math.round(dw*8))),bold:true,color:"FFFFFF",fontFace:"Calibri",margin:0,valign:"middle",fit:"shrink"});
         }
-        // Categories
+        // Catégories
         dom.quartiers.forEach(function(q){
           var qr=q.rect;
-          var qx=qr.x*scX,qy=pvHdrH+qr.y*scY,qw=qr.w*scX,qh=qr.h*scY;
-          pvSl.addShape(pres.shapes.RECTANGLE,{x:qx+0.007,y:qy+0.007,w:Math.max(0.01,qw-0.014),h:Math.max(0.01,qh-0.014),fill:{color:"1E293B",transparency:20},line:{color:dc,width:0.5,transparency:55}});
-          if(qw>0.25&&qh>0.10){
-            pvSl.addText(q.quartier,{x:qx+0.025,y:qy+0.01,w:Math.max(0.05,qw-0.05),h:Math.min(0.13,qh*0.28),fontSize:Math.max(4,Math.min(7,Math.round(qw*8))),bold:true,color:dc,fontFace:"Calibri",margin:0,valign:"top",fit:"shrink"});
+          var qx=pvMargin+qr.x*scX,qy=pvHdrH+qr.y*scY,qw=qr.w*scX,qh=qr.h*scY;
+          // Fond catégorie — même couleur, plus opaque
+          pvSl.addShape(pres.shapes.RECTANGLE,{x:qx+0.006,y:qy+0.006,w:Math.max(0.01,qw-0.012),h:Math.max(0.01,qh-0.012),fill:{color:dc,transparency:83},line:{color:dc,width:0.6,transparency:30}});
+          if(qw>0.28&&qh>0.12){
+            pvSl.addText(q.quartier,{x:qx+0.02,y:qy+0.01,w:Math.max(0.05,qw-0.04),h:Math.min(0.14,qh*0.30),fontSize:Math.max(4,Math.min(7,Math.round(qw*7))),bold:true,color:dc,fontFace:"Calibri",margin:0,valign:"top",fit:"shrink"});
           }
-          // Individual apps
+          // Apps individuelles — même couleur, plus remplies
           q.apps.forEach(function(item){
             var ar=item.rect;
-            var ax=ar.x*scX,ay=pvHdrH+ar.y*scY,aw=ar.w*scX,ah=ar.h*scY;
-            pvSl.addShape(pres.shapes.RECTANGLE,{x:ax+0.004,y:ay+0.004,w:Math.max(0.005,aw-0.008),h:Math.max(0.005,ah-0.008),fill:{color:dc,transparency:78},line:{color:dc,width:0.3,transparency:45}});
-            if(aw>0.22&&ah>0.09){
-              pvSl.addText(item.app.name,{x:ax+0.008,y:ay+0.006,w:Math.max(0.05,aw-0.016),h:Math.max(0.03,ah-0.012),fontSize:Math.max(4,Math.min(7,Math.round(aw*10))),color:"E2E8F0",fontFace:"Calibri",margin:0,valign:"middle",fit:"shrink"});
+            var ax=pvMargin+ar.x*scX,ay=pvHdrH+ar.y*scY,aw=ar.w*scX,ah=ar.h*scY;
+            pvSl.addShape(pres.shapes.RECTANGLE,{x:ax+0.003,y:ay+0.003,w:Math.max(0.005,aw-0.006),h:Math.max(0.005,ah-0.006),fill:{color:dc,transparency:68},line:{color:dc,width:0.25,transparency:20}});
+            if(aw>0.20&&ah>0.08){
+              pvSl.addText(item.app.name,{x:ax+0.007,y:ay+0.004,w:Math.max(0.04,aw-0.014),h:Math.max(0.03,ah-0.008),fontSize:Math.max(4,Math.min(7,Math.round(aw*9))),color:"1E293B",fontFace:"Calibri",margin:0,valign:"middle",fit:"shrink"});
             }
           });
         });
       });
+      // Footer
+      pvSl.addText("Généré le "+new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}),{x:0.25,y:7.30,w:12.83,h:0.18,fontSize:7,color:"94A3B8",fontFace:"Calibri",margin:0,italic:true,align:"center"});
     }// end inclPaysage
 
     // ═══════════════════════════════════════════════════════════════════
