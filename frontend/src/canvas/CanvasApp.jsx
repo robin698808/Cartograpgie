@@ -5508,20 +5508,22 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         </div>
         <div style={{flex:1}}/>
         {/* Contrôles zoom & police */}
-        <div style={{display:"flex",alignItems:"center",gap:4,background:T.bgCard,border:"1px solid "+T.border,borderRadius:8,padding:"4px 8px"}}>
-          <span style={{fontSize:10,color:T.fgMuted,marginRight:4}}>Zoom</span>
-          <button onClick={function(){setPvZm(function(z){return Math.max(0.4,+(z-0.2).toFixed(1));});}} style={{...B,padding:"2px 8px",fontSize:13,fontWeight:700,borderRadius:5,minWidth:28}}>−</button>
-          <span style={{fontSize:11,color:T.fg,minWidth:36,textAlign:"center"}}>{Math.round(pvZm*100)}%</span>
-          <button onClick={function(){setPvZm(function(z){return Math.min(4,+(z+0.2).toFixed(1));});}} style={{...B,padding:"2px 8px",fontSize:13,fontWeight:700,borderRadius:5,minWidth:28}}>+</button>
-          <button onClick={function(){setPvZm(1);}} style={{...B,padding:"2px 6px",fontSize:9,borderRadius:5,marginLeft:2,color:T.fgMuted}}>↺</button>
+        {(function(){var PVB={background:"#1D4ED8",color:"#fff",border:"none",borderRadius:5,padding:"2px 9px",fontSize:13,fontWeight:700,cursor:"pointer",lineHeight:"20px"};var PVL={fontSize:10,fontWeight:600,color:"#1D4ED8",minWidth:32,textAlign:"center"};return<>
+        <div style={{display:"flex",alignItems:"center",gap:4,background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"4px 8px"}}>
+          <span style={{fontSize:10,fontWeight:600,color:"#1D4ED8",marginRight:2}}>Zoom</span>
+          <button onClick={function(){setPvZm(function(z){return Math.max(0.4,+(z-0.2).toFixed(1));});}} style={PVB}>−</button>
+          <span style={PVL}>{Math.round(pvZm*100)}%</span>
+          <button onClick={function(){setPvZm(function(z){return Math.min(4,+(z+0.2).toFixed(1));});}} style={PVB}>+</button>
+          <button onClick={function(){setPvZm(1);}} style={{...PVB,background:"#BFDBFE",color:"#1D4ED8",fontSize:10,padding:"2px 6px"}}>↺</button>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:4,background:T.bgCard,border:"1px solid "+T.border,borderRadius:8,padding:"4px 8px"}}>
-          <span style={{fontSize:10,color:T.fgMuted,marginRight:4}}>Police</span>
-          <button onClick={function(){setPvFontSc(function(f){return Math.max(0.5,+(f-0.1).toFixed(1));});}} style={{...B,padding:"2px 8px",fontSize:13,fontWeight:700,borderRadius:5,minWidth:28}}>A−</button>
-          <span style={{fontSize:11,color:T.fg,minWidth:36,textAlign:"center"}}>{Math.round(pvFontSc*100)}%</span>
-          <button onClick={function(){setPvFontSc(function(f){return Math.min(2.5,+(f+0.1).toFixed(1));});}} style={{...B,padding:"2px 8px",fontSize:13,fontWeight:700,borderRadius:5,minWidth:28}}>A+</button>
-          <button onClick={function(){setPvFontSc(1);}} style={{...B,padding:"2px 6px",fontSize:9,borderRadius:5,marginLeft:2,color:T.fgMuted}}>↺</button>
+        <div style={{display:"flex",alignItems:"center",gap:4,background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"4px 8px"}}>
+          <span style={{fontSize:10,fontWeight:600,color:"#1D4ED8",marginRight:2}}>Police</span>
+          <button onClick={function(){setPvFontSc(function(f){return Math.max(0.5,+(f-0.1).toFixed(1));});}} style={PVB}>A−</button>
+          <span style={PVL}>{Math.round(pvFontSc*100)}%</span>
+          <button onClick={function(){setPvFontSc(function(f){return Math.min(2.5,+(f+0.1).toFixed(1));});}} style={PVB}>A+</button>
+          <button onClick={function(){setPvFontSc(1);}} style={{...PVB,background:"#BFDBFE",color:"#1D4ED8",fontSize:10,padding:"2px 6px"}}>↺</button>
         </div>
+        </>;}())}
         <button onClick={function(){setView("mapping");setTimeout(fitCanvas,50);}} style={{...B,background:"#0EA5E9",padding:"6px 14px",fontSize:11,fontWeight:600,borderRadius:8,display:"flex",alignItems:"center",gap:5}}><span>&#8592;</span> Cartographie</button>
       </div>
       {/* ── Treemap SVG ── */}
