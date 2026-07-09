@@ -1636,7 +1636,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           q.apps.forEach(function(item){
             var ar=item.rect;
             var ax=pvMargin+ar.x*scX,ay=pvHdrH+ar.y*scY,aw=ar.w*scX,ah=ar.h*scY;
-            pvSl.addShape(pres.shapes.RECTANGLE,{x:ax+0.003,y:ay+0.003,w:Math.max(0.005,aw-0.006),h:Math.max(0.005,ah-0.006),fill:{color:dc,transparency:68},line:{color:dc,width:0.25,transparency:20}});
+            pvSl.addShape(pres.shapes.RECTANGLE,{x:ax+0.003,y:ay+0.003,w:Math.max(0.005,aw-0.006),h:Math.max(0.005,ah-0.006),fill:{color:"E2E8F0",transparency:0},line:{color:dc,width:0.25,transparency:20}});
             if(aw>0.20&&ah>0.08){
               pvSl.addText(item.app.name,{x:ax+0.007,y:ay+0.004,w:Math.max(0.04,aw-0.014),h:Math.max(0.03,ah-0.008),fontSize:Math.max(4,Math.min(7,Math.round(aw*9))),color:"1E293B",fontFace:"Calibri",margin:0,valign:"middle",fit:"shrink"});
             }
