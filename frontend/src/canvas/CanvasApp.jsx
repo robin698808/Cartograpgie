@@ -452,6 +452,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   const [decisionStates,setDecisionStates]=useState({});
   const [cardZoom,setCardZoom]=useState(1);
   const [pvHover,setPvHover]=useState(""); // survol treemap vue Paysage
+  const [pvZm,setPvZm]=useState(1);       // zoom treemap (0.5 → 3)
+  const [pvFontSc,setPvFontSc]=useState(1); // échelle police treemap (0.5 → 2)
   const [domW,setDomW]=useState(240);
   const [domH,setDomH]=useState(0);
   const [domPos,setDomPos]=useState({});
@@ -5452,17 +5454,32 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
           <div style={{color:T.fgMuted,fontSize:11,marginTop:2}}>{pvDoms.length} domaine{pvDoms.length>1?"s":""} · {apps.length} applications — surface ∝ nombre d'apps</div>
         </div>
         <div style={{flex:1}}/>
+        {/* Contrôles zoom & police */}
+        <div style={{display:"flex",alignItems:"center",gap:4,background:T.bgCard,border:"1px solid "+T.border,borderRadius:8,padding:"4px 8px"}}>
+          <span style={{fontSize:10,color:T.fgMuted,marginRight:4}}>Zoom</span>
+          <button onClick={function(){setPvZm(function(z){return Math.max(0.4,+(z-0.2).toFixed(1));});}} style={{...B,padding:"2px 8px",fontSize:13,fontWeight:700,borderRadius:5,minWidth:28}}>−</button>
+          <span style={{fontSize:11,color:T.fg,minWidth:36,textAlign:"center"}}>{Math.round(pvZm*100)}%</span>
+          <button onClick={function(){setPvZm(function(z){return Math.min(4,+(z+0.2).toFixed(1));});}} style={{...B,padding:"2px 8px",fontSize:13,fontWeight:700,borderRadius:5,minWidth:28}}>+</button>
+          <button onClick={function(){setPvZm(1);}} style={{...B,padding:"2px 6px",fontSize:9,borderRadius:5,marginLeft:2,color:T.fgMuted}}>↺</button>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:4,background:T.bgCard,border:"1px solid "+T.border,borderRadius:8,padding:"4px 8px"}}>
+          <span style={{fontSize:10,color:T.fgMuted,marginRight:4}}>Police</span>
+          <button onClick={function(){setPvFontSc(function(f){return Math.max(0.5,+(f-0.1).toFixed(1));});}} style={{...B,padding:"2px 8px",fontSize:13,fontWeight:700,borderRadius:5,minWidth:28}}>A−</button>
+          <span style={{fontSize:11,color:T.fg,minWidth:36,textAlign:"center"}}>{Math.round(pvFontSc*100)}%</span>
+          <button onClick={function(){setPvFontSc(function(f){return Math.min(2.5,+(f+0.1).toFixed(1));});}} style={{...B,padding:"2px 8px",fontSize:13,fontWeight:700,borderRadius:5,minWidth:28}}>A+</button>
+          <button onClick={function(){setPvFontSc(1);}} style={{...B,padding:"2px 6px",fontSize:9,borderRadius:5,marginLeft:2,color:T.fgMuted}}>↺</button>
+        </div>
         <button onClick={function(){setView("mapping");setTimeout(fitCanvas,50);}} style={{...B,background:"#0EA5E9",padding:"6px 14px",fontSize:11,fontWeight:600,borderRadius:8,display:"flex",alignItems:"center",gap:5}}><span>&#8592;</span> Cartographie</button>
       </div>
       {/* ── Treemap SVG ── */}
-      <div style={{flex:1,overflowY:"auto",padding:16,boxSizing:"border-box"}}>
+      <div style={{flex:1,overflow:"auto",padding:16,boxSizing:"border-box"}}>
         {apps.length===0?
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:12}}>
             <div style={{fontSize:36,opacity:0.3}}>▦</div>
             <div style={{fontSize:14,fontWeight:600,color:T.fgMuted}}>Aucune application à cartographier</div>
           </div>
         :
-          <svg viewBox={"0 0 "+PV_W+" "+PV_H} preserveAspectRatio="xMidYMid meet" style={{display:"block",width:"100%",minHeight:500,background:T.bgCard,border:"1px solid "+T.border,borderRadius:8,userSelect:"none"}}>
+          <svg viewBox={"0 0 "+PV_W+" "+PV_H} preserveAspectRatio="xMidYMid meet" style={{display:"block",width:Math.round(PV_W*pvZm)+"px",height:Math.round(PV_H*pvZm)+"px",background:T.bgCard,border:"1px solid "+T.border,borderRadius:8,userSelect:"none"}}>
             {pvLayout.map(function(dom){
               var color=(DC[dom.domaine]||DC.Autre).ac;
               var isDomHover=pvHover==="d::"+dom.domaine;
@@ -5472,15 +5489,15 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
                 {/* Header domaine */}
                 <g onMouseEnter={function(){setPvHover("d::"+dom.domaine);}} onMouseLeave={function(){setPvHover("");}} onClick={function(){pvDrill(dom.domaine);}} style={{cursor:"pointer"}}>
                   <rect x={dom.rect.x+2} y={dom.rect.y+2} width={Math.max(0,dom.rect.w-4)} height={22} fill={color} fillOpacity={isDomHover?0.35:0.22} rx={3}/>
-                  {dom.rect.w>60&&<text x={dom.rect.x+8} y={dom.rect.y+15} style={{fontSize:11,fontWeight:700,fill:color,pointerEvents:"none"}}>{pvFitText(dom.domaine,dom.rect.w-40,7)}</text>}
-                  {dom.rect.w>60&&<text x={dom.rect.x+dom.rect.w-8} y={dom.rect.y+15} textAnchor="end" style={{fontSize:10,fontWeight:600,fill:T.fg,pointerEvents:"none"}}>{dom.nbApps}</text>}
+                  {dom.rect.w>60&&<text x={dom.rect.x+8} y={dom.rect.y+15} style={{fontSize:11*pvFontSc,fontWeight:700,fill:color,pointerEvents:"none"}}>{pvFitText(dom.domaine,dom.rect.w-40,7*pvFontSc)}</text>}
+                  {dom.rect.w>60&&<text x={dom.rect.x+dom.rect.w-8} y={dom.rect.y+15} textAnchor="end" style={{fontSize:10*pvFontSc,fontWeight:600,fill:T.fg,pointerEvents:"none"}}>{dom.nbApps}</text>}
                 </g>
                 {/* Catégories */}
                 {dom.quartiers.map(function(q){
                   var isQHover=pvHover==="q::"+dom.domaine+"::"+q.quartier;
                   return <g key={"q-"+q.quartier}>
                     <rect x={q.rect.x+1} y={q.rect.y+1} width={Math.max(0,q.rect.w-2)} height={Math.max(0,q.rect.h-2)} fill={T.bgCard} fillOpacity={1} stroke={color} strokeOpacity={isQHover?0.8:0.3} strokeWidth={isQHover?1:0.7} rx={2}/>
-                    {q.rect.w>40&&q.rect.h>14&&<text x={q.rect.x+5} y={q.rect.y+12} style={{fontSize:9,fontWeight:600,fill:color,pointerEvents:"none"}}>{pvFitText(q.quartier,q.rect.w-10,5.5)}</text>}
+                    {q.rect.w>40&&q.rect.h>14&&<text x={q.rect.x+5} y={q.rect.y+12} style={{fontSize:9*pvFontSc,fontWeight:600,fill:color,pointerEvents:"none"}}>{pvFitText(q.quartier,q.rect.w-10,5.5*pvFontSc)}</text>}
                     {/* Applications individuelles */}
                     {q.apps.map(function(item){
                       var ar=item.rect;
@@ -5494,7 +5511,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
                         <rect x={ar.x+1} y={ar.y+1} width={Math.max(0,ar.w-2)} height={Math.max(0,ar.h-2)}
                           fill={color} fillOpacity={isAHover?0.28:0.1}
                           stroke={color} strokeOpacity={isAHover?0.9:0.35} strokeWidth={0.7} rx={1.5}/>
-                        {showName&&<text x={ar.x+4} y={ar.y+ar.h/2+3.5} style={{fontSize:8,fontWeight:500,fill:isAHover?color:T.fg,pointerEvents:"none"}}>{pvFitText(item.app.name,ar.w-8,5)}</text>}
+                        {showName&&<text x={ar.x+4} y={ar.y+ar.h/2+3.5} style={{fontSize:8*pvFontSc,fontWeight:500,fill:isAHover?color:T.fg,pointerEvents:"none"}}>{pvFitText(item.app.name,ar.w-8,5*pvFontSc)}</text>}
                       </g>;
                     })}
                     {/* Overlay hover catégorie */}
