@@ -5570,7 +5570,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
 
   // ═══ PAYSAGE VIEW (treemap urbanistique) ═══
   if(view==="paysage"){
-    var PV_W=1600,PV_H=900;
+    var PV_W=Math.round(1600*pvFontSc),PV_H=Math.round(900*pvFontSc);
     var pvLayout=pvBuildLayout(apps,PV_W,PV_H,pvFontSc);
     var pvDoms=[...new Set(apps.map(function(a){return a.domain;}))];
     // Drill-down : réutilise la vue Cartes filtrée sur le domaine cliqué.
@@ -5610,7 +5610,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
             <div style={{fontSize:14,fontWeight:600,color:T.fgMuted}}>Aucune application à cartographier</div>
           </div>
         :
-          <svg viewBox={"0 0 "+PV_W+" "+PV_H} preserveAspectRatio="xMidYMid meet" style={{display:"block",width:Math.round(PV_W*pvZm)+"px",height:Math.round(PV_H*pvZm)+"px",background:T.bgCard,border:"1px solid "+T.border,borderRadius:8,userSelect:"none"}}>
+          <svg viewBox={"0 0 "+PV_W+" "+PV_H} preserveAspectRatio="xMidYMid meet" style={{display:"block",width:Math.round(1600*pvZm*pvFontSc)+"px",height:Math.round(900*pvZm*pvFontSc)+"px",background:T.bgCard,border:"1px solid "+T.border,borderRadius:8,userSelect:"none"}}>
             {(function(){var PV_PAL=["#2563EB","#475569","#0891B2","#4F46E5","#0E7490","#64748B","#1D4ED8","#0369A1","#334155","#6366F1","#1E40AF","#0F766E"];return pvLayout.map(function(dom,di){
               var color=PV_PAL[di%PV_PAL.length];
               var isDomHover=pvHover==="d::"+dom.domaine;
