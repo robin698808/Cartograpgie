@@ -286,6 +286,9 @@ function App({ initialSnapshot, onSave, wsMessage, projectId, onThemeChange, top
   const [selFlow,setSelFlow]=useState(null);// selected flow (click)
   const [flowCtx,setFlowCtx]=useState(null);// context menu {flow, x, y}
   const [drag,setDrag]=useState(null); // {id,ox,oy} for app or {domain,ox,oy,appIds} for domain group
+  const dragRef=useRef(null); // mirror of drag for always-current access in event handlers
+  const startDrag=(val)=>{dragRef.current=val;setDrag(val);};
+  const stopDrag=()=>{dragRef.current=null;setDrag(null);};
   const [showAM,setShowAM]=useState(false);
   const [eApp,setEApp]=useState(null);
   const [eFlow,setEFlow]=useState(null);
@@ -668,66 +671,64 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
   };
   const onCM=e=>{
     if(pan)setOff({x:e.clientX-pRef.current.x,y:e.clientY-pRef.current.y});
-    if(drag){
-      if(drag.resizeCat){
-        const dx=(e.clientX-drag.lx)/zm,dy=(e.clientY-drag.ly)/zm;
-        drag.lx=e.clientX;drag.ly=e.clientY;
-        setCatPads(p=>{const cur=p[drag.resizeCat]||{w:0,h:0};return{...p,[drag.resizeCat]:{w:Math.max(0,cur.w+dx),h:Math.max(0,cur.h+dy)}};});
+    const dr=dragRef.current;
+    if(dr){
+      if(dr.resizeCat){
+        const dx=(e.clientX-dr.lx)/zm,dy=(e.clientY-dr.ly)/zm;
+        dr.lx=e.clientX;dr.ly=e.clientY;
+        setCatPads(p=>{const cur=p[dr.resizeCat]||{w:0,h:0};return{...p,[dr.resizeCat]:{w:Math.max(0,cur.w+dx),h:Math.max(0,cur.h+dy)}};});
         return;
       }
-      if(drag.resize){
-        const dx=(e.clientX-drag.lx)/zm,dy=(e.clientY-drag.ly)/zm;
-        drag.lx=e.clientX;drag.ly=e.clientY;
-        setDomPads(p=>{const cur=p[drag.resize]||{w:0,h:0};return{...p,[drag.resize]:{w:Math.max(0,cur.w+dx),h:Math.max(0,cur.h+dy)}};});
+      if(dr.resize){
+        const dx=(e.clientX-dr.lx)/zm,dy=(e.clientY-dr.ly)/zm;
+        dr.lx=e.clientX;dr.ly=e.clientY;
+        setDomPads(p=>{const cur=p[dr.resize]||{w:0,h:0};return{...p,[dr.resize]:{w:Math.max(0,cur.w+dx),h:Math.max(0,cur.h+dy)}};});
         return;
       }
-
-      if(drag.ids){
-        const dx=(e.clientX-drag.lx)/zm,dy=(e.clientY-drag.ly)/zm;
-        drag.lx=e.clientX;drag.ly=e.clientY;
-        setApps(p=>p.map(a=>drag.ids.includes(a.id)?{...a,x:a.x+dx,y:a.y+dy}:a));
+      if(dr.ids){
+        const dx=(e.clientX-dr.lx)/zm,dy=(e.clientY-dr.ly)/zm;
+        dr.lx=e.clientX;dr.ly=e.clientY;
+        setApps(p=>p.map(a=>dr.ids.includes(a.id)?{...a,x:a.x+dx,y:a.y+dy}:a));
         return;
       }
-      if(drag.domain){
-        // Domain or category group drag: move all apps
-        const dx=(e.clientX-drag.lastX)/zm;
-        const dy=(e.clientY-drag.lastY)/zm;
-        drag.lastX=e.clientX;drag.lastY=e.clientY;
-        setApps(p=>p.map(a=>drag.appIds.includes(a.id)?{...a,x:a.x+dx,y:a.y+dy}:a));
+      if(dr.domain){
+        // Domain or category group drag: move all apps in appIds
+        const dx=(e.clientX-dr.lastX)/zm;
+        const dy=(e.clientY-dr.lastY)/zm;
+        dr.lastX=e.clientX;dr.lastY=e.clientY;
+        setApps(p=>p.map(a=>dr.appIds.includes(a.id)?{...a,x:a.x+dx,y:a.y+dy}:a));
       } else {
         // Single app drag
-        setApps(p=>p.map(a=>a.id===drag.id?{...a,x:(e.clientX-drag.ox-off.x)/zm,y:(e.clientY-drag.oy-off.y)/zm}:a));
+        setApps(p=>p.map(a=>a.id===dr.id?{...a,x:(e.clientX-dr.ox-off.x)/zm,y:(e.clientY-dr.oy-off.y)/zm}:a));
       }
     }
   };
   const onCU=e=>{
     setPan(false);
+    const dr=dragRef.current;
     // Check if app was dropped onto a different domain zone
-    if(drag&&drag.id&&!drag.domain&&e){
-      const draggedApp=apps.find(a=>a.id===drag.id);
+    if(dr&&dr.id&&!dr.domain&&e){
+      const draggedApp=apps.find(a=>a.id===dr.id);
       if(draggedApp){
         const appCx=draggedApp.x+AW/2, appCy=draggedApp.y+AH/2;
-        // Build domain bounding boxes
         const zones={};
         apps.forEach(a=>{
-          if(a.id===drag.id) return; // skip the dragged app itself
+          if(a.id===dr.id) return;
           if(!zones[a.domain]) zones[a.domain]={x1:Infinity,y1:Infinity,x2:-Infinity,y2:-Infinity};
           zones[a.domain].x1=Math.min(zones[a.domain].x1,a.x-30);
           zones[a.domain].y1=Math.min(zones[a.domain].y1,a.y-52);
           zones[a.domain].x2=Math.max(zones[a.domain].x2,a.x+AW+30);
           zones[a.domain].y2=Math.max(zones[a.domain].y2,a.y+AH+30);
         });
-        // Check which zone the app center falls into
         for(const [dom,b] of Object.entries(zones)){
           if(dom!==draggedApp.domain && appCx>=b.x1 && appCx<=b.x2 && appCy>=b.y1 && appCy<=b.y2){
-            setApps(p=>p.map(a=>a.id===drag.id?{...a,domain:dom}:a));
+            setApps(p=>p.map(a=>a.id===dr.id?{...a,domain:dom}:a));
             break;
           }
         }
       }
     }
-
-    setDrag(null);
+    stopDrag();
   };
   const onWh=e=>{e.preventDefault();
     if(e.ctrlKey||e.metaKey){setZm(z=>Math.max(0.25,Math.min(2.5,z-e.deltaY*0.003)));}
@@ -4050,7 +4051,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       onMouseEnter={function(){if(!drag&&!cMode&&!selMode)setFocusApp(app.id);}}
       onMouseLeave={function(){if(focusApp===app.id)setFocusApp(null);}}
       onMouseDown={e=>{e.stopPropagation();if(cMode){if(!fFrom)setFFrom(app.id);else if(fFrom!==app.id){const nf={id:uid(),from:fFrom,to:app.id,protocol:"API",label:"",description:"",frequency:""};setFlows(p=>[...p,nf]);setEFlow({...nf});setShowFM(true);setFFrom(null);setCMode(false);}return;}if(e.shiftKey){setMultiSel(p=>p.includes(app.id)?p.filter(x=>x!==app.id):[...p,app.id]);return;}
-        setMultiSel([]);setSelApp(app);const rect=e.currentTarget.getBoundingClientRect();setDrag({id:app.id,ox:e.clientX-rect.left,oy:e.clientY-rect.top});}}
+        setMultiSel([]);setSelApp(app);const rect=e.currentTarget.getBoundingClientRect();startDrag({id:app.id,ox:e.clientX-rect.left,oy:e.clientY-rect.top});}}
       onDoubleClick={()=>{setEApp({...app});setShowAM(true);}}>
 
       {/* D1 tint overlay */}
@@ -4170,7 +4171,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       return <div key={cat} style={{position:"absolute",left:bx1-sidePad,top:by1-topPad-barH,width:bx2-bx1+sidePad*2,height:by2-by1+topPad+bottomPad+barH,border:`2px solid ${cc}50`,borderRadius:14,background:`${cc}06`,pointerEvents:"none"}}>
         {/* Bandeau titre — draggable */}
         <div style={{position:"absolute",top:-1,left:-1,right:-1,height:barH,background:`${cc}DD`,borderRadius:"14px 14px 0 0",borderBottom:`1px solid ${cc}60`,display:"flex",alignItems:"center",padding:"0 12px",gap:6,pointerEvents:"auto",cursor:"grab",userSelect:"none"}}
-          data-app="1" onMouseDown={e=>{e.stopPropagation();setDrag({domain:"__cat__"+cat,appIds:b.ids,lastX:e.clientX,lastY:e.clientY});}}
+          data-app="1" onMouseDown={e=>{e.stopPropagation();startDrag({domain:"__cat__"+cat,appIds:b.ids,lastX:e.clientX,lastY:e.clientY});}}
           onContextMenu={e=>{e.preventDefault();e.stopPropagation();setCtxMenu({x:e.clientX,y:e.clientY,type:"category",target:cat});}}>
           <span style={{fontSize:fz,fontWeight:700,color:"#fff",letterSpacing:1.5,textTransform:"uppercase",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat}</span>
           <span style={{fontSize:fzSub,color:"rgba(255,255,255,0.7)",flexShrink:0}}>{b.domains.size} dom · {b.ids.length} apps</span>
@@ -4187,7 +4188,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         <div style={{position:"absolute",bottom:0,right:0,width:20,height:2,background:cc,borderRadius:"2px 0 0 2px"}}/>
         {/* Handle resize — coin bas-droite */}
         <div style={{position:"absolute",bottom:0,right:0,width:rzSz,height:rzSz,cursor:"nwse-resize",pointerEvents:"auto",display:"flex",alignItems:"center",justifyContent:"center"}}
-          data-app="1" onMouseDown={e=>{e.stopPropagation();e.preventDefault();setDrag({resizeCat:cat,lx:e.clientX,ly:e.clientY});}}>
+          data-app="1" onMouseDown={e=>{e.stopPropagation();e.preventDefault();startDrag({resizeCat:cat,lx:e.clientX,ly:e.clientY});}}>
           <svg width={Math.max(10,Math.round(10/zm))} height={Math.max(10,Math.round(10/zm))} style={{opacity:0.5}}>
             <path d="M10 0L10 10L0 10" fill="none" stroke={cc} strokeWidth="1.5"/>
             <path d="M10 4L10 10L4 10" fill="none" stroke={cc} strokeWidth="1.5"/>
@@ -4207,12 +4208,12 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       var _domBrd=isDropTarget?"2px dashed "+c.ac:domBorderW+"px dashed "+c.ac+"40";
       return <div key={d} style={{position:"absolute",left:b.x1-p,top:b.y1-p-Math.round(22*fontScale),width:zw,height:zh,border:_domBrd,borderRadius:12,background:isDropTarget?c.ac+"18":c.ac+"08",pointerEvents:"none",transition:"border 0.2s, background 0.2s"}}>
         <div style={{padding:"5px 12px",fontSize:Math.round(10*fontScale),fontWeight:700,color:c.ac,letterSpacing:1.5,textTransform:"uppercase",pointerEvents:"auto",cursor:"grab",userSelect:"none",display:"inline-block",borderRadius:"6px 6px 0 0",background:`${c.ac}15`}}
-          data-app="1" onMouseDown={e=>{e.stopPropagation();setDrag({domain:d,appIds:b.ids,lastX:e.clientX,lastY:e.clientY});}}
+          data-app="1" onMouseDown={e=>{e.stopPropagation();startDrag({domain:d,appIds:b.ids,lastX:e.clientX,lastY:e.clientY});}}
           onContextMenu={e=>{e.preventDefault();e.stopPropagation();setCtxMenu({x:e.clientX,y:e.clientY,type:"domain",target:d});}}>{d} <span style={{fontSize:Math.round(8*fontScale),opacity:0.6}}>⠿</span>
           <span style={{marginLeft:6,cursor:"pointer",fontSize:Math.round(9*fontScale)}} onMouseDown={e=>{e.stopPropagation();e.preventDefault();}} onClick={e=>{e.stopPropagation();setShowDomEdit(d);}} title="Changer couleur">🎨</span></div>
         {/* Resize handle (coin) */}
         <div style={{position:"absolute",bottom:0,right:0,width:16,height:16,cursor:"nwse-resize",pointerEvents:"auto",display:"flex",alignItems:"center",justifyContent:"center"}}
-          data-app="1" onMouseDown={e=>{e.stopPropagation();e.preventDefault();setDrag({resize:d,lx:e.clientX,ly:e.clientY});}}>
+          data-app="1" onMouseDown={e=>{e.stopPropagation();e.preventDefault();startDrag({resize:d,lx:e.clientX,ly:e.clientY});}}>
           <svg width="10" height="10" style={{opacity:0.4}}><path d="M10 0L10 10L0 10" fill="none" stroke={c.ac} strokeWidth="1.5"/><path d="M10 4L10 10L4 10" fill="none" stroke={c.ac} strokeWidth="1.5"/></svg>
         </div>
       </div>;})}</>;
