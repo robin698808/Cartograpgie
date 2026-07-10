@@ -1086,7 +1086,8 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     try{
       var token=null;
       try{token=localStorage.getItem("token");}catch(e){}
-      var resp=await fetch('/api/export/pptx',{
+      var _apiBase=(import.meta.env.VITE_API_URL||'/api').replace(/\/$/,'');
+      var resp=await fetch(_apiBase+'/export/pptx',{
         method:'POST',
         headers:Object.assign({'Content-Type':'application/json'},token?{'Authorization':'Bearer '+token}:{}),
         body:JSON.stringify({apps:apps,flows:flows,opts:_opts})
