@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base, settings
-from routes import users, projects, snapshots, ws
+from routes import users, projects, snapshots, ws, export
 
 # Crée les tables au démarrage (dev — en prod, utiliser Alembic)
 Base.metadata.create_all(bind=engine)
@@ -31,6 +31,7 @@ app.include_router(users.router, prefix="/api", tags=["Auth & Users"])
 app.include_router(projects.router, prefix="/api", tags=["Projects"])
 app.include_router(snapshots.router, prefix="/api", tags=["Snapshots"])
 app.include_router(ws.router, tags=["WebSocket"])
+app.include_router(export.router, prefix="/api", tags=["Export"])
 
 
 @app.get("/api/health", tags=["Health"])
