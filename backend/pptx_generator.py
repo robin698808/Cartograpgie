@@ -1147,6 +1147,188 @@ def add_env_applicatif_slides(prs: Presentation, apps: List[Dict], opts: Dict, f
         cur_y += dom_h + dom_gap
 
 
+def add_hub_detail_slides(prs: Presentation, apps: List[Dict], flows: List[Dict], opts: Dict):
+    """Une slide par hub applicatif : carte du hub + liste des applications satellites et flux."""
+    if not flows:
+        return
+
+    primary = opts.get('clientPrimary', '2979FF')
+    app_by_id = {a['id']: a for a in apps}
+
+    # Compute connectivity
+    conn = {a['id']: 0 for a in apps}
+    for f in flows:
+        if f.get('from') in conn:
+            conn[f['from']] += 1
+        if f.get('to') in conn:
+            conn[f['to']] += 1
+
+    # Top hubs (min 2 connections)
+    hub_apps = sorted(
+        [a for a in apps if conn.get(a['id'], 0) >= 2],
+        key=lambda a: -conn.get(a['id'], 0)
+    )[:15]  # max 15 slides hub
+
+    for hub in hub_apps:
+        hid = hub['id']
+        hub_conn_total = conn.get(hid, 0)
+
+        # Collect incoming and outgoing flows
+        outgoing = []  # hub → satellite
+        incoming = []  # satellite → hub
+        for f in flows:
+            if f.get('from') == hid:
+                sat = app_by_id.get(f.get('to', ''), {})
+                if sat:
+                    outgoing.append({'app': sat, 'flow': f})
+            elif f.get('to') == hid:
+                sat = app_by_id.get(f.get('from', ''), {})
+                if sat:
+                    incoming.append({'app': sat, 'flow': f})
+
+        layout = prs.slide_layouts[8]
+        slide = prs.slides.add_slide(layout)
+        hub_name = hub.get('name', '')
+        set_placeholders(
+            slide,
+            title=f"HUB — {hub_name.upper()}",
+            breadcrumb="Cartographie Applicative > Hubs Applicatifs",
+            subtitle=f"{len(outgoing)} flux sortants · {len(incoming)} flux entrants · {hub_conn_total} connexions"
+        )
+
+        # ── Hub info card (left column) ───────────────────────────────────
+        card_x = CONTENT_X
+        card_y = CONTENT_Y
+        card_w = 2.50
+        card_h = CONTENT_H
+
+        add_rect(slide, card_x, card_y, card_w, card_h, fill_hex='EFF6FF', line_hex='BFDBFE', line_w=0.8)
+        add_rect(slide, card_x, card_y, card_w, 0.36, fill_hex=primary)
+        add_text(slide, "APPLICATION HUB", card_x + 0.10, card_y + 0.04,
+                 card_w - 0.16, 0.20, font_size=7, bold=True, color_hex='FFFFFF')
+        add_text(slide, hub_name, card_x + 0.10, card_y + 0.22,
+                 card_w - 0.16, 0.20, font_size=9, bold=True, color_hex='FFFFFF')
+
+        # KPIs: connexions
+        kpi_y = card_y + 0.44
+        add_text(slide, str(hub_conn_total), card_x + 0.10, kpi_y, 0.80, 0.44,
+                 font_size=28, bold=True, color_hex=primary)
+        add_text(slide, "connexions", card_x + 0.10, kpi_y + 0.44, card_w - 0.20, 0.18,
+                 font_size=7.5, color_hex='64748B')
+
+        # Divider
+        add_rect(slide, card_x + 0.10, kpi_y + 0.66, card_w - 0.20, 0.01, fill_hex='BFDBFE')
+
+        # Metadata
+        meta_y = kpi_y + 0.76
+        meta_rows = [
+            ('Domaine', hub.get('domain', '—')),
+            ('Catégorie', hub.get('category', '—')),
+            ('Criticité', hub.get('criticality', '—')),
+            ('Éditeur', hub.get('vendor', '—')),
+            ('Responsable', hub.get('owner', '—')),
+            ('Day 1', hub.get('statusD1', '—')),
+            ('Day 2', hub.get('statusD2', '—')),
+        ]
+        for label, val in meta_rows:
+            if meta_y + 0.26 > card_y + card_h - 0.10:
+                break
+            add_text(slide, label, card_x + 0.10, meta_y, card_w * 0.42, 0.20,
+                     font_size=7, bold=True, color_hex='1D4ED8')
+            add_text(slide, str(val or '—'), card_x + 0.10 + card_w * 0.42, meta_y,
+                     card_w - 0.20 - card_w * 0.42, 0.20, font_size=7.5, color_hex='334155')
+            meta_y += 0.26
+
+        # ── Flux area (right side) ─────────────────────────────────────────
+        flux_x = card_x + card_w + 0.18
+        flux_w = CONTENT_W - card_w - 0.18
+        flux_y = card_y
+
+        # Column headers
+        cols = [
+            ('Dir.', 0.28),
+            ('Application satellite', flux_w * 0.26),
+            ('Domaine', flux_w * 0.15),
+            ('Flux / Label', flux_w * 0.22),
+            ('Protocole', flux_w * 0.12),
+            ('Fréquence', flux_w * 0.12),
+        ]
+        # Normalize col widths to fit flux_w
+        total_col = sum(c[1] for c in cols)
+        scale = flux_w / total_col
+        cols = [(lbl, w * scale) for lbl, w in cols]
+
+        hdr_h = 0.24
+        cx = flux_x
+        for lbl, cw in cols:
+            add_rect(slide, cx, flux_y, cw, hdr_h, fill_hex=primary)
+            add_text(slide, lbl, cx + 0.03, flux_y + 0.03, cw - 0.05, hdr_h - 0.05,
+                     font_size=7.5, bold=True, color_hex='FFFFFF')
+            cx += cw
+
+        # Rows: outgoing then incoming
+        row_h = min(0.28, (CONTENT_H - hdr_h - 0.10) / max(len(outgoing) + len(incoming) + 1, 1))
+        row_h = max(row_h, 0.22)
+
+        all_rows = [('→', entry) for entry in outgoing] + [('←', entry) for entry in incoming]
+        max_rows = int((CONTENT_H - hdr_h - 0.10) / row_h)
+
+        # Section separator between outgoing/incoming
+        cur_ry = flux_y + hdr_h
+        prev_dir = None
+
+        for ri, (direction, entry) in enumerate(all_rows[:max_rows]):
+            # Section label when direction changes
+            if direction != prev_dir and len(outgoing) > 0 and len(incoming) > 0:
+                if ri == 0 and direction == '→':
+                    add_rect(slide, flux_x, cur_ry, flux_w, 0.20, fill_hex='DBEAFE')
+                    add_text(slide, f"FLUX SORTANTS ({len(outgoing)})", flux_x + 0.06, cur_ry + 0.02,
+                             flux_w - 0.10, 0.18, font_size=7.5, bold=True, color_hex='1D4ED8')
+                    cur_ry += 0.20
+                elif direction == '←':
+                    add_rect(slide, flux_x, cur_ry, flux_w, 0.20, fill_hex='F0FDF4')
+                    add_text(slide, f"FLUX ENTRANTS ({len(incoming)})", flux_x + 0.06, cur_ry + 0.02,
+                             flux_w - 0.10, 0.18, font_size=7.5, bold=True, color_hex='059669')
+                    cur_ry += 0.20
+                prev_dir = direction
+
+            if cur_ry + row_h > card_y + card_h + 0.05:
+                break
+
+            sat_app = entry['app']
+            flow = entry['flow']
+            bg = 'F8FAFC' if ri % 2 == 0 else 'FFFFFF'
+            dir_color = '2563EB' if direction == '→' else '059669'
+
+            cx = flux_x
+            cell_vals = [
+                direction,
+                sat_app.get('name', ''),
+                sat_app.get('domain', ''),
+                flow.get('label', '') or flow.get('name', ''),
+                flow.get('protocol', ''),
+                flow.get('frequency', ''),
+            ]
+            for ci, (val, (lbl, cw)) in enumerate(zip(cell_vals, cols)):
+                add_rect(slide, cx, cur_ry, cw, row_h, fill_hex=bg, line_hex='E2E8F0', line_w=0.3)
+                fcolor = dir_color if ci == 0 else ('1E293B' if ci <= 1 else '475569')
+                add_text(slide, str(val or ''), cx + 0.04, cur_ry + 0.02,
+                         cw - 0.06, row_h - 0.04,
+                         font_size=8 if ci <= 1 else 7.5,
+                         bold=(ci <= 1),
+                         color_hex=fcolor)
+                cx += cw
+
+            cur_ry += row_h
+
+        # "… et N autres" if truncated
+        if len(all_rows) > max_rows:
+            extra = len(all_rows) - max_rows
+            add_text(slide, f"… et {extra} autre{'s' if extra > 1 else ''} connexion(s)",
+                     flux_x + 0.06, cur_ry + 0.04, flux_w - 0.10, 0.18,
+                     font_size=7.5, italic=True, color_hex='94A3B8')
+
+
 def add_fin_slide(prs: Presentation):
     """Final slide."""
     layout = prs.slide_layouts[14]  # 6_Slide de fin
@@ -1184,6 +1366,7 @@ def generate_pptx(apps: List[Dict], flows: List[Dict], opts: Dict, template_path
     if incl_carto and flows:
         add_flux_matrix_slide(prs, apps, flows, opts)
         add_hubs_slide(prs, apps, flows, opts)
+        add_hub_detail_slides(prs, apps, flows, opts)
 
     if incl_domain_status:
         add_domain_status_slides(prs, apps, opts)
