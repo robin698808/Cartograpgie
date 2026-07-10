@@ -1066,45 +1066,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     reader.readAsText(file);
   },[]);
 
-  const exportPPTX=async(opts)=>{
-    // Build opts the same way as exportPPTXLocal
-    var _rawOpts=opts||exportOpts;
-    var _opts=Object.assign({},_rawOpts,{
-      inclPaysage:_rawOpts.inclPaysage!==false,
-      inclRecapTable:!!_rawOpts.inclMatrices,
-      inclAggregated:!!_rawOpts.inclMatrices,
-      inclDomainStatus:!!_rawOpts.inclDomainStatus,
-      synthDetail:"none",
-      inclFocusDomain:false,
-      inclKPI:false,
-      inclHubSlides:false,
-      inclLegend:true,
-      flowLineStyle:_rawOpts.flowLineStyle||"solid",
-      hubLimit:Math.max(1,parseInt(_rawOpts.hubLimit)||8),
-    });
-    // Try backend
-    try{
-      var token=null;
-      try{token=localStorage.getItem("token");}catch(e){}
-      var _apiBase=(import.meta.env.VITE_API_URL||'/api').replace(/\/$/,'');
-      var resp=await fetch(_apiBase+'/export/pptx',{
-        method:'POST',
-        headers:Object.assign({'Content-Type':'application/json'},token?{'Authorization':'Bearer '+token}:{}),
-        body:JSON.stringify({apps:apps,flows:flows,opts:_opts})
-      });
-      if(!resp.ok)throw new Error('HTTP '+resp.status);
-      var blob=await resp.blob();
-      var url=URL.createObjectURL(blob);
-      var a=document.createElement('a');
-      a.href=url;
-      a.download='cartographie_'+new Date().toISOString().slice(0,10)+'.pptx';
-      a.click();
-      URL.revokeObjectURL(url);
-    }catch(e){
-      console.warn('Backend PPTX export failed, using local fallback:',e);
-      await exportPPTXLocal(opts);
-    }
-  };
+  const exportPPTX=async(opts)=>exportPPTXLocal(opts);
 
   const exportPPTXLocal=async(opts)=>{
     await ensurePptx();
