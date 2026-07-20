@@ -33,6 +33,8 @@ const SD1={"Transfert TSA":"#F59E0B","Abandon":"#EF4444","Maintien":"#10B981","R
 const SD2={"Clone & Clean":"#3B82F6","Transfert":"#10B981","Abandon":"#EF4444","Rebuild":"#8B5CF6"};
 const D1_OPTS=["","Transfert TSA","Maintien","Rebuild","Abandon"];
 const D2_OPTS=["","Clone & Clean","Transfert","Abandon","Rebuild"];
+const STATUT_OPTS=["","Actif","Actif dégradé","Legacy","En décommissionnement","Décommissionné","En maintenance","Suspendu","Inconnu","Cible","À refondre","À migrer","À consolider","À décommissionner","À remplacer","À créer","En étude"];
+const STATUT_COLORS={"Actif":"#10B981","Actif dégradé":"#F59E0B","Legacy":"#8B5CF6","En décommissionnement":"#EF4444","Décommissionné":"#6B7280","En maintenance":"#3B82F6","Suspendu":"#F97316","Inconnu":"#9CA3AF","Cible":"#06B6D4","À refondre":"#EC4899","À migrer":"#14B8A6","À consolider":"#A78BFA","À décommissionner":"#F87171","À remplacer":"#FB923C","À créer":"#34D399","En étude":"#60A5FA"};
 const PROTOS = ["API","REST","SOAP","SFTP","ETL","JDBC","ODBC","Webhook","MQ","Batch","Manuel","Fichier","Autre"];
 const FREQS = ["","Temps réel","Horaire","Journalier","Hebdomadaire","Mensuel","À la demande"];
 const uid = () => Math.random().toString(36).slice(2,10);
@@ -42,7 +44,7 @@ const FIELDS = [
   {key:"name",label:"Nom application",req:true},{key:"domain",label:"Domaine",req:true},{key:"category",label:"Catégorie (niveau 1)"},
   {key:"description",label:"Description"},{key:"criticality",label:"Criticité"},
   {key:"vendor",label:"Éditeur / Fournisseur"},{key:"version",label:"Version"},{key:"owner",label:"Responsable"},
-  {key:"users",label:"Nb utilisateurs"},{key:"statusD1",label:"Statut Day 1"},{key:"statusD2",label:"Statut Day 2"},{key:"flowTo",label:"Flux vers (séparés par |)"},{key:"flowProtocol",label:"Protocole flux"},{key:"flowLabel",label:"Objet du flux (séparés par |)"},
+  {key:"users",label:"Nb utilisateurs"},{key:"statut",label:"Statut"},{key:"statusD1",label:"Statut Day 1"},{key:"statusD2",label:"Statut Day 2"},{key:"flowTo",label:"Flux vers (séparés par |)"},{key:"flowProtocol",label:"Protocole flux"},{key:"flowLabel",label:"Objet du flux (séparés par |)"},
 ];
 
 const parseCSV = (text) => {
@@ -249,7 +251,7 @@ function pvBuildLayout(apps,w,h,fontSc){
 // ═══ APP CONTEXT ═══
 var AppCtx=React.createContext(null);
 
-function App({ initialSnapshot, onSave, wsMessage, projectId, onThemeChange, topOffset = 0 }) {
+function App({ initialSnapshot, onSave, wsMessage, projectId, onThemeChange, topOffset = 0, projectType = "deal" }) {
   var _stateKey = projectId ? "carto_state_" + projectId : "carto_state";
   var snapshotApplied = useRef(false);
   var _tk=useState(function(){try{return localStorage.getItem("carto_theme")||"dark";}catch(e){return "dark";}});
@@ -286,6 +288,7 @@ function App({ initialSnapshot, onSave, wsMessage, projectId, onThemeChange, top
   const [search,setSearch]=useState("");
   const [selD1,setSelD1]=useState("");
   const [selD2,setSelD2]=useState("");
+  const [selStatut,setSelStatut]=useState("");
   const [activeDomFilter,setActiveDomFilter]=useState("");
   const [selApp,setSelApp]=useState(null);
   const [selFlow,setSelFlow]=useState(null);// selected flow (click)
@@ -945,7 +948,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       var wb=XLSX.utils.book_new();
 
       // ── Onglet 1: Applications (format reimportable) ──
-      var ah=["Nom","Domaine","Categorie","Criticite","Editeur","Version","Responsable","Utilisateurs","Description","Day 1","Day 2","x","y"];
+      var ah=["Nom","Domaine","Categorie","Criticite","Editeur","Version","Responsable","Utilisateurs","Description",...(projectType==='deal'?["Day 1","Day 2"]:["Statut"]),"x","y"];
       var ar=apps.map(function(a){return[
         a.name,
         a.domain,
@@ -956,8 +959,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         a.owner||"",
         a.users||"",
         a.description||"",
-        a.statusD1||"",
-        a.statusD2||"",
+        ...(projectType==='deal'?[a.statusD1||"",a.statusD2||""]:[a.statut||""]),
         Math.round(a.x)||0,
         Math.round(a.y)||0
       ];});
@@ -4250,7 +4252,7 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     pres.writeFile({fileName:"Cartographie_Applicative.pptx"});
   };
 
-  const filtered=useMemo(()=>{let r=apps;if(selDom.length)r=r.filter(a=>selDom.includes(a.domain));if(selCat.length)r=r.filter(a=>selCat.includes(a.category||""));if(selCrit.length)r=r.filter(a=>selCrit.includes(a.criticality));if(selD1)r=r.filter(a=>a.statusD1===selD1);if(selD2)r=r.filter(a=>a.statusD2===selD2);if(search){const s=search.toLowerCase();r=r.filter(a=>a.name.toLowerCase().includes(s)||a.domain.toLowerCase().includes(s)||(a.vendor||"").toLowerCase().includes(s));}return r;},[apps,selDom,selCat,selCrit,selD1,selD2,search]);
+  const filtered=useMemo(()=>{let r=apps;if(selDom.length)r=r.filter(a=>selDom.includes(a.domain));if(selCat.length)r=r.filter(a=>selCat.includes(a.category||""));if(selCrit.length)r=r.filter(a=>selCrit.includes(a.criticality));if(projectType==='deal'){if(selD1)r=r.filter(a=>a.statusD1===selD1);if(selD2)r=r.filter(a=>a.statusD2===selD2);}else{if(selStatut)r=r.filter(a=>a.statut===selStatut);}if(search){const s=search.toLowerCase();r=r.filter(a=>a.name.toLowerCase().includes(s)||a.domain.toLowerCase().includes(s)||(a.vendor||"").toLowerCase().includes(s));}return r;},[apps,selDom,selCat,selCrit,selD1,selD2,selStatut,projectType,search]);
   const activeFilters=(selDom.length+selCat.length+selCrit.length)>0;
   const cats=[...new Set(apps.map(a=>a.category).filter(Boolean))];
   const doms=[...new Set(apps.map(a=>a.domain))];
@@ -4265,7 +4267,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
     const crC=CC[app.criticality]||"#999";
     // D1-driven color: if D1 is set, use D1 color for border/bandeau; else domain color
     const d1C=app.statusD1?(SD1[app.statusD1]||"#888"):null;
-    const cardColor=d1C||c.ac; // D1 color > domain accent
+    const statutC=app.statut?(STATUT_COLORS[app.statut]||"#888"):null;
+    const effectiveColor=projectType==='deal'?d1C:statutC;
+    const cardColor=effectiveColor||c.ac; // status color > domain accent
     const isNeg=app.statusD1==="Abandon"||(app.statusD2==="Abandon"&&!app.statusD1);
     const ds=domScales[app.domain]||1;
     const fsD=fs*ds;
@@ -4288,10 +4292,15 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
       {/* D1 tint overlay */}
       {d1BgTint&&<div style={{position:"absolute",inset:0,background:d1BgTint,pointerEvents:"none",zIndex:0}}/>}
 
-      {/* D1 bandeau bas */}
-      {app.statusD1&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:Math.max(7,Math.round(7*fsD)),background:d1C,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
-        <span style={{fontSize:Math.max(5,Math.round(5*fsD)),color:"#fff",fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",opacity:0.97}}>{app.statusD1==="Transfert TSA"?"TSA":app.statusD1}</span>
-      </div>}
+      {/* D1/Statut bandeau bas */}
+      {projectType==='deal'?
+        (app.statusD1&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:Math.max(7,Math.round(7*fsD)),background:d1C,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
+          <span style={{fontSize:Math.max(5,Math.round(5*fsD)),color:"#fff",fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",opacity:0.97}}>{app.statusD1==="Transfert TSA"?"TSA":app.statusD1}</span>
+        </div>)
+        :(app.statut&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:Math.max(7,Math.round(7*fsD)),background:statutC,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
+          <span style={{fontSize:Math.max(5,Math.round(5*fsD)),color:"#fff",fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",opacity:0.97}}>{app.statut}</span>
+        </div>)
+      }
 
 
 
@@ -4300,9 +4309,9 @@ const [selMode,setSelMode]=useState(false); // toggle select mode
         <div style={{overflow:"hidden",flex:1,minWidth:0}}>
           <div style={{color:c.fg,fontSize:Math.round(10*fsD),fontWeight:700,lineHeight:1.3,letterSpacing:"-0.015em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",textDecoration:isNeg?"line-through":"none"}}>{app.name}</div>
           <div style={{color:c.fg+"99",fontSize:Math.round(8*fsD),lineHeight:1.2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{app.vendor||""}</div>
-          {(app.statusD1||app.statusD2)&&<div style={{display:"flex",gap:3,marginTop:2,overflow:"hidden"}}>
+          {projectType==='deal'?(app.statusD1||app.statusD2)&&<div style={{display:"flex",gap:3,marginTop:2,overflow:"hidden"}}>
             {app.statusD2&&<span style={{fontSize:Math.round(7*fsD),background:(SD2[app.statusD2]||"#3B82F6")+"28",color:SD2[app.statusD2]||"#3B82F6",border:"1px solid "+((SD2[app.statusD2]||"#3B82F6")+"66"),borderRadius:2,padding:"0 3px",fontWeight:700,lineHeight:1.5,flexShrink:0,whiteSpace:"nowrap"}}>{"D2:"+(app.statusD2==="Clone & Clean"?"Clone":app.statusD2)}</span>}
-          </div>}
+          </div>:null}
         </div>
         <div style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
           <span style={{color:crC,fontSize:Math.round(10*fsD),lineHeight:1}}>{crLabel}</span>
@@ -6363,8 +6372,12 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
         {id:"domain",label:"Domaine",sel:selDom,setSel:setSelDom,items:doms.map(d=>({v:d,label:d,color:(DC[d]||DC.Autre).ac}))},
         {id:"category",label:"Catégorie",sel:selCat,setSel:setSelCat,items:cats.map(c=>({v:c,label:c,color:"#D63384"}))},
         {id:"criticality",label:"Criticité",sel:selCrit,setSel:setSelCrit,items:["Haute","Moyenne","Basse"].map(c=>({v:c,label:c,color:CC[c]||"#888"}))},
-        {id:"d1",label:"Day 1",sel:selD1?[selD1]:[],setSel:function(updater){var prev=selD1?[selD1]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD1(next.length?next[next.length-1]:"");},items:[{v:"Transfert TSA",label:"TSA",color:"#F59E0B"},{v:"Maintien",label:"Maintien",color:"#10B981"},{v:"Rebuild",label:"Rebuild",color:"#6366F1"},{v:"Abandon",label:"Abandon",color:"#EF4444"}]},
-        {id:"d2",label:"Day 2",sel:selD2?[selD2]:[],setSel:function(updater){var prev=selD2?[selD2]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD2(next.length?next[next.length-1]:"");},items:[{v:"Clone & Clean",label:"Clone",color:"#3B82F6"},{v:"Transfert",label:"Transfert",color:"#10B981"},{v:"Abandon",label:"Abandon",color:"#EF4444"},{v:"Rebuild",label:"Rebuild",color:"#8B5CF6"}]}
+        ...(projectType==='deal'?[
+          {id:"d1",label:"Day 1",sel:selD1?[selD1]:[],setSel:function(updater){var prev=selD1?[selD1]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD1(next.length?next[next.length-1]:"");},items:[{v:"Transfert TSA",label:"TSA",color:"#F59E0B"},{v:"Maintien",label:"Maintien",color:"#10B981"},{v:"Rebuild",label:"Rebuild",color:"#6366F1"},{v:"Abandon",label:"Abandon",color:"#EF4444"}]},
+          {id:"d2",label:"Day 2",sel:selD2?[selD2]:[],setSel:function(updater){var prev=selD2?[selD2]:[];var next=typeof updater==="function"?updater(prev):updater;setSelD2(next.length?next[next.length-1]:"");},items:[{v:"Clone & Clean",label:"Clone",color:"#3B82F6"},{v:"Transfert",label:"Transfert",color:"#10B981"},{v:"Abandon",label:"Abandon",color:"#EF4444"},{v:"Rebuild",label:"Rebuild",color:"#8B5CF6"}]}
+        ]:[
+          {id:"statut",label:"Statut",sel:selStatut?[selStatut]:[],setSel:function(updater){var prev=selStatut?[selStatut]:[];var next=typeof updater==="function"?updater(prev):updater;setSelStatut(next.length?next[next.length-1]:"");},items:STATUT_OPTS.filter(v=>v).map(v=>({v,label:v,color:STATUT_COLORS[v]||"#888"}))}
+        ])
       ].map(flt=>{
         const isOpen=openFilter===flt.id;
         const count=flt.sel.length;
@@ -6422,7 +6435,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
         </button>
         {openMenu==="create"&&<div style={{position:"absolute",top:"calc(100% + 4px)",left:0,background:T.bgCard,border:"1px solid "+T.border,borderRadius:8,padding:6,minWidth:170,boxShadow:"0 4px 20px #00000040",zIndex:300}}>
           <div style={{fontSize:11,fontWeight:600,color:T.fgDim,textTransform:"uppercase",letterSpacing:1,padding:"4px 10px 6px"}}>Créer</div>
-          <div onClick={function(){setEApp({id:"",name:"",domain:"IT",category:"",description:"",status:"Maintien",criticality:"Moyenne",vendor:"",version:"",owner:"",users:0,x:200-off.x/zm,y:200-off.y/zm,statusD1:"",statusD2:""});setShowAM(true);setOpenMenu(null);}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:4,cursor:"pointer",marginBottom:2}} onMouseEnter={function(e){e.currentTarget.style.background=T.bgHover;}} onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}>
+          <div onClick={function(){setEApp({id:"",name:"",domain:"IT",category:"",description:"",status:"Maintien",criticality:"Moyenne",vendor:"",version:"",owner:"",users:0,x:200-off.x/zm,y:200-off.y/zm,statusD1:"",statusD2:"",statut:""});setShowAM(true);setOpenMenu(null);}} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:4,cursor:"pointer",marginBottom:2}} onMouseEnter={function(e){e.currentTarget.style.background=T.bgHover;}} onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}>
             <span style={{fontSize:16,color:"#00C853"}}>&#9633;</span>
             <div><div style={{fontSize:11,fontWeight:600,color:"#00C853"}}>+ Application</div><div style={{fontSize:11,color:T.fgMuted}}>Ajouter une app au canvas</div></div>
           </div>
@@ -6534,13 +6547,18 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
             <div style={{fontSize:10,color:T.fgDim,marginBottom:4,textTransform:"uppercase",letterSpacing:0.5}}>{k}</div>
             <div style={{fontSize:13,color:v?T.fg:T.fgFaint,fontWeight:v?500:400,paddingLeft:2,fontStyle:v?"normal":"italic"}}>{v||"Non renseigné"}</div>
           </div>)}
-        {(selApp.statusD1||selApp.statusD2)&&<div style={{marginBottom:14,padding:"10px 12px",borderRadius:8,background:T.bgCard,border:"1px solid "+T.borderLight}}>
+        {projectType==='deal'?(selApp.statusD1||selApp.statusD2)&&<div style={{marginBottom:14,padding:"10px 12px",borderRadius:8,background:T.bgCard,border:"1px solid "+T.borderLight}}>
           <div style={{fontSize:10,color:T.fgDim,marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Trajectoire Carve-Out</div>
           <div style={{display:"flex",gap:8}}>
             {selApp.statusD1&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:4,background:(SD1[selApp.statusD1]||"#888")+"25",color:SD1[selApp.statusD1]||"#888",border:"1px solid "+(SD1[selApp.statusD1]||"#888")+"40"}}>D1 · {selApp.statusD1}</span>}
             {selApp.statusD2&&<span style={{fontSize:11,padding:"2px 8px",borderRadius:4,background:(SD2[selApp.statusD2]||"#888")+"25",color:SD2[selApp.statusD2]||"#888",border:"1px solid "+(SD2[selApp.statusD2]||"#888")+"40"}}>D2 · {selApp.statusD2}</span>}
           </div>
-        </div>}
+        </div>:(selApp.statut&&<div style={{marginBottom:14,padding:"10px 12px",borderRadius:8,background:T.bgCard,border:"1px solid "+T.borderLight}}>
+          <div style={{fontSize:10,color:T.fgDim,marginBottom:8,textTransform:"uppercase",letterSpacing:0.5}}>Statut</div>
+          <div style={{display:"flex",gap:8}}>
+            <span style={{background:STATUT_COLORS[selApp.statut]||"#888"}} className="text-xs px-2 py-0.5 rounded-full text-white">{selApp.statut}</span>
+          </div>
+        </div>)}
         <div style={{paddingTop:14,borderTop:"1px solid "+T.borderLight}}>
           <div style={{fontSize:10,color:T.fgDim,marginBottom:6,textTransform:"uppercase",letterSpacing:0.5}}>Description</div>
           <div style={{fontSize:12,color:selApp.description?T.fg:T.fgFaint,lineHeight:1.6,paddingLeft:2,fontStyle:selApp.description?"normal":"italic"}}>{selApp.description||"Non renseignée"}</div>
@@ -6601,7 +6619,14 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
               <input type="text" value={eApp.domain||""} onChange={e=>setEApp(p=>({...p,domain:e.target.value}))} style={I} list="domlist" placeholder="Saisir ou choisir..."/>
               <datalist id="domlist">{ALLDOM.map(d=><option key={d} value={d}/>)}</datalist></div>
             {[{k:"criticality",l:"Criticité",o:["Haute","Moyenne","Basse"]}].map(({k,l,o})=><div key={k}><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>{l}</label><select value={eApp[k]||""} onChange={e=>setEApp(p=>({...p,[k]:e.target.value}))} style={I}>{o.map(v=><option key={v} value={v}>{v}</option>)}</select></div>)}
-      <div style={{background:T.bgAlt,borderRadius:8,padding:10,marginTop:8}}><div style={{fontSize:10,fontWeight:700,color:T.fgMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Trajectoire Carve-Out</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>Day 1</label><select value={eApp.statusD1||""} onChange={e=>setEApp(p=>({...p,statusD1:e.target.value}))} style={I}>{D1_OPTS.map(v=><option key={v} value={v}>{v||"Non défini"}</option>)}</select></div><div><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>Day 2</label><select value={eApp.statusD2||""} onChange={e=>setEApp(p=>({...p,statusD2:e.target.value}))} style={I}>{D2_OPTS.map(v=><option key={v} value={v}>{v||"Non défini"}</option>)}</select></div></div></div>
+      {projectType==='cartographie'?(
+        <div style={{background:T.bgAlt,borderRadius:8,padding:10,marginTop:8}}>
+          <div style={{fontSize:10,fontWeight:700,color:T.fgMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Statut</div>
+          <div><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>Statut</label><select value={eApp.statut||""} onChange={e=>setEApp(a=>({...a,statut:e.target.value}))} style={I}>{STATUT_OPTS.map(v=><option key={v} value={v}>{v||"— Non défini —"}</option>)}</select></div>
+        </div>
+      ):(
+        <div style={{background:T.bgAlt,borderRadius:8,padding:10,marginTop:8}}><div style={{fontSize:10,fontWeight:700,color:T.fgMuted,textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Trajectoire Carve-Out</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}><div><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>Day 1</label><select value={eApp.statusD1||""} onChange={e=>setEApp(p=>({...p,statusD1:e.target.value}))} style={I}>{D1_OPTS.map(v=><option key={v} value={v}>{v||"Non défini"}</option>)}</select></div><div><label style={{fontSize:11,color:T.fgMuted,display:"block",marginBottom:3}}>Day 2</label><select value={eApp.statusD2||""} onChange={e=>setEApp(p=>({...p,statusD2:e.target.value}))} style={I}>{D2_OPTS.map(v=><option key={v} value={v}>{v||"Non défini"}</option>)}</select></div></div></div>
+      )}
       </div>
       <div style={{display:"flex",gap:8,marginTop:16,justifyContent:"flex-end"}}><button onClick={()=>setShowAM(false)} style={{...B,background:T.border}}>Annuler</button><button onClick={()=>{if(!eApp.name)return alert("Nom requis");
                 // Auto-create domain color if new
@@ -6721,7 +6746,7 @@ if(view==="dashboard") return <AppCtx.Provider value={ctxValue}><div style={{hei
               {Chk("inclPaysage","Paysage applicatif","Treemap hiérarchique domaines → catégories → applications",1)}
               {Chk("inclMatrices","Matrices de flux","Récap applications (Domaine / App / D1 / D2) + récap flux + vue agrégée par domaine",2+(Math.ceil(flows.length/18)||1)+(Math.ceil(apps.length/22)||1))}
               {Chk("inclConsolidatedCarto","Vues de cartographie consolidée","Clusters par domaine + vue domaine pivot",2)}
-              {Chk("inclDomainStatus","Vision Day 1 & Day 2","Applications colorées par stratégie de closing et cible (Transfert TSA, Maintien, Rebuild, Abandon)",2)}
+              {projectType==='deal' && Chk("inclDomainStatus","Vision Day 1 & Day 2","Applications colorées par stratégie de closing et cible (Transfert TSA, Maintien, Rebuild, Abandon)",2)}
             </div>
 
             {/* ── Style des flèches de flux ── */}

@@ -197,6 +197,7 @@ export default function Canvas() {
             projectId={projectId}
             onThemeChange={setCanvasDark}
             topOffset={topOffset}
+            projectType={project?.project_type || 'deal'}
           />
         </Suspense>
       </div>

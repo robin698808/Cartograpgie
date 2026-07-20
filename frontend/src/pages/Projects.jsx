@@ -19,7 +19,7 @@ function timeAgo(date) {
   return `il y a ${d}j`;
 }
 
-const DEFAULT_FORM = { nom: '', description: '', visibility: 'private', color: '#6366F1', icon: 'Network', logo: null };
+const DEFAULT_FORM = { nom: '', description: '', visibility: 'private', color: '#6366F1', icon: 'Network', logo: null, project_type: 'deal', project_subtype: '' };
 
 export default function Projects() {
   const [projects, setProjects]       = useState([]);
@@ -412,6 +412,52 @@ export default function Projects() {
                 <span className="f14 w6 t1">{form.nom || 'Nom du projet'}</span>
               </div>
 
+              {/* Type de projet */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Type de projet</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: 'deal', label: 'Deal IT', desc: 'Carve-out, M&A, transition', icon: '🤝' },
+                    { value: 'cartographie', label: 'Cartographie SI', desc: 'Rationalisation, modernisation', icon: '🗺️' }
+                  ].map(t => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, project_type: t.value, project_subtype: '' }))}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${
+                        form.project_type === t.value
+                          ? 'border-indigo-500 bg-indigo-500/10'
+                          : 'border-white/10 hover:border-white/30'
+                      }`}
+                    >
+                      <div className="text-xl mb-1">{t.icon}</div>
+                      <div className="font-medium text-sm">{t.label}</div>
+                      <div className="text-xs opacity-60">{t.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sous-type pour cartographie */}
+              {form.project_type === 'cartographie' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Type de cartographie</label>
+                  <select
+                    value={form.project_subtype}
+                    onChange={e => setForm(f => ({ ...f, project_subtype: e.target.value }))}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="">— Sélectionner —</option>
+                    <option value="Rationalisation & Optimisation du SI">Rationalisation &amp; Optimisation du SI</option>
+                    <option value="Transformation & Modernisation du SI">Transformation &amp; Modernisation du SI</option>
+                    <option value="Urbanisation du SI">Urbanisation du SI</option>
+                    <option value="Audit & Diagnostic du SI">Audit &amp; Diagnostic du SI</option>
+                    <option value="Consolidation applicative">Consolidation applicative</option>
+                    <option value="Migration Cloud">Migration Cloud</option>
+                  </select>
+                </div>
+              )}
+
               <div className="fg">
                 <label className="lbl">Nom du projet *</label>
                 <input className="inp" value={form.nom}
@@ -502,6 +548,16 @@ function ProjectCard({ project, onOpen, onDelete, onAdmin, onEditAppearance, can
               {project.snapshot_count > 0 && (
                 <span className="badge badge-s" style={{ fontSize: 10 }}>
                   {project.snapshot_count}v
+                </span>
+              )}
+              {project.project_type === 'cartographie' && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                  Carto SI
+                </span>
+              )}
+              {project.project_type === 'deal' && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  Deal IT
                 </span>
               )}
             </div>

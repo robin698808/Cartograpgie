@@ -3,8 +3,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base, settings
 from routes import users, projects, snapshots, ws, export
 
+
+def run_migrations(engine):
+    """Add new columns to existing tables if they don't exist."""
+    from sqlalchemy import text, inspect
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+        columns = [col['name'] for col in inspector.get_columns('projects')]
+        if 'project_type' not in columns:
+            conn.execute(text("ALTER TABLE projects ADD COLUMN project_type VARCHAR DEFAULT 'deal' NOT NULL"))
+        if 'project_subtype' not in columns:
+            conn.execute(text("ALTER TABLE projects ADD COLUMN project_subtype VARCHAR"))
+        conn.commit()
+
 # Crée les tables au démarrage (dev — en prod, utiliser Alembic)
 Base.metadata.create_all(bind=engine)
+run_migrations(engine)
 
 app = FastAPI(
     title="Cartographe API",

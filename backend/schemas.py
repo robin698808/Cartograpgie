@@ -67,6 +67,8 @@ class ProjectCreate(BaseModel):
     color: Optional[str] = "#6366F1"
     icon: Optional[str] = "Network"
     logo: Optional[str] = None
+    project_type: Optional[str] = "deal"
+    project_subtype: Optional[str] = None
 
 class ProjectUpdate(BaseModel):
     nom: Optional[str] = None
@@ -75,6 +77,8 @@ class ProjectUpdate(BaseModel):
     color: Optional[str] = None
     icon: Optional[str] = None
     logo: Optional[str] = None
+    project_type: Optional[str] = None
+    project_subtype: Optional[str] = None
 
 class ProjectOut(BaseModel):
     id: int
@@ -84,6 +88,8 @@ class ProjectOut(BaseModel):
     color: Optional[str] = "#6366F1"
     icon: Optional[str] = "Network"
     logo: Optional[str] = None
+    project_type: Optional[str] = "deal"
+    project_subtype: Optional[str] = None
     owner_id: int
     owner: UserOut
     created_at: datetime

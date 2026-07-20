@@ -51,6 +51,8 @@ class Project(Base):
     color = Column(String, default="#6366F1", nullable=True)
     icon  = Column(String, default="Network", nullable=True)
     logo  = Column(Text, nullable=True)   # base64 data URL
+    project_type = Column(String, default="deal", nullable=False)
+    project_subtype = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
